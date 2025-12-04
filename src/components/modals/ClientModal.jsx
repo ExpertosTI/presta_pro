@@ -1,13 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export function ClientModal({ open, onClose, onSave }) {
-  const [form, setForm] = useState({
+export function ClientModal({ open, onClose, onSave, initialClient }) {
+  const emptyForm = {
     name: '',
     phone: '',
     address: '',
     idNumber: '',
     notes: '',
-  });
+  };
+
+  const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    if (!open) return;
+    if (initialClient) {
+      setForm({
+        name: initialClient.name || '',
+        phone: initialClient.phone || '',
+        address: initialClient.address || '',
+        idNumber: initialClient.idNumber || '',
+        notes: initialClient.notes || '',
+      });
+    } else {
+      setForm(emptyForm);
+    }
+  }, [open, initialClient]);
 
   if (!open) return null;
 
@@ -19,14 +36,17 @@ export function ClientModal({ open, onClose, onSave }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.name || !form.phone) return;
-    onSave(form);
-    setForm({ name: '', phone: '', address: '', idNumber: '', notes: '' });
+    const payload = initialClient && initialClient.id
+      ? { ...initialClient, ...form }
+      : form;
+    onSave(payload);
+    setForm(emptyForm);
   };
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-        <h2 className="text-lg font-bold mb-4">Nuevo Cliente</h2>
+        <h2 className="text-lg font-bold mb-4">{initialClient ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre completo</label>

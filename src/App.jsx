@@ -1,29 +1,15 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   Users,
   Calculator,
   Wallet,
-  Bell,
-  Search,
-  Plus,
   FileText,
   TrendingUp,
   AlertCircle,
   CheckCircle,
-  X,
-  ChevronRight,
-  Menu,
-  DollarSign,
-  Calendar,
   Printer,
-  Trash2,
-  MoreVertical,
-  Download,
-  PieChart,
   Settings,
-  HelpCircle,
-  LogOut,
   Briefcase,
   MapPin,
   ClipboardList,
@@ -33,19 +19,18 @@ import {
   Video,
   UserCheck,
   Zap,
-  Send,
+  List,
   Loader2,
-  List
+  LogOut
 } from 'lucide-react';
-import { LineChart, Line, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import logoSmall from '../logo-small.svg';
-import { formatCurrency, formatDate, formatDateTime } from './utils/formatters';
-import { generateId, generateSecurityToken } from './utils/ids';
-import { safeLoad } from './utils/storage';
-import { calculateSchedule } from './utils/amortization';
-import { usePrestaProState } from './state/usePrestaProState';
 
-// Nuevos componentes modularizados
+import logoSmall from '../logo-small.svg';
+import { generateSecurityToken } from './utils/ids';
+import { usePrestaProState } from './state/usePrestaProState';
+import PaymentTicket from './components/PaymentTicket.jsx';
+import MenuSection from './components/ui/MenuSection.jsx';
+import MenuItem from './components/ui/MenuItem.jsx';
+
 import Sidebar from './components/layout/Sidebar.jsx';
 import Header from './components/layout/Header.jsx';
 import MobileMenu from './components/layout/MobileMenu.jsx';
@@ -69,6 +54,8 @@ import SettingsView from './views/SettingsView.jsx';
 import CalculatorView from './views/CalculatorView.jsx';
 import DocumentsView from './views/DocumentsView.jsx';
 
+import { hasPermission, ROLES } from './logic/authLogic';
+
 const TAB_TITLES = {
   dashboard: 'Inicio',
   cuadre: 'Cuadre de Caja',
@@ -87,726 +74,241 @@ const TAB_TITLES = {
   settings: 'Ajustes',
 };
 
-const Card = ({ children, className = "" }) => (
-  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className} print:border-none print:shadow-none`}>
-    {children}
-  </div>
-);
+function App() {
+  const {
+    activeTab,
+    mobileMenuOpen,
+    showNotification,
+    printReceipt,
+    clientModalOpen,
+    employeeModalOpen,
+    securityToken,
+    chatHistory,
+    clients,
+    loans,
+    expenses,
+    requests,
+    notes,
+    receipts,
+    systemSettings,
+    collectors,
+    routeClosings,
+    selectedClientId,
+    selectedLoanId,
+    currentRouteLoanIds,
+    routeActive,
+    setActiveTab,
+    setMobileMenuOpen,
+    setClientModalOpen,
+    setEmployeeModalOpen,
+    setSecurityToken,
+    setChatHistory,
+    setNotes,
+    setSystemSettings,
+    setSelectedClientId,
+    setSelectedLoanId,
+    dbData,
+    addClient,
+    updateClient,
+    addEmployee,
+    addExpense,
+    addRequest,
+    approveRequest,
+    rejectRequest,
+    registerPayment,
+    addCollector,
+    assignCollectorToClient,
+    toggleLoanInRoute,
+    clearCurrentRoute,
+    startRoute,
+    finishRoute,
+    addRouteClosing,
+    showToast,
+    auth,
+    updateLoan
+  } = usePrestaProState();
 
-const Badge = ({ status }) => {
-  const styles = {
-    ACTIVE: 'bg-blue-100 text-blue-800',
-    PAID: 'bg-green-100 text-green-800',
-    LATE: 'bg-red-100 text-red-800',
-    PENDING: 'bg-slate-100 text-slate-800',
-    APPROVED: 'bg-teal-100 text-teal-800',
-    REJECTED: 'bg-red-50 text-red-600',
-    REVIEW: 'bg-yellow-100 text-yellow-800'
-  };
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [editingClient, setEditingClient] = useState(null);
 
-  const labels = {
-    ACTIVE: 'Activo',
-    PAID: 'Pagado',
-    LATE: 'Atrasado',
-    PENDING: 'Pendiente',
-    APPROVED: 'Aprobado',
-    REJECTED: 'Rechazado',
-    REVIEW: 'En revisión',
-  };
-
-  const label = labels[status] || status;
-
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[status] || styles.PENDING}`}>
-      {label}
-    </span>
-  );
-};
-
-// --- TICKET DE PAGO (ESTILO MODERNO / IMPRESIÓN TÉRMICA) ---
-const PaymentTicket = ({ receipt, companyName = "Presta Pro" }) => {
-  if (!receipt) return null;
-  return (
-    <div className="hidden print:block fixed inset-0 bg-slate-100 z-[100] p-3 font-sans text-slate-900 text-[12px] leading-tight">
-      <div className="max-w-[80mm] mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Encabezado */}
-        <div className="px-3 pt-3 pb-1.5 text-center border-b border-slate-200 bg-slate-50">
-          <h1 className="text-lg font-extrabold tracking-tight mb-0.5">{companyName}</h1>
-          <p className="text-[10px] text-slate-600 font-semibold">RNC: 101-00000-1</p>
-          <div className="flex items-center justify-center gap-1 mt-1 text-emerald-600 font-bold text-[12px]">
-            <CheckCircle size={13} className="inline-block" />
-            <span>Pago registrado</span>
-          </div>
-        </div>
-
-        {/* Monto principal */}
-        <div className="px-3 py-2 bg-slate-50 border-b border-slate-200">
-          <p className="text-[11px] text-slate-600 font-semibold mb-0.5 uppercase">Monto pagado</p>
-          <p className="text-2xl font-extrabold text-slate-900 tracking-tight">{formatCurrency(receipt.amount)}</p>
-        </div>
-
-        {/* Detalles principales */}
-        <div className="px-3 py-2 space-y-0.5">
-          <div className="flex justify-between text-[11px]">
-            <span className="font-semibold text-slate-700">Recibo</span>
-            <span className="font-mono font-bold text-slate-900">{receipt.id.substr(0,8).toUpperCase()}</span>
-          </div>
-          <div className="flex justify-between text-[11px] items-center">
-            <span className="font-semibold text-slate-700 flex items-center gap-1">
-              <Calendar size={11} /> Fecha pago
-            </span>
-            <span className="font-bold text-slate-900">{formatDateTime(receipt.date)}</span>
-          </div>
-        </div>
-
-        {/* Cliente y préstamo */}
-        <div className="px-3 py-1.5 border-t border-slate-100 space-y-0.5">
-          <p className="text-[11px] font-bold text-slate-800 uppercase">Cliente</p>
-          <p className="text-[12px] font-bold text-slate-900">{receipt.clientName}</p>
-          {receipt.clientPhone && (
-            <p className="text-[11px] text-slate-700 font-semibold">Tel: {receipt.clientPhone}</p>
-          )}
-          {receipt.clientAddress && (
-            <p className="text-[11px] text-slate-700 flex items-center gap-1 font-semibold">
-              <MapPin size={10} /> {receipt.clientAddress}
-            </p>
-          )}
-        </div>
-
-        <div className="px-3 py-1.5 border-t border-slate-100 space-y-0.5">
-          <p className="text-[11px] font-bold text-slate-800 uppercase">Préstamo</p>
-          <div className="flex justify-between text-[11px]">
-            <span className="font-semibold text-slate-700">ID</span>
-            <span className="font-mono font-bold text-slate-900">{receipt.loanId.substr(0,6).toUpperCase()}</span>
-          </div>
-          {typeof receipt.loanAmount === 'number' && (
-            <div className="flex justify-between text-[11px]">
-              <span className="font-semibold text-slate-700">Monto del préstamo</span>
-              <span className="font-bold text-slate-900">{formatCurrency(receipt.loanAmount)}</span>
-            </div>
-          )}
-          {typeof receipt.totalPaidAfter === 'number' && (
-            <div className="flex justify-between text-[11px]">
-              <span className="font-semibold text-slate-700">Total pagado</span>
-              <span className="font-bold text-slate-900">{formatCurrency(receipt.totalPaidAfter)}</span>
-            </div>
-          )}
-          {typeof receipt.remainingBalance === 'number' && (
-            <div className="flex justify-between text-[11px]">
-              <span className="font-semibold text-slate-700">Balance pendiente</span>
-              <span className="font-bold text-slate-900">{formatCurrency(receipt.remainingBalance)}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Info de cuota */}
-        <div className="px-3 py-1.5 border-t border-slate-100 space-y-0.5">
-          <p className="text-[11px] font-bold text-slate-800 uppercase">Detalle de la cuota</p>
-          <div className="flex justify-between text-[11px]">
-            <span className="font-semibold text-slate-700">Cuota #</span>
-            <span className="font-bold text-slate-900">{receipt.installmentNumber}</span>
-          </div>
-          {receipt.installmentDate && (
-            <div className="flex justify-between text-[11px]">
-              <span className="font-semibold text-slate-700">Fecha programada</span>
-              <span className="font-bold text-slate-900">{formatDate(receipt.installmentDate)}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-[11px]">
-            <span className="font-semibold text-slate-700">Concepto</span>
-            <span className="font-bold text-slate-900">Pago de cuota</span>
-          </div>
-          <div className="flex justify-between text-[11px]">
-            <span className="font-semibold text-slate-700">Cobrador</span>
-            <span className="font-bold text-slate-900">Admin</span>
-          </div>
-        </div>
-
-        {/* Pie */}
-        <div className="px-3 py-2 text-center border-t border-slate-200 bg-slate-50 mt-0.5">
-          <p className="text-[11px] text-slate-600 font-semibold">Gracias por su pago puntual.</p>
-          <p className="text-[11px] text-slate-600 font-semibold">Conserve este recibo como constancia.</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- ASISTENTE AI COMPONENT ---
-const AIHelper = ({ chatHistory, setChatHistory, dbData, showToast }) => {
-  const [loading, setLoading] = useState(false);
-  const [input, setInput] = useState('');
-  const chatEndRef = useRef(null);
-
-  // Scroll to bottom on message update
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory]);
-  
-  // Usar un resumen estructurado y legible de los datos de la aplicación para dar contexto al asistente
-  const getContextualData = () => {
-    const clientsCount = dbData.clients.length;
-    const activeLoans = dbData.loans.filter(l => l.status === 'ACTIVE').length;
-    const totalLent = dbData.loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
-    const totalExpenses = dbData.expenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
-    const totalReceipts = dbData.receipts.length;
-    const employeesCount = dbData.employees ? dbData.employees.length : 0;
-    
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const pendingCollections = dbData.loans.flatMap(loan => 
-      loan.schedule
-        .filter(s => s.status !== 'PAID' && new Date(s.date) <= today)
-        .map(s => ({
-          loanId: loan.id,
-          date: s.date,
-          payment: s.payment
-        }))
-    ).sort((a,b) => new Date(a.date) - new Date(b.date));
-
-    const pendingSummary = pendingCollections.slice(0, 5).map(p => ({
-      loanId: p.loanId.substr(0, 6),
-      date: formatDate(p.date),
-      amount: formatCurrency(p.payment)
-    }));
-
-    const pendingLines = pendingSummary.length
-      ? pendingSummary.map(p => `- ${p.date}: ${p.amount} (Préstamo ${p.loanId})`).join('\n')
-      : '- Ninguno (no hay cobros vencidos o de hoy).';
-
-    // Últimos recibos detallados (cliente, monto, posible cobrador)
-    const lastReceipts = (dbData.receipts || [])
-      .slice()
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 10);
-
-    const lastReceiptsLines = lastReceipts.length
-      ? lastReceipts.map(r => {
-          const client = dbData.clients.find(c => c.id === r.clientId);
-          const collector = client && dbData.collectors
-            ? dbData.collectors.find(col => col.id === client.collectorId)
-            : null;
-          const clientName = client?.name || 'Cliente sin nombre';
-          const amount = formatCurrency(r.amount || 0);
-          const date = formatDate(r.date);
-          const collectorName = collector?.name ? ` • Cobrador: ${collector.name}` : '';
-          return `- ${date}: ${amount} • ${clientName}${collectorName}`;
-        }).join('\n')
-      : '- No hay recibos registrados aún.';
-
-    return `Indicadores financieros actuales (uso interno del asistente):\n\n` +
-      `- Total de clientes: ${clientsCount}\n` +
-      `- Préstamos activos: ${activeLoans}\n` +
-      `- Monto total prestado (capital): ${formatCurrency(totalLent)}\n` +
-      `- Gastos totales acumulados: ${formatCurrency(totalExpenses)}\n` +
-      `- Recibos de pago registrados: ${totalReceipts}\n` +
-      `- Empleados registrados: ${employeesCount}\n` +
-      `- Próximos 5 cobros pendientes:\n${pendingLines}\n\n` +
-      `Últimos recibos de pago registrados (máx. 10):\n${lastReceiptsLines}`;
-  };
-  
-  const systemInstruction = `Eres la secretaria contable personal del dueño de Renace.tech, una financiera de préstamos y cobranza.
-Tu rol principal es llevarle la contabilidad del día a día y ayudarle a entender, con claridad, todo lo que está pasando con:
-- Los pagos que realizan los clientes.
-- El dinero que entra y sale de caja.
-- Lo que hacen los cobradores en sus rutas (cuánto cobran, a quiénes, y qué falta por cobrar).
-
-Tienes acceso a un resumen estructurado de los datos actuales del sistema (cartera, gastos, recibos, empleados, cobradores, etc.):
-${getContextualData()}
-
-Instrucciones de comportamiento:
-- Responde SIEMPRE en español, con tono de secretaria organizada, clara y directa.
-- Prioriza explicar el flujo de dinero: quién pagó, cuánto se ha cobrado hoy, qué falta por cobrar y cómo van los cobradores.
-- Cuando presentes un resumen, usa listas de puntos claras y fáciles de leer; evita tablas Markdown y evita mostrar JSON directamente.
-- Basa tus respuestas únicamente en los datos del sistema y en el mensaje del usuario.
-- Cuando no haya datos suficientes para una conclusión, dilo explícitamente y propone qué información adicional habría que registrar en el sistema.
-- Cuando des recomendaciones financieras o de control interno, aclara que no sustituyen asesoría legal, contable o regulatoria profesional.
-- Nunca inventes números, clientes ni cobradores; si algo no aparece en los datos, dilo de forma explícita.
-- No intentes llamar funciones ni herramientas externas fuera de este contexto.`;
-  
-  const handleSendMessage = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
-    if (!input.trim() || loading) return;
-
-    const userMessage = input.trim();
-    setChatHistory(prev => [...prev, { role: 'user', text: userMessage }]);
-    setInput('');
-    setLoading(true);
-
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      showToast('El Asistente AI no está configurado en esta instalación.', 'error');
-      setLoading(false);
+    if (!loginUser.trim() || !loginPassword.trim()) {
+      setLoginError('Ingresa usuario y contraseña.');
       return;
     }
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    const result = auth.login(loginUser.trim(), loginPassword.trim());
+    if (result.success) {
+      setLoginError('');
+      setLoginUser('');
+      setLoginPassword('');
+      const loggedUser = result.user || auth.user;
+      showToast(`Bienvenido, ${loggedUser?.name || 'Usuario'}`, 'success');
 
-    const contents = [
-      ...chatHistory.map(msg => ({ 
-        role: msg.role === 'user' ? 'user' : 'model', 
-        parts: [{ text: msg.text }] 
-      })),
-      { role: 'user', parts: [{ text: userMessage }] }
-    ];
-
-    const payload = {
-      contents: contents,
-      systemInstruction: {
-        parts: [{ text: systemInstruction }]
-      },
-      // Habilitar Google Search grounding para información externa, aunque la instrucción del sistema enfatiza los datos locales.
-      tools: [{ "google_search": {} }], 
-    };
-
-    let responseData = null;
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    while (attempts < maxAttempts) {
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                if (response.status === 429) { // Too Many Requests
-                    // Exponential backoff
-                    const delay = Math.pow(2, attempts) * 1000;
-                    console.warn(`Rate limit hit. Retrying in ${delay / 1000}s...`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    attempts++;
-                    continue; // Go to next attempt
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            responseData = await response.json();
-            break; // Success, exit loop
-
-        } catch (error) {
-            console.error("Error fetching AI response:", error);
-            showToast('Error al conectar con el Asistente AI.', 'error');
-            setLoading(false);
-            return;
-        }
+      if (loggedUser?.role === ROLES.COLLECTOR) {
+        setActiveTab('routes');
+      } else {
+        setActiveTab('dashboard');
+      }
+    } else {
+      setLoginError(result.error || 'Error de inicio de sesión');
     }
-    
-    setLoading(false);
-
-    const candidate = responseData?.candidates?.[0];
-    const text = candidate?.content?.parts?.[0]?.text || 'Lo siento, no pude obtener una respuesta del modelo.';
-
-    setChatHistory(prev => [...prev, { role: 'model', text }]);
   };
 
-  return (
-    <Card className="flex flex-col h-full">
-      <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Zap size={20} className="text-blue-500"/> Asistente IA</h2>
-      
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2" style={{ maxHeight: 'calc(100vh - 250px)' }}>
-        {/* Mensaje inicial */}
-        {chatHistory.length === 0 && (
-          <div className="bg-blue-50 p-4 rounded-xl text-sm border border-blue-200">
-            <p className="font-semibold text-blue-800 mb-1">Hola, soy el Asistente IA de Renace.tech.</p>
-            <p className="text-blue-700">Puedes preguntarme cosas como: "¿Cuál es el balance total prestado?" o "¿Cuántos clientes tenemos?"</p>
-          </div>
-        )}
+  const handleLogout = () => {
+    auth.logout();
+    showToast('Sesión cerrada.', 'info');
+  };
 
-        {/* Mensajes del chat */}
-        {chatHistory.map((message, index) => (
-          <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-3/4 p-3 rounded-xl ${
-              message.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-tl-none'
-            }`}>
-              <p className="whitespace-pre-wrap">{message.text}</p>
-            </div>
-          </div>
-        ))}
-
-        {/* Indicador de carga */}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="p-3 bg-slate-100 text-slate-800 rounded-xl rounded-tl-none">
-              <Loader2 size={20} className="animate-spin text-blue-500"/>
-            </div>
-          </div>
-        )}
-
-        <div ref={chatEndRef} />
-      </div>
-
-      {/* Input */}
-      <form onSubmit={handleSendMessage} className="mt-4 flex gap-2 pt-4 border-t border-slate-100">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Escribe tu consulta..."
-          className="flex-1 p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          className={`bg-blue-600 text-white p-3 rounded-xl transition-colors ${loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-          disabled={loading}
-        >
-          <Send size={20} />
-        </button>
-      </form>
-    </Card>
-  );
-};
-
-  const SolicitudesView = () => {
-    // Reutilizamos formulario de creación de préstamos pero con otra acción
-    const [form, setForm] = useState({ clientId: '', amount: '', rate: '', term: '', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
-
+  if (auth.loading) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800">Solicitudes de Crédito</h2>
-          <button onClick={() => document.getElementById('reqForm').scrollIntoView()} className="bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-            <Plus size={18}/> Nueva Solicitud
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  }
 
-        {/* Kanban Board Simple */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-             <h3 className="font-bold text-slate-600 uppercase text-sm tracking-wider flex items-center gap-2"><AlertCircle size={16}/> En Revisión</h3>
-             {requests.filter(r => r.status === 'REVIEW').map(req => {
-               const client = clients.find(c => c.id === req.clientId);
-               return (
-                 <div key={req.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="flex justify-between mb-2">
-                       <span className="font-bold text-slate-800">{client?.name}</span>
-                       <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Revisión</span>
-                    </div>
-                    <div className="text-sm text-slate-600 grid grid-cols-2 gap-2 mb-3">
-                       <div>Monto: <span className="font-semibold">{formatCurrency(req.amount)}</span></div>
-                       <div>Tasa: {req.rate}%</div>
-                       <div>Plazo: {req.term} {req.frequency}</div>
-                    </div>
-                    <div className="flex gap-2">
-                       <button onClick={() => approveRequest(req)} className="flex-1 bg-teal-600 text-white py-1.5 rounded-lg text-sm font-bold hover:bg-teal-700">Aprobar</button>
-                       <button onClick={() => rejectRequest(req)} className="flex-1 bg-red-100 text-red-700 py-1.5 rounded-lg text-sm font-bold hover:bg-red-200">Rechazar</button>
-                    </div>
-                 </div>
-               );
-             })}
-             {requests.filter(r => r.status === 'REVIEW').length === 0 && <p className="text-center text-slate-400 py-4 text-sm">No hay solicitudes pendientes</p>}
-          </div>
+  if (!auth.isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50 px-4">
+        <div className="w-full max-w-md md:max-w-xl">
+          <div className="bg-slate-950/80 border border-slate-800 rounded-3xl px-8 py-10 md:px-12 md:py-12 shadow-[0_30px_80px_rgba(15,23,42,0.9)]">
+            <div className="flex justify-center mb-8">
+              <img src={logoSmall} alt="Presta Pro" className="w-56 h-56 object-contain" />
+            </div>
 
-          <div id="reqForm">
-             <Card>
-                <h3 className="font-bold text-lg mb-4">Crear Nueva Solicitud</h3>
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <select className="flex-1 p-2 border rounded-lg bg-white" value={form.clientId} onChange={e => setForm({...form, clientId: e.target.value})}>
-                      <option value="">Seleccionar Cliente</option>
-                      {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                    <button onClick={() => setClientModalOpen(true)} className="bg-blue-100 text-blue-700 p-2 rounded-lg hover:bg-blue-200"><Plus/></button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="number" placeholder="Monto" className="p-2 border rounded-lg" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})}/>
-                    <input type="number" placeholder="Tasa %" className="p-2 border rounded-lg" value={form.rate} onChange={e => setForm({...form, rate: e.target.value})}/>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="number" placeholder="Plazo" className="p-2 border rounded-lg" value={form.term} onChange={e => setForm({...form, term: e.target.value})}/>
-                    <select className="p-2 border rounded-lg" value={form.frequency} onChange={e => setForm({...form, frequency: e.target.value})}>
-                       <option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option>
-                    </select>
-                  </div>
-                  <button onClick={() => { if(form.clientId) addRequest(form); }} className="w-full bg-slate-800 text-white py-3 rounded-lg font-bold">Guardar Solicitud</button>
+            <h2 className="text-2xl font-bold mb-2 text-center">Acceso seguro</h2>
+            <p className="text-sm text-slate-400 mb-8 text-center">
+              Ingresa tus credenciales para continuar.
+            </p>
+
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Usuario</label>
+                  <input
+                    type="text"
+                    value={loginUser}
+                    onChange={(e) => setLoginUser(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-slate-900/80 border border-slate-700 text-sm text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Usuario"
+                  />
                 </div>
-             </Card>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-slate-900/80 border border-slate-700 text-sm text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="••••••"
+                  />
+                </div>
+              </div>
+
+              {loginError && (
+                <p className="text-xs text-red-400 bg-red-950/40 border border-red-900 rounded-lg px-3 py-2 text-center">
+                  {loginError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm py-2.5 rounded-lg shadow-md transition-colors mt-2"
+              >
+                Entrar al panel
+              </button>
+            </form>
           </div>
         </div>
       </div>
     );
-  };
+  }
 
-  const RutaView = () => {
-    // Lógica de Ruta: Buscar clientes con cuotas PENDING que tengan fecha <= hoy
-    const today = new Date();
-    today.setHours(0,0,0,0);
+  const role = auth.user?.role;
 
-    const pendingCollections = loans.flatMap(loan => {
-       const client = clients.find(c => c.id === loan.clientId);
-       const pendingInstallment = loan.schedule.find(s => s.status !== 'PAID');
-       
-       if (!pendingInstallment) return [];
-       
-       const dueDate = new Date(pendingInstallment.date);
-       // Incluir si ya venció o vence hoy
-       if (dueDate <= new Date()) {
-          return [{
-             ...pendingInstallment,
-             loanId: loan.id,
-             clientName: client?.name,
-             clientAddress: client?.address,
-             clientPhone: client?.phone,
-             totalDue: pendingInstallment.payment + (dueDate < today ? 100 : 0) // Simulación de mora
-          }];
-       }
-       return [];
-    });
-
-    // Agrupar por dirección (Simulación de optimización de ruta)
-    const sortedRoute = pendingCollections.sort((a, b) => a.clientAddress?.localeCompare(b.clientAddress));
-
-    return (
-      <div className="space-y-6 animate-fade-in">
-         <div className="flex justify-between items-center bg-indigo-600 text-white p-6 rounded-2xl shadow-lg">
-            <div>
-               <h2 className="text-2xl font-bold flex items-center gap-2"><MapPin/> Ruta Inteligente</h2>
-               <p className="opacity-80">Optimización de cobros por zona</p>
-            </div>
-            <div className="text-right">
-               <p className="text-3xl font-bold">{pendingCollections.length}</p>
-               <p className="text-xs uppercase tracking-wider">Paradas Hoy</p>
-            </div>
-         </div>
-
-         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-               {sortedRoute.map((stop, index) => (
-                  <div key={stop.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:border-indigo-500 transition-colors">
-                     <div className="flex items-center gap-4 w-full">
-                        <div className="bg-indigo-100 text-indigo-700 w-10 h-10 rounded-full flex items-center justify-center font-bold">{index + 1}</div>
-                        <div>
-                           <h4 className="font-bold text-slate-800">{stop.clientName}</h4>
-                           <p className="text-sm text-slate-500 flex items-center gap-1"><MapPin size={14}/> {stop.clientAddress}</p>
-                           <p className="text-xs text-slate-400 mt-1">Cuota #{stop.number} • Vence: {formatDate(stop.date)}</p>
-                        </div>
-                     </div>
-                     <div className="text-right w-full md:w-auto">
-                        <p className="font-bold text-lg text-slate-800">{formatCurrency(stop.payment)}</p>
-                        <button onClick={() => registerPayment(stop.loanId, stop.id)} className="mt-2 w-full bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-green-600 flex items-center justify-center gap-2">
-                           <CheckCircle size={16}/> Cobrar
-                        </button>
-                     </div>
-                  </div>
-               ))}
-               {sortedRoute.length === 0 && (
-                  <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
-                     <CheckCircle size={48} className="text-green-400 mx-auto mb-4"/>
-                     <h3 className="text-lg font-bold text-slate-700">¡Ruta Completada!</h3>
-                     <p className="text-slate-500">No hay cobros pendientes para hoy.</p>
-                  </div>
-               )}
-            </div>
-            
-            <div className="lg:col-span-1">
-               <Card className="bg-slate-50 border-slate-200">
-                  <h3 className="font-bold text-slate-800 mb-4">Resumen de Ruta</h3>
-                  <div className="space-y-4">
-                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Total a Recaudar</span>
-                        <span className="font-bold text-slate-800">{formatCurrency(sortedRoute.reduce((acc, i) => acc + i.payment, 0))}</span>
-                     </div>
-                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Clientes Visitados</span>
-                        <span className="font-bold text-slate-800">0 / {sortedRoute.length}</span>
-                     </div>
-                     <hr className="border-slate-200"/>
-                     <div className="bg-white p-3 rounded-lg border border-slate-200">
-                        <p className="text-xs font-bold text-slate-500 uppercase mb-2">Mapa Visual</p>
-                        <div className="h-40 bg-slate-100 rounded flex items-center justify-center text-slate-400 text-xs">
-                           [Mapa Google Maps Integrado]
-                        </div>
-                     </div>
-                     <button onClick={() => window.print()} className="w-full bg-slate-800 text-white py-2 rounded-lg font-bold text-sm">Imprimir Hoja de Ruta</button>
-                  </div>
-               </Card>
-            </div>
-          </div>
-        </div>
-      );
-  };
-
-  const ContabilidadView = () => (
-    <div className="space-y-4 animate-fade-in">
-      <h2 className="text-2xl font-bold text-slate-800">Contabilidad</h2>
-      <Card>
-        <p className="text-sm text-slate-600">
-          Aquí podrás integrar reportes contables, exportación a Excel y conciliaciones.
-        </p>
-      </Card>
-    </div>
-  );
-
-  function App() {
-    const {
-      activeTab,
-      mobileMenuOpen,
-      showNotification,
-      searchQuery,
-      printReceipt,
-      clientModalOpen,
-      employeeModalOpen,
-      securityToken,
-      chatHistory,
-      clients,
-      loans,
-      expenses,
-      requests,
-      notes,
-      receipts,
-      systemSettings,
-      collectors,
-      routeClosings,
-      selectedClientId,
-      selectedLoanId,
-      currentRouteLoanIds,
-      routeActive,
-      setActiveTab,
-      setMobileMenuOpen,
-      setSearchQuery,
-      setPrintReceipt,
-      setClientModalOpen,
-      setEmployeeModalOpen,
-      setSecurityToken,
-      setChatHistory,
-      setClients,
-      setLoans,
-      setExpenses,
-      setRequests,
-      setNotes,
-      setReceipts,
-      setSystemSettings,
-      setCollectors,
-      setRouteClosings,
-      setSelectedClientId,
-      setSelectedLoanId,
-      dbData,
-      handlePrint,
-      addClient,
-      addEmployee,
-      addExpense,
-      addRequest,
-      approveRequest,
-      rejectRequest,
-      createLoan,
-      registerPayment,
-      addCollector,
-      assignCollectorToClient,
-      toggleLoanInRoute,
-      clearCurrentRoute,
-      startRoute,
-      finishRoute,
-      addRouteClosing,
-    } = usePrestaProState();
-
-    const showToast = (message, type = 'info') => {
-      console.log(`[TOAST:${type}]`, message);
-    };
-
-    return (
-      <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
-        {/* CLIENT MODAL */}
-        {clientModalOpen && (
-          <ClientModal
-            open={clientModalOpen}
-            onClose={() => setClientModalOpen(false)}
-            onSave={(data) => {
+  return (
+    <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
+      {clientModalOpen && (
+        <ClientModal
+          open={clientModalOpen}
+          initialClient={editingClient}
+          onClose={() => {
+            setClientModalOpen(false);
+            setEditingClient(null);
+          }}
+          onSave={(data) => {
+            if (data.id) {
+              updateClient(data);
+            } else {
               addClient(data);
-              setClientModalOpen(false);
-            }}
-          />
-        )}
-        {/* EMPLOYEE MODAL */}
-        {employeeModalOpen && (
-          <EmployeeModal
-            open={employeeModalOpen}
-            onClose={() => setEmployeeModalOpen(false)}
-            onSave={(data) => {
-              addEmployee(data);
-              setEmployeeModalOpen(false);
-            }}
-          />
-        )}
-        {/* TICKET PRINTER OVERLAY */}
-        {printReceipt && <PaymentTicket receipt={printReceipt} />}
+            }
+            setClientModalOpen(false);
+            setEditingClient(null);
+          }}
+        />
+      )}
+      {employeeModalOpen && (
+        <EmployeeModal
+          open={employeeModalOpen}
+          onClose={() => setEmployeeModalOpen(false)}
+          onSave={(data) => {
+            addEmployee(data);
+            setEmployeeModalOpen(false);
+          }}
+        />
+      )}
+      {printReceipt && <PaymentTicket receipt={printReceipt} />}
 
-      {/* Sidebar - HIDDEN ON PRINT */}
-      <aside className="hidden md:flex flex-col w-72 bg-slate-900 text-white shadow-2xl z-20 print:hidden">
-        <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden">
-            <img src={logoSmall} alt="Presta Pro" className="w-8 h-8 object-contain" />
-          </div>
-          <div>
-            <span className="text-xl font-extrabold tracking-tight block leading-none">Presta Pro</span>
-            <span className="text-xs text-slate-400 font-medium tracking-wider uppercase">Gestión de Préstamos</span>
-          </div>
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab}>
+        <MenuSection title="Tablero de Control">
+          {hasPermission(role, 'dashboard') && <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />}
+          {hasPermission(role, 'accounting') && <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab === 'cuadre'} onClick={() => setActiveTab('cuadre')} />}
+        </MenuSection>
+
+        <MenuSection title="Operaciones">
+          {hasPermission(role, 'clients') && <MenuItem icon={Users} label="Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />}
+          {hasPermission(role, 'loans') && <MenuItem icon={Wallet} label="Cobros" active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} />}
+          {hasPermission(role, 'requests') && <MenuItem icon={FileText} label="Solicitudes" active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} />}
+          {hasPermission(role, 'loans') && <MenuItem icon={Briefcase} label="Préstamos" active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} />}
+          {hasPermission(role, 'expenses') && <MenuItem icon={TrendingUp} label="Gastos" active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} />}
+        </MenuSection>
+
+        <MenuSection title="Herramientas">
+          {hasPermission(role, 'ai') && <MenuItem icon={Zap} label="Asistente IA" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />}
+          {hasPermission(role, 'routes') && <MenuItem icon={MapPin} label="Rutas & GPS" active={activeTab === 'routes'} onClick={() => setActiveTab('routes')} />}
+          {hasPermission(role, 'documents') && <MenuItem icon={FileText} label="Documentos" active={activeTab === 'documents'} onClick={() => setActiveTab('documents')} />}
+          {hasPermission(role, 'notes') && <MenuItem icon={ClipboardList} label="Notas" active={activeTab === 'notes'} onClick={() => setActiveTab('notes')} />}
+          {hasPermission(role, 'reports') && <MenuItem icon={Printer} label="Reportes" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} />}
+          {hasPermission(role, 'calculator') && <MenuItem icon={Calculator} label="Simulador" active={activeTab === 'calculator'} onClick={() => setActiveTab('calculator')} />}
+        </MenuSection>
+
+        <MenuSection title="Administración">
+          {hasPermission(role, 'settings') && <MenuItem icon={Shield} label="Token Seguridad" onClick={() => {
+            const token = generateSecurityToken();
+            setSecurityToken(token);
+            showToast('Token de seguridad actualizado: ' + token);
+          }} />}
+          {hasPermission(role, 'accounting') && <MenuItem icon={BookOpen} label="Contabilidad" active={activeTab === 'accounting'} onClick={() => setActiveTab('accounting')} />}
+          {hasPermission(role, 'hr') && <MenuItem icon={UserCheck} label="RRHH" active={activeTab === 'hr'} onClick={() => setActiveTab('hr')} />}
+          {hasPermission(role, 'settings') && <MenuItem icon={Settings} label="Ajustes" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />}
+          <MenuItem icon={Video} label="Tutoriales" onClick={() => window.open('https://youtube.com', '_blank')} />
+          <MenuItem icon={LogOut} label="Cerrar Sesión" onClick={handleLogout} />
+        </MenuSection>
+
+        <div className="mt-auto pt-6 border-t border-slate-800 text-center pb-4">
+          <p className="text-[10px] text-slate-500">Powered by</p>
+          <p className="font-bold text-slate-400 text-sm tracking-widest">RENACE.TECH</p>
         </div>
-        
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
-          <MenuSection title="Tablero de Control">
-            <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab==='dashboard'} onClick={()=>setActiveTab('dashboard')}/>
-            <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab==='cuadre'} onClick={()=>setActiveTab('cuadre')}/>
-          </MenuSection>
-          
-          <MenuSection title="Operaciones">
-            <MenuItem icon={Users} label="Clientes" active={activeTab==='clients'} onClick={()=>setActiveTab('clients')}/>
-            <MenuItem icon={Wallet} label="Cobros" active={activeTab==='loans'} onClick={()=>setActiveTab('loans')}/>
-          </MenuSection>
+      </Sidebar>
 
-          <MenuSection title="Herramientas">
-            <MenuItem icon={Zap} label="Asistente IA" active={activeTab==='ai'} onClick={()=>setActiveTab('ai')}/>
-            <MenuItem icon={MapPin} label="Rutas & GPS" active={activeTab==='routes'} onClick={()=>setActiveTab('routes')}/>
-            <MenuItem icon={FileText} label="Documentos" active={activeTab==='documents'} onClick={()=>setActiveTab('documents')}/>
-            <MenuItem icon={ClipboardList} label="Notas" active={activeTab==='notes'} onClick={()=>setActiveTab('notes')}/>
-            <MenuItem icon={Printer} label="Reportes" active={activeTab==='reports'} onClick={()=>setActiveTab('reports')}/>
-            <MenuItem icon={Calculator} label="Simulador" active={activeTab==='calculator'} onClick={()=>setActiveTab('calculator')}/>
-          </MenuSection>
-
-          <MenuSection title="Administración">
-            <MenuItem icon={Shield} label="Token Seguridad" onClick={() => {
-              const token = generateSecurityToken();
-              setSecurityToken(token);
-              showToast('Token de seguridad actualizado: ' + token);
-            }}/>
-            <MenuItem icon={BookOpen} label="Contabilidad" active={activeTab==='accounting'} onClick={()=>setActiveTab('accounting')}/>
-            <MenuItem icon={UserCheck} label="RRHH" active={activeTab==='hr'} onClick={()=>setActiveTab('hr')}/>
-            <MenuItem icon={Settings} label="Ajustes" active={activeTab==='settings'} onClick={()=>setActiveTab('settings')}/>
-            <MenuItem icon={Video} label="Tutoriales" onClick={()=>window.open('https://youtube.com', '_blank')}/>
-          </MenuSection>
-
-          <div className="mt-auto pt-6 border-t border-slate-800 text-center pb-4">
-            <p className="text-[10px] text-slate-500">Powered by</p>
-            <p className="font-bold text-slate-400 text-sm tracking-widest">RENACE.TECH</p>
-          </div>
-        </nav>
-      </aside>
-
-      {/* Main Content */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative print:h-auto print:overflow-visible">
-        {/* Header - HIDDEN ON PRINT */}
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10 print:hidden">
-          <div className="md:hidden flex items-center gap-3">
-            <img src={logoSmall} alt="Presta Pro" className="w-7 h-7 rounded-lg object-contain" />
-            <span className="font-bold text-slate-800">Presta Pro</span>
-          </div>
-          <h1 className="hidden md:block text-xl font-bold text-slate-800">{TAB_TITLES[activeTab] || 'Presta Pro'}</h1>
-          <div className="flex items-center gap-4">
-            <button className="bg-slate-100 p-2 rounded-full relative">
-              <Bell size={20}/>
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">A</div>
-              <span className="text-sm font-bold hidden md:block">Admin</span>
-            </div>
-          </div>
-        </header>
+        <Header activeTitle={TAB_TITLES[activeTab] || 'Presta Pro'} setMobileMenuOpen={setMobileMenuOpen} />
 
-        {/* Dynamic View Content */}
         <div className="flex-1 overflow-y-auto p-4 pb-20 md:p-8 md:pb-8 relative print:p-0 print:overflow-visible">
-          {activeTab === 'dashboard' && (
+          {activeTab === 'dashboard' && hasPermission(role, 'dashboard') && (
             <DashboardView
               loans={loans}
               clients={clients}
@@ -822,13 +324,19 @@ Instrucciones de comportamiento:
               }}
             />
           )}
-          {activeTab === 'cuadre' && (
-            <CuadreView receipts={receipts} expenses={expenses} />
+          {activeTab === 'cuadre' && hasPermission(role, 'accounting') && (
+            <CuadreView
+              receipts={receipts}
+              expenses={expenses}
+              clients={clients}
+              collectors={collectors}
+              routeClosings={routeClosings}
+            />
           )}
-          {activeTab === 'expenses' && (
+          {activeTab === 'expenses' && hasPermission(role, 'expenses') && (
             <ExpensesView expenses={expenses} addExpense={addExpense} />
           )}
-          {activeTab === 'requests' && (
+          {activeTab === 'requests' && hasPermission(role, 'requests') && (
             <RequestsView
               requests={requests}
               clients={clients}
@@ -838,7 +346,7 @@ Instrucciones de comportamiento:
               onNewClient={() => setClientModalOpen(true)}
             />
           )}
-          {activeTab === 'routes' && (
+          {activeTab === 'routes' && hasPermission(role, 'routes') && (
             <RoutesView
               loans={loans}
               clients={clients}
@@ -854,33 +362,32 @@ Instrucciones de comportamiento:
               addRouteClosing={addRouteClosing}
               routeClosings={routeClosings}
               receipts={receipts}
-              includeFutureInstallments={systemSettings.includeFutureInstallmentsInRoutes}
+              includeFutureInstallments={systemSettings?.includeFutureInstallmentsInRoutes}
             />
           )}
-          {activeTab === 'documents' && <DocumentsView />}
-          {activeTab === 'notes' && (
-            <NotesView
-              notes={notes}
-              setNotes={setNotes}
+          {activeTab === 'documents' && hasPermission(role, 'documents') && (
+            <DocumentsView
+              clients={clients}
+              selectedClientId={selectedClientId}
+              onSelectClient={setSelectedClientId}
             />
           )}
-          {activeTab === 'reports' && (
+          {activeTab === 'notes' && hasPermission(role, 'notes') && (
+            <NotesView notes={notes} setNotes={setNotes} />
+          )}
+          {activeTab === 'reports' && hasPermission(role, 'reports') && (
             <ReportsView loans={loans} expenses={expenses} />
           )}
-          {activeTab === 'hr' && (
+          {activeTab === 'hr' && hasPermission(role, 'hr') && (
             <HRView
-              employees={dbData.employees || []}
+              employees={dbData?.employees || []}
               onNewEmployee={() => setEmployeeModalOpen(true)}
             />
           )}
-          {activeTab === 'accounting' && (
-            <AccountingView
-              loans={loans}
-              expenses={expenses}
-              receipts={receipts}
-            />
+          {activeTab === 'accounting' && hasPermission(role, 'accounting') && (
+            <AccountingView loans={loans} expenses={expenses} receipts={receipts} />
           )}
-          {activeTab === 'ai' && (
+          {activeTab === 'ai' && hasPermission(role, 'ai') && (
             <AIView
               chatHistory={chatHistory}
               setChatHistory={setChatHistory}
@@ -888,7 +395,7 @@ Instrucciones de comportamiento:
               showToast={showToast}
             />
           )}
-          {activeTab === 'clients' && (
+          {activeTab === 'clients' && hasPermission(role, 'clients') && (
             <ClientsView
               clients={clients}
               loans={loans}
@@ -898,20 +405,28 @@ Instrucciones de comportamiento:
                 setSelectedLoanId(loanId);
                 setActiveTab('loans');
               }}
-              onNewClient={() => setClientModalOpen(true)}
+              onNewClient={() => {
+                setEditingClient(null);
+                setClientModalOpen(true);
+              }}
+              onEditClient={(client) => {
+                setEditingClient(client);
+                setClientModalOpen(true);
+              }}
             />
           )}
-          {activeTab === 'loans' && (
+          {activeTab === 'loans' && hasPermission(role, 'loans') && (
             <LoansView
               loans={loans}
               clients={clients}
               registerPayment={registerPayment}
               selectedLoanId={selectedLoanId}
               onSelectLoan={setSelectedLoanId}
+              onUpdateLoan={updateLoan}
             />
           )}
-          {activeTab === 'calculator' && <CalculatorView />}
-          {activeTab === 'settings' && (
+          {activeTab === 'calculator' && hasPermission(role, 'calculator') && <CalculatorView />}
+          {activeTab === 'settings' && hasPermission(role, 'settings') && (
             <SettingsView
               systemSettings={systemSettings}
               setSystemSettings={setSystemSettings}
@@ -924,46 +439,38 @@ Instrucciones de comportamiento:
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-slate-200 flex justify-around py-2 px-1 md:hidden print:hidden z-40">
-        {[
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        setMobileMenuOpen={setMobileMenuOpen}
+        items={[
           { id: 'dashboard', icon: LayoutDashboard, label: 'Inicio' },
           { id: 'clients', icon: Users, label: 'Clientes' },
           { id: 'loans', icon: Wallet, label: 'Cobros' },
           { id: 'expenses', icon: TrendingUp, label: 'Gastos' },
           { id: 'more', icon: List, label: 'Menú' },
-        ].map((item) => {
-          const Icon = item.icon;
-          const isActive = item.id !== 'more' && activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.id === 'more') {
-                  setMobileMenuOpen(true);
-                } else {
-                  setActiveTab(item.id);
-                  setMobileMenuOpen(false);
-                }
-              }}
-              className={`flex flex-col items-center text-[10px] font-medium ${
-                isActive ? 'text-blue-600' : 'text-slate-400'
-              }`}
-            >
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center mb-1 ${
-                  isActive ? 'bg-blue-50' : 'bg-slate-100'
-                }`}
-              >
-                <Icon size={18} />
-              </div>
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+        ]}
+      />
 
-      {/* Toast */}
+      <MobileMenu
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        setActiveTab={setActiveTab}
+        items={[
+          { id: 'dashboard', icon: LayoutDashboard, label: 'Inicio' },
+          { id: 'clients', icon: Users, label: 'Clientes' },
+          { id: 'loans', icon: Wallet, label: 'Cobros' },
+          { id: 'requests', icon: FileText, label: 'Solicitudes' },
+          { id: 'expenses', icon: TrendingUp, label: 'Gastos' },
+          { id: 'routes', icon: MapPin, label: 'Rutas & GPS' },
+          { id: 'documents', icon: FileText, label: 'Documentos' },
+          { id: 'notes', icon: ClipboardList, label: 'Notas' },
+          { id: 'reports', icon: Printer, label: 'Reportes' },
+          { id: 'ai', icon: Zap, label: 'Asistente IA' },
+          { id: 'settings', icon: Settings, label: 'Ajustes' },
+        ]}
+      />
+
       {showNotification && (
         <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-slide-up z-50 ${showNotification.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
           {showNotification.type === 'success' ? <CheckCircle size={24} className="text-white" /> : <AlertCircle size={24} className="text-white" />}
@@ -973,24 +480,5 @@ Instrucciones de comportamiento:
     </div>
   );
 }
-
-// Helper Components for Menu
-const MenuSection = ({ title, children }) => (
-  <div className="mb-2">
-    <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-3">{title}</p>
-    {children}
-  </div>
-);
-
-const MenuItem = ({ icon: Icon, label, active, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center px-3 py-2 rounded-lg transition-all text-sm font-medium ${
-      active ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-    }`}
-  >
-    <Icon size={18} className="mr-3" /> {label}
-  </button>
-);
 
 export default App;

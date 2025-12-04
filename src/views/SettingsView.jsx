@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Card from '../components/Card.jsx';
+import { registerUser } from '../logic/authLogic';
 
 export function SettingsView({
   systemSettings,
@@ -14,11 +15,15 @@ export function SettingsView({
     mainCurrency: systemSettings.mainCurrency || 'DOP',
     defaultPenaltyRate: systemSettings.defaultPenaltyRate ?? 5,
     themeColor: systemSettings.themeColor || 'indigo',
+    securityUser: systemSettings.securityUser || 'admin',
+    securityPassword: systemSettings.securityPassword || '1234',
   });
 
   const [collectorForm, setCollectorForm] = useState({ name: '', phone: '' });
   const [selectedCollectorId, setSelectedCollectorId] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
+  const [userForm, setUserForm] = useState({ name: '', username: '', password: '' });
+  const [userError, setUserError] = useState('');
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
@@ -30,6 +35,8 @@ export function SettingsView({
       themeColor: form.themeColor,
       enableRouteGpsNotification: systemSettings.enableRouteGpsNotification ?? true,
       includeFutureInstallmentsInRoutes: systemSettings.includeFutureInstallmentsInRoutes ?? true,
+       securityUser: form.securityUser.trim() || 'admin',
+       securityPassword: form.securityPassword,
     });
   };
 
@@ -45,6 +52,17 @@ export function SettingsView({
     if (!selectedCollectorId || !selectedClientId) return;
     assignCollectorToClient(selectedClientId, selectedCollectorId);
     setSelectedClientId('');
+  };
+
+  const handleRegisterUser = () => {
+    setUserError('');
+    const result = registerUser(collectors, userForm.username, userForm.password, userForm.name);
+    if (!result.success) {
+      setUserError(result.error || 'No se pudo registrar el usuario');
+      return;
+    }
+    addCollector(result.userData);
+    setUserForm({ name: '', username: '', password: '' });
   };
 
   return (
@@ -109,6 +127,89 @@ export function SettingsView({
                     }`}
                   />
                 ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2">Usuarios de acceso (cobradores)</h4>
+            <p className="text-xs text-slate-500 mb-3">
+              Crea usuarios con nombre de acceso y contraseña para que los cobradores entren al sistema.
+            </p>
+            {userError && (
+              <p className="mb-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {userError}
+              </p>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Nombre completo</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  value={userForm.name}
+                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                  placeholder="Ej: Juan Pérez"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Usuario</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  value={userForm.username}
+                  onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                  placeholder="usuario.cobrador"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Contraseña</label>
+                <input
+                  type="password"
+                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                  placeholder="Mínimo 4 caracteres"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRegisterUser}
+              className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold text-sm"
+            >
+              Registrar usuario de acceso
+            </button>
+          </div>
+
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2">Seguridad e inicio de sesión</h4>
+            <p className="text-xs text-slate-500 mb-3">
+              Estas credenciales se usan para acceder al panel en este dispositivo.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Usuario administrador</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  value={form.securityUser}
+                  onChange={(e) => setForm({ ...form, securityUser: e.target.value })}
+                  placeholder="admin"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Contraseña / PIN</label>
+                <input
+                  type="password"
+                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  value={form.securityPassword}
+                  onChange={(e) => setForm({ ...form, securityPassword: e.target.value })}
+                  placeholder="••••••"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Protege solo este dispositivo. Usa también el bloqueo del sistema operativo.
+                </p>
               </div>
             </div>
           </div>

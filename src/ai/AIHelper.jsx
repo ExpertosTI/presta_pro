@@ -3,83 +3,21 @@ import { Zap, Loader2, Send } from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import Card from '../components/Card.jsx';
 
-// Renderizado simple de Markdown: negritas **texto**, listas y saltos de línea
+// Renderizado simple: sin Markdown, máximo 13 líneas, limpiando viñetas "- " o "* "
 const renderMessageText = (text) => {
   if (!text) return null;
 
-  const lines = text.split('\n');
-  const elements = [];
-  let currentList = [];
+  const rawLines = text.split('\n');
+  const lines = rawLines.slice(0, 13); // máximo 13 líneas visibles por mensaje
 
-  const flushList = (keyBase) => {
-    if (currentList.length === 0) return;
-    elements.push(
-      <ul key={`list-${keyBase}`} className="list-disc list-inside space-y-1 text-sm text-slate-800">
-        {currentList.map((item, idx) => (
-          <li key={`li-${keyBase}-${idx}`}>{item}</li>
-        ))}
-      </ul>
-    );
-    currentList = [];
-  };
-
-  const renderLineWithBold = (content, key) => {
-    const segments = [];
-    const boldRegex = /\*\*(.+?)\*\*/g;
-    let lastIndex = 0;
-    let match;
-
-    while ((match = boldRegex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        segments.push(content.slice(lastIndex, match.index));
-      }
-      segments.push(
-        <strong key={`b-${key}-${segments.length}`} className="font-semibold">
-          {match[1]}
-        </strong>
-      );
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < content.length) {
-      segments.push(content.slice(lastIndex));
-    }
-
+  return lines.map((line, index) => {
+    const cleaned = line.replace(/^\s*[-*]\s+/, '');
     return (
-      <p key={`p-${key}`} className="text-sm leading-relaxed text-slate-800">
-        {segments}
+      <p key={`p-${index}`} className="text-sm leading-relaxed text-slate-800">
+        {cleaned}
       </p>
     );
-  };
-
-  lines.forEach((line, index) => {
-    const trimmed = line.trim();
-
-    if (trimmed === '') {
-      flushList(index);
-      elements.push(<div key={`br-${index}`} className="h-2" />);
-      return;
-    }
-
-    // Líneas tipo lista: empiezan con * o -
-    if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
-      const itemText = trimmed.slice(2);
-      currentList.push(itemText);
-      return;
-    }
-
-    // Si veníamos de una lista, cerrarla antes de agregar párrafo
-    if (currentList.length > 0) {
-      flushList(index);
-    }
-
-    elements.push(renderLineWithBold(line, index));
   });
-
-  // Lista final si quedó algo pendiente
-  flushList('end');
-
-  return elements;
 };
 
 export function AIHelper({ chatHistory, setChatHistory, dbData, showToast }) {
@@ -92,19 +30,54 @@ export function AIHelper({ chatHistory, setChatHistory, dbData, showToast }) {
   }, [chatHistory]);
 
   const getContextualData = () => {
-    const clientsCount = dbData.clients.length;
-    const activeLoans = dbData.loans.filter(l => l.status === 'ACTIVE').length;
-    const totalLent = dbData.loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
-    const totalExpenses = dbData.expenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
-    const totalReceipts = dbData.receipts.length;
-    const employeesCount = dbData.employees ? dbData.employees.length : 0;
+    const clients = dbData?.clients || [];
+    const loans = dbData?.loans || [];
+    const expenses = dbData?.expenses || [];
+    const receipts = dbData?.receipts || [];
+    const employees = dbData?.employees || [];
+    const collectors = dbData?.collectors || [];
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const pendingCollections = dbData.loans
+    const clientsCount = clients.length;
+    const activeLoans = loans.filter(l => l.status === 'ACTIVE').length;
+    const totalLent = loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+    const totalExpenses = expenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
+    const totalReceipts = receipts.length;
+    const employeesCount = employees.length;
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setDate(endOfToday.getDate() + 1);
+
+    const receiptsToday = receipts.filter((r) => {
+      const d = new Date(r.date);
+      return d >= startOfToday && d < endOfToday;
+    });
+
+    const expensesToday = expenses.filter((g) => {
+      if (!g.date) return true;
+      const d = new Date(g.date);
+      return d >= startOfToday && d < endOfToday;
+    });
+
+    const totalCollectedToday = receiptsToday.reduce((acc, r) => {
+      const base = parseFloat(r.amount || 0) || 0;
+      const penalty = parseFloat(r.penaltyAmount || 0) || 0;
+      return acc + base + penalty;
+    }, 0);
+
+    const totalPenaltyToday = receiptsToday.reduce((acc, r) => {
+      const penalty = parseFloat(r.penaltyAmount || 0) || 0;
+      return acc + penalty;
+    }, 0);
+
+    const totalExpensesToday = expensesToday.reduce((acc, g) => acc + (parseFloat(g.amount || 0) || 0), 0);
+    const cashBalanceToday = totalCollectedToday - totalExpensesToday;
+
+    const pendingCollections = loans
       .flatMap(loan =>
-        loan.schedule
-          .filter(s => s.status !== 'PAID' && new Date(s.date) <= today)
+        (loan.schedule || [])
+          .filter(s => s.status !== 'PAID' && new Date(s.date) <= startOfToday)
           .map(s => ({ loanId: loan.id, date: s.date, payment: s.payment }))
       )
       .sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -119,19 +92,109 @@ export function AIHelper({ chatHistory, setChatHistory, dbData, showToast }) {
       ? pendingSummary.map(p => `- ${p.date}: ${p.amount} (Préstamo ${p.loanId})`).join('\n')
       : '- Ninguno (no hay cobros vencidos o de hoy).';
 
+    const collectorMap = new Map();
+    receiptsToday.forEach((r) => {
+      const client = clients.find((c) => c.id === r.clientId);
+      const collectorId = client?.collectorId || 'UNASSIGNED';
+      const collectorName =
+        collectorId === 'UNASSIGNED'
+          ? 'Sin asignar'
+          : collectors.find((col) => col.id === collectorId)?.name || 'Sin nombre';
+
+      const base = parseFloat(r.amount || 0) || 0;
+      const penalty = parseFloat(r.penaltyAmount || 0) || 0;
+      const total = base + penalty;
+
+      if (!collectorMap.has(collectorId)) {
+        collectorMap.set(collectorId, {
+          id: collectorId,
+          name: collectorName,
+          totalAmount: 0,
+          penaltyAmount: 0,
+          receiptsCount: 0,
+        });
+      }
+      const entry = collectorMap.get(collectorId);
+      entry.totalAmount += total;
+      entry.penaltyAmount += penalty;
+      entry.receiptsCount += 1;
+    });
+
+    const collectorsSummary = Array.from(collectorMap.values());
+    const collectorsLines = collectorsSummary.length
+      ? collectorsSummary
+        .map((c) =>
+          `- ${c.name}: ${formatCurrency(c.totalAmount)} (${c.receiptsCount} recibos, Mora: ${formatCurrency(
+            c.penaltyAmount
+          )})`
+        )
+        .join('\n')
+      : '- No hay cobros registrados hoy.';
+
+    const lastReceipts = receipts
+      .slice()
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 10);
+
+    const lastReceiptsLines = lastReceipts.length
+      ? lastReceipts
+        .map((r) => {
+          const client = clients.find((c) => c.id === r.clientId);
+          const collector = client && collectors.length
+            ? collectors.find((col) => col.id === client.collectorId)
+            : null;
+          const clientName = client?.name || 'Cliente sin nombre';
+          const base = parseFloat(r.amount || 0) || 0;
+          const penalty = parseFloat(r.penaltyAmount || 0) || 0;
+          const total = base + penalty;
+          const date = formatDate(r.date);
+          const collectorName = collector?.name ? ` • Cobrador: ${collector.name}` : '';
+          const moraText = penalty > 0 ? ` • Mora: ${formatCurrency(penalty)}` : '';
+          return `- ${date}: Total ${formatCurrency(total)} (Cuota: ${formatCurrency(base)}${moraText}) • ${clientName}${collectorName}`;
+        })
+        .join('\n')
+      : '- No hay recibos registrados aún.';
+
     return (
       `Indicadores financieros actuales (uso interno del asistente):\n\n` +
       `- Total de clientes: ${clientsCount}\n` +
       `- Préstamos activos: ${activeLoans}\n` +
       `- Monto total prestado (capital): ${formatCurrency(totalLent)}\n` +
       `- Gastos totales acumulados: ${formatCurrency(totalExpenses)}\n` +
-      `- Recibos de pago registrados: ${totalReceipts}\n` +
-      `- Empleados registrados: ${employeesCount}\n` +
-      `- Próximos 5 cobros pendientes:\n${pendingLines}`
+      `- Recibos de pago registrados (histórico): ${totalReceipts}\n` +
+      `- Empleados registrados: ${employeesCount}\n\n` +
+      `Resumen diario de caja (hoy):\n` +
+      `- Total cobrado hoy (cuotas + mora): ${formatCurrency(totalCollectedToday)}\n` +
+      `- Mora cobrada hoy: ${formatCurrency(totalPenaltyToday)}\n` +
+      `- Gastos del día: ${formatCurrency(totalExpensesToday)}\n` +
+      `- Balance de caja del día (ingresos - gastos): ${formatCurrency(cashBalanceToday)}\n\n` +
+      `Cobros de hoy por cobrador:\n${collectorsLines}\n\n` +
+      `Próximos 5 cobros pendientes:\n${pendingLines}\n\n` +
+      `Últimos recibos de pago registrados (máx. 10):\n${lastReceiptsLines}`
     );
   };
 
-  const systemInstruction = `Eres un asesor financiero virtual para Renace.tech, una financiera de préstamos y cobranza.\n\n${getContextualData()}`;
+  const systemInstruction = `Eres la secretaria contable personal del dueño de Renace.tech, una financiera de préstamos y cobranza.
+Tu rol principal es llevarle la contabilidad del día a día y ayudarle a entender, con claridad, todo lo que está pasando con:
+- Los pagos que realizan los clientes.
+- El dinero que entra y sale de caja.
+- Lo que hacen los cobradores en sus rutas (cuánto cobran, a quiénes, y qué falta por cobrar).
+
+Tienes acceso a un resumen estructurado de los datos actuales del sistema (cartera, gastos, recibos, empleados, cobradores, etc.):
+${getContextualData()}
+
+Instrucciones de comportamiento:
+- Responde SIEMPRE en español, con tono de secretaria organizada, clara y directa.
+- Prioriza explicar el flujo de dinero: quién pagó, cuánto se ha cobrado hoy, qué falta por cobrar y cómo van los cobradores.
+- Cuando presentes un resumen, usa frases cortas en líneas separadas, sin usar Markdown (sin asteriscos **, sin guiones '-', sin tablas) y evita mostrar JSON directamente.
+- No escribas más de 13 líneas por respuesta; si necesitas continuar, sugiere al usuario que haga otra pregunta de seguimiento.
+- Cuando te pidan detalles sobre "mora", "ingresos de hoy", "caja" o "cobradores", utiliza los valores diarios incluidos en el contexto (total cobrado hoy, mora cobrada hoy, gastos del día, balance de caja y desglose por cobrador).
+- Cuando te pidan "últimos pagos", "últimos recibos" o "detalles de pagos", lista cada recibo con fecha, monto total, desglose de cuota y mora, cliente y, si está disponible, el cobrador correspondiente.
+- Basa tus respuestas únicamente en los datos del sistema y en el mensaje del usuario.
+- Cuando no haya datos suficientes para una conclusión, dilo explícitamente y propone qué información adicional habría que registrar en el sistema.
+- Cuando des recomendaciones financieras o de control interno, aclara que no sustituyen asesoría legal, contable o regulatoria profesional.
+- Nunca inventes números, clientes ni cobradores; si algo no aparece en los datos, dilo de forma explícita.
+- No intentes llamar funciones ni herramientas externas fuera de este contexto.`;
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -212,11 +275,10 @@ export function AIHelper({ chatHistory, setChatHistory, dbData, showToast }) {
         {chatHistory.map((message, index) => (
           <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[80%] px-4 py-3 rounded-2xl shadow-sm border text-sm space-y-1 ${
-                message.role === 'user'
-                  ? 'bg-blue-600 text-white border-blue-500 rounded-br-none'
-                  : 'bg-slate-50 text-slate-900 border-slate-200 rounded-tl-none'
-              }`}
+              className={`max-w-[80%] px-4 py-3 rounded-2xl shadow-sm border text-sm space-y-1 ${message.role === 'user'
+                ? 'bg-blue-600 text-white border-blue-500 rounded-br-none'
+                : 'bg-slate-50 text-slate-900 border-slate-200 rounded-tl-none'
+                }`}
             >
               {message.role === 'model' ? (
                 renderMessageText(message.text)
@@ -249,9 +311,8 @@ export function AIHelper({ chatHistory, setChatHistory, dbData, showToast }) {
         />
         <button
           type="submit"
-          className={`bg-blue-600 text-white p-3 rounded-xl transition-colors ${
-            loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'
-          }`}
+          className={`bg-blue-600 text-white p-3 rounded-xl transition-colors ${loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'
+            }`}
           disabled={loading}
         >
           <Send size={20} />

@@ -1,8 +1,5 @@
 import React from 'react';
 import logoSmall from '../../../logo-small.svg';
-import { LayoutDashboard, Banknote } from 'lucide-react';
-import MenuSection from '../ui/MenuSection';
-import MenuItem from '../ui/MenuItem';
 
 export function Sidebar({ activeTab, setActiveTab, children }) {
   return (
@@ -18,10 +15,6 @@ export function Sidebar({ activeTab, setActiveTab, children }) {
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
-        <MenuSection title="Tablero de Control">
-          <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-          <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab === 'cuadre'} onClick={() => setActiveTab('cuadre')} />
-        </MenuSection>
         {children}
       </nav>
     </aside>

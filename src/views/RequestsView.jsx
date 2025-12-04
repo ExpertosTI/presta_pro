@@ -69,9 +69,13 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
         <div id="reqForm">
           <Card>
             <h3 className="font-bold text-lg mb-4">Crear Nueva Solicitud</h3>
-            <div className="space-y-4">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (form.clientId) addRequest(form);
+            }} className="space-y-4">
               <div className="flex gap-2">
                 <select
+                  required
                   className="flex-1 p-2 border rounded-lg bg-white"
                   value={form.clientId}
                   onChange={e => setForm({ ...form, clientId: e.target.value })}
@@ -84,6 +88,7 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                   ))}
                 </select>
                 <button
+                  type="button"
                   onClick={onNewClient}
                   className="bg-blue-100 text-blue-700 p-2 rounded-lg hover:bg-blue-200"
                 >
@@ -92,6 +97,8 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <input
+                  required
+                  min="1"
                   type="number"
                   placeholder="Monto"
                   className="p-2 border rounded-lg"
@@ -99,6 +106,9 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                   onChange={e => setForm({ ...form, amount: e.target.value })}
                 />
                 <input
+                  required
+                  min="0"
+                  step="0.1"
                   type="number"
                   placeholder="Tasa %"
                   className="p-2 border rounded-lg"
@@ -108,6 +118,8 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <input
+                  required
+                  min="1"
                   type="number"
                   placeholder="Plazo"
                   className="p-2 border rounded-lg"
@@ -126,14 +138,12 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                 </select>
               </div>
               <button
-                onClick={() => {
-                  if (form.clientId) addRequest(form);
-                }}
+                type="submit"
                 className="w-full bg-slate-800 text-white py-3 rounded-lg font-bold"
               >
                 Guardar Solicitud
               </button>
-            </div>
+            </form>
           </Card>
         </div>
       </div>

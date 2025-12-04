@@ -15,7 +15,7 @@ const getStatusLabel = (status) => {
   return map[status] || status;
 };
 
-export function ClientsView({ clients, loans, onNewClient, selectedClientId, onSelectClient, onSelectLoan }) {
+export function ClientsView({ clients, loans, onNewClient, selectedClientId, onSelectClient, onSelectLoan, onEditClient }) {
   const selectedClient = clients.find(c => c.id === selectedClientId) || null;
   const clientLoans = useMemo(
     () => (selectedClient ? loans.filter(l => l.clientId === selectedClient.id) : []),
@@ -80,6 +80,15 @@ export function ClientsView({ clients, loans, onNewClient, selectedClientId, onS
             {selectedClient.notes && (
               <p className="text-sm text-slate-700 mt-2"><span className="font-semibold">Notas: </span>{selectedClient.notes}</p>
             )}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => onEditClient && onEditClient(selectedClient)}
+                className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold"
+              >
+                Editar cliente
+              </button>
+            </div>
           </Card>
 
           <Card>

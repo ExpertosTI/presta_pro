@@ -1,0 +1,46 @@
+src/
+  main.jsx
+  App.jsx                  # Orquestador principal (layout + router interno)
+  core/                    # Lógica de dominio (negocio)
+    loans.js               # createLoan, registerPayment, cálculos
+    clients.js             # helpers de clientes
+    expenses.js            # helpers de gastos
+    requests.js            # helpers de solicitudes
+  state/
+    usePrestaProState.js   # Hook con todos los useState, useEffect, acciones
+  views/                   # Vistas por pestaña
+    DashboardView.jsx
+    ClientsView.jsx
+    LoansView.jsx
+    ExpensesView.jsx
+    RequestsView.jsx
+    RoutesView.jsx
+    NotesView.jsx
+    ReportsView.jsx
+    HRView.jsx
+    AccountingView.jsx
+    SettingsView.jsx
+    CalculatorView.jsx
+    AIView.jsx             # Usa AIHelper + datos
+  components/              # Componentes compartidos
+    layout/
+      Sidebar.jsx
+      Header.jsx
+      MobileMenu.jsx
+      BottomNav.jsx
+    ui/
+      Card.jsx
+      Badge.jsx
+      PaymentTicket.jsx
+      MenuSection.jsx
+      MenuItem.jsx
+    modals/
+      ClientModal.jsx
+      EmployeeModal.jsx
+  ai/
+    AIHelper.jsx           # Tu componente de asistente IA
+  utils/
+    formatters.js          # formatCurrency, formatDate, formatDateTime
+    ids.js                 # generateId, generateSecurityToken
+    storage.js             # safeLoad
+    amortization.js        # calculateSchedule (puede ir aquí o en core/loans)
