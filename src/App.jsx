@@ -504,13 +504,15 @@ const LoansView = () => {
               </tbody>
             </table>
           </div>
+          </Card>
+    )}
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-slate-800">Solicitudes de Crédito</h2>
           <button onClick={() => document.getElementById('reqForm').scrollIntoView()} className="bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
             <Plus size={18}/> Nueva Solicitud
           </button>
         </div>
-
+        
         {/* Kanban Board Simple */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
@@ -935,6 +937,7 @@ const LoansView = () => {
   };
   
   // --- RENDER ---
+  const App = () => {
   return (
     <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
       {/* CLIENT MODAL */}
@@ -1123,8 +1126,10 @@ const LoansView = () => {
       )}
     </div>
   );
-}
+  
+  };
 
+  export default App;
 // Helper Components for Menu
 const MenuSection = ({ title, children }) => (
   <div className="mb-2">
