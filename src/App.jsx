@@ -67,6 +67,7 @@ import HRView from './views/HRView.jsx';
 import AccountingView from './views/AccountingView.jsx';
 import SettingsView from './views/SettingsView.jsx';
 import CalculatorView from './views/CalculatorView.jsx';
+import DocumentsView from './views/DocumentsView.jsx';
 
 const TAB_TITLES = {
   dashboard: 'Inicio',
@@ -76,6 +77,7 @@ const TAB_TITLES = {
   expenses: 'Gastos',
   requests: 'Solicitudes',
   routes: 'Rutas & GPS',
+  documents: 'Documentos',
   notes: 'Notas',
   reports: 'Reportes',
   hr: 'Recursos Humanos',
@@ -241,7 +243,7 @@ const AIHelper = ({ chatHistory, setChatHistory, dbData, showToast }) => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
   
-  // Usar un resumen estructurado y legible de los datos de la aplicación para dar contexto al asesor financiero
+  // Usar un resumen estructurado y legible de los datos de la aplicación para dar contexto al asistente
   const getContextualData = () => {
     const clientsCount = dbData.clients.length;
     const activeLoans = dbData.loans.filter(l => l.status === 'ACTIVE').length;
@@ -272,6 +274,26 @@ const AIHelper = ({ chatHistory, setChatHistory, dbData, showToast }) => {
       ? pendingSummary.map(p => `- ${p.date}: ${p.amount} (Préstamo ${p.loanId})`).join('\n')
       : '- Ninguno (no hay cobros vencidos o de hoy).';
 
+    // Últimos recibos detallados (cliente, monto, posible cobrador)
+    const lastReceipts = (dbData.receipts || [])
+      .slice()
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 10);
+
+    const lastReceiptsLines = lastReceipts.length
+      ? lastReceipts.map(r => {
+          const client = dbData.clients.find(c => c.id === r.clientId);
+          const collector = client && dbData.collectors
+            ? dbData.collectors.find(col => col.id === client.collectorId)
+            : null;
+          const clientName = client?.name || 'Cliente sin nombre';
+          const amount = formatCurrency(r.amount || 0);
+          const date = formatDate(r.date);
+          const collectorName = collector?.name ? ` • Cobrador: ${collector.name}` : '';
+          return `- ${date}: ${amount} • ${clientName}${collectorName}`;
+        }).join('\n')
+      : '- No hay recibos registrados aún.';
+
     return `Indicadores financieros actuales (uso interno del asistente):\n\n` +
       `- Total de clientes: ${clientsCount}\n` +
       `- Préstamos activos: ${activeLoans}\n` +
@@ -279,26 +301,27 @@ const AIHelper = ({ chatHistory, setChatHistory, dbData, showToast }) => {
       `- Gastos totales acumulados: ${formatCurrency(totalExpenses)}\n` +
       `- Recibos de pago registrados: ${totalReceipts}\n` +
       `- Empleados registrados: ${employeesCount}\n` +
-      `- Próximos 5 cobros pendientes:\n${pendingLines}`;
+      `- Próximos 5 cobros pendientes:\n${pendingLines}\n\n` +
+      `Últimos recibos de pago registrados (máx. 10):\n${lastReceiptsLines}`;
   };
+  
+  const systemInstruction = `Eres la secretaria contable personal del dueño de Renace.tech, una financiera de préstamos y cobranza.
+Tu rol principal es llevarle la contabilidad del día a día y ayudarle a entender, con claridad, todo lo que está pasando con:
+- Los pagos que realizan los clientes.
+- El dinero que entra y sale de caja.
+- Lo que hacen los cobradores en sus rutas (cuánto cobran, a quiénes, y qué falta por cobrar).
 
-  const systemInstruction = `Eres un asesor financiero virtual para Renace.tech, una financiera de préstamos y cobranza.
-Tu objetivo es ayudar al usuario a:
-- Analizar el estado de la cartera de préstamos y la caja.
-- Detectar clientes o préstamos de riesgo (mora, alta exposición, concentración).
-- Sugerir acciones prácticas de cobranza, control de gastos y crecimiento sano del portafolio.
-- Explicar conceptos financieros de forma sencilla cuando el usuario lo pida.
-
-Tienes acceso a un resumen estructurado de los datos actuales del sistema:
+Tienes acceso a un resumen estructurado de los datos actuales del sistema (cartera, gastos, recibos, empleados, cobradores, etc.):
 ${getContextualData()}
 
 Instrucciones de comportamiento:
-- Responde SIEMPRE en español, con un tono profesional, claro y directo.
-- Cuando presentes un resumen de datos, usa una lista de puntos clara y fácil de leer, evita tablas Markdown y evita mostrar JSON directamente.
+- Responde SIEMPRE en español, con tono de secretaria organizada, clara y directa.
+- Prioriza explicar el flujo de dinero: quién pagó, cuánto se ha cobrado hoy, qué falta por cobrar y cómo van los cobradores.
+- Cuando presentes un resumen, usa listas de puntos claras y fáciles de leer; evita tablas Markdown y evita mostrar JSON directamente.
 - Basa tus respuestas únicamente en los datos del sistema y en el mensaje del usuario.
-- Cuando no haya datos suficientes para una conclusión, dilo explícitamente y propone qué información adicional haría falta.
-- Cuando des recomendaciones financieras, indica que no reemplazan la asesoría legal, contable o regulatoria profesional.
-- Nunca inventes números ni clientes; si algo no aparece en los datos, dilo.
+- Cuando no haya datos suficientes para una conclusión, dilo explícitamente y propone qué información adicional habría que registrar en el sistema.
+- Cuando des recomendaciones financieras o de control interno, aclara que no sustituyen asesoría legal, contable o regulatoria profesional.
+- Nunca inventes números, clientes ni cobradores; si algo no aparece en los datos, dilo de forma explícita.
 - No intentes llamar funciones ni herramientas externas fuera de este contexto.`;
   
   const handleSendMessage = async (e) => {
@@ -723,41 +746,39 @@ Instrucciones de comportamiento:
         
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
           <MenuSection title="Tablero de Control">
-             <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab==='dashboard'} onClick={()=>setActiveTab('dashboard')}/>
-             <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab==='cuadre'} onClick={()=>setActiveTab('cuadre')}/>
+            <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab==='dashboard'} onClick={()=>setActiveTab('dashboard')}/>
+            <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab==='cuadre'} onClick={()=>setActiveTab('cuadre')}/>
           </MenuSection>
           
           <MenuSection title="Operaciones">
-             <MenuItem icon={Users} label="Clientes" active={activeTab==='clients'} onClick={()=>setActiveTab('clients')}/>
-             <MenuItem icon={Wallet} label="Cobros" active={activeTab==='loans'} onClick={()=>setActiveTab('loans')}/>
-             <MenuItem icon={FileText} label="Solicitudes" active={activeTab==='requests'} onClick={()=>setActiveTab('requests')}/>
-             <MenuItem icon={Briefcase} label="Préstamos" active={activeTab==='loans'} onClick={()=>setActiveTab('loans')}/>
-             <MenuItem icon={TrendingUp} label="Gastos" active={activeTab==='expenses'} onClick={()=>setActiveTab('expenses')}/>
+            <MenuItem icon={Users} label="Clientes" active={activeTab==='clients'} onClick={()=>setActiveTab('clients')}/>
+            <MenuItem icon={Wallet} label="Cobros" active={activeTab==='loans'} onClick={()=>setActiveTab('loans')}/>
           </MenuSection>
 
           <MenuSection title="Herramientas">
-             <MenuItem icon={Zap} label="Asistente IA" active={activeTab==='ai'} onClick={()=>setActiveTab('ai')}/>
-             <MenuItem icon={MapPin} label="Rutas & GPS" active={activeTab==='routes'} onClick={()=>setActiveTab('routes')}/>
-             <MenuItem icon={ClipboardList} label="Notas" active={activeTab==='notes'} onClick={()=>setActiveTab('notes')}/>
-             <MenuItem icon={Printer} label="Reportes" active={activeTab==='reports'} onClick={()=>setActiveTab('reports')}/>
-             <MenuItem icon={Calculator} label="Simulador" active={activeTab==='calculator'} onClick={()=>setActiveTab('calculator')}/>
+            <MenuItem icon={Zap} label="Asistente IA" active={activeTab==='ai'} onClick={()=>setActiveTab('ai')}/>
+            <MenuItem icon={MapPin} label="Rutas & GPS" active={activeTab==='routes'} onClick={()=>setActiveTab('routes')}/>
+            <MenuItem icon={FileText} label="Documentos" active={activeTab==='documents'} onClick={()=>setActiveTab('documents')}/>
+            <MenuItem icon={ClipboardList} label="Notas" active={activeTab==='notes'} onClick={()=>setActiveTab('notes')}/>
+            <MenuItem icon={Printer} label="Reportes" active={activeTab==='reports'} onClick={()=>setActiveTab('reports')}/>
+            <MenuItem icon={Calculator} label="Simulador" active={activeTab==='calculator'} onClick={()=>setActiveTab('calculator')}/>
           </MenuSection>
 
           <MenuSection title="Administración">
-             <MenuItem icon={Shield} label="Token Seguridad" onClick={() => {
-               const token = generateSecurityToken();
-               setSecurityToken(token);
-               showToast('Token de seguridad actualizado: ' + token);
-             }}/>
-             <MenuItem icon={BookOpen} label="Contabilidad" active={activeTab==='accounting'} onClick={()=>setActiveTab('accounting')}/>
-             <MenuItem icon={UserCheck} label="RRHH" active={activeTab==='hr'} onClick={()=>setActiveTab('hr')}/>
-             <MenuItem icon={Settings} label="Ajustes" active={activeTab==='settings'} onClick={()=>setActiveTab('settings')}/>
-             <MenuItem icon={Video} label="Tutoriales" onClick={()=>window.open('https://youtube.com', '_blank')}/>
+            <MenuItem icon={Shield} label="Token Seguridad" onClick={() => {
+              const token = generateSecurityToken();
+              setSecurityToken(token);
+              showToast('Token de seguridad actualizado: ' + token);
+            }}/>
+            <MenuItem icon={BookOpen} label="Contabilidad" active={activeTab==='accounting'} onClick={()=>setActiveTab('accounting')}/>
+            <MenuItem icon={UserCheck} label="RRHH" active={activeTab==='hr'} onClick={()=>setActiveTab('hr')}/>
+            <MenuItem icon={Settings} label="Ajustes" active={activeTab==='settings'} onClick={()=>setActiveTab('settings')}/>
+            <MenuItem icon={Video} label="Tutoriales" onClick={()=>window.open('https://youtube.com', '_blank')}/>
           </MenuSection>
 
           <div className="mt-auto pt-6 border-t border-slate-800 text-center pb-4">
-             <p className="text-[10px] text-slate-500">Powered by</p>
-             <p className="font-bold text-slate-400 text-sm tracking-widest">RENACE.TECH</p>
+            <p className="text-[10px] text-slate-500">Powered by</p>
+            <p className="font-bold text-slate-400 text-sm tracking-widest">RENACE.TECH</p>
           </div>
         </nav>
       </aside>
@@ -767,57 +788,57 @@ Instrucciones de comportamiento:
         {/* Header - HIDDEN ON PRINT */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10 print:hidden">
           <div className="md:hidden flex items-center gap-3">
-             <img src={logoSmall} alt="Presta Pro" className="w-7 h-7 rounded-lg object-contain" />
-             <span className="font-bold text-slate-800">Presta Pro</span>
+            <img src={logoSmall} alt="Presta Pro" className="w-7 h-7 rounded-lg object-contain" />
+            <span className="font-bold text-slate-800">Presta Pro</span>
           </div>
           <h1 className="hidden md:block text-xl font-bold text-slate-800">{TAB_TITLES[activeTab] || 'Presta Pro'}</h1>
           <div className="flex items-center gap-4">
             <button className="bg-slate-100 p-2 rounded-full relative">
-               <Bell size={20}/>
-               <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+              <Bell size={20}/>
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
             <div className="flex items-center gap-2">
-               <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">A</div>
-               <span className="text-sm font-bold hidden md:block">Admin</span>
+              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">A</div>
+              <span className="text-sm font-bold hidden md:block">Admin</span>
             </div>
           </div>
         </header>
 
         {/* Dynamic View Content */}
         <div className="flex-1 overflow-y-auto p-4 pb-20 md:p-8 md:pb-8 relative print:p-0 print:overflow-visible">
-           {activeTab === 'dashboard' && (
-             <DashboardView
-               loans={loans}
-               clients={clients}
-               selectedClientId={selectedClientId}
-               selectedLoanId={selectedLoanId}
-               onSelectLoan={(loanId) => {
-                 setSelectedLoanId(loanId);
-                 setActiveTab('loans');
-               }}
-               onSelectClient={(clientId) => {
-                 setSelectedClientId(clientId);
-                 setActiveTab('clients');
-               }}
-             />
-           )}
-           {activeTab === 'cuadre' && (
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              loans={loans}
+              clients={clients}
+              selectedClientId={selectedClientId}
+              selectedLoanId={selectedLoanId}
+              onSelectLoan={(loanId) => {
+                setSelectedLoanId(loanId);
+                setActiveTab('loans');
+              }}
+              onSelectClient={(clientId) => {
+                setSelectedClientId(clientId);
+                setActiveTab('clients');
+              }}
+            />
+          )}
+          {activeTab === 'cuadre' && (
             <CuadreView receipts={receipts} expenses={expenses} />
           )}
-           {activeTab === 'expenses' && (
-             <ExpensesView expenses={expenses} addExpense={addExpense} />
-           )}
-           {activeTab === 'requests' && (
-             <RequestsView
-               requests={requests}
-               clients={clients}
-               addRequest={addRequest}
-               approveRequest={approveRequest}
-               rejectRequest={rejectRequest}
-               onNewClient={() => setClientModalOpen(true)}
-             />
-           )}
-           {activeTab === 'routes' && (
+          {activeTab === 'expenses' && (
+            <ExpensesView expenses={expenses} addExpense={addExpense} />
+          )}
+          {activeTab === 'requests' && (
+            <RequestsView
+              requests={requests}
+              clients={clients}
+              addRequest={addRequest}
+              approveRequest={approveRequest}
+              rejectRequest={rejectRequest}
+              onNewClient={() => setClientModalOpen(true)}
+            />
+          )}
+          {activeTab === 'routes' && (
             <RoutesView
               loans={loans}
               clients={clients}
@@ -836,105 +857,72 @@ Instrucciones de comportamiento:
               includeFutureInstallments={systemSettings.includeFutureInstallmentsInRoutes}
             />
           )}
-           {activeTab === 'notes' && (
-             <NotesView
-               notes={notes}
-               setNotes={setNotes}
-             />
-           )}
-           {activeTab === 'reports' && (
-             <ReportsView loans={loans} expenses={expenses} />
-           )}
-           {activeTab === 'hr' && (
+          {activeTab === 'documents' && <DocumentsView />}
+          {activeTab === 'notes' && (
+            <NotesView
+              notes={notes}
+              setNotes={setNotes}
+            />
+          )}
+          {activeTab === 'reports' && (
+            <ReportsView loans={loans} expenses={expenses} />
+          )}
+          {activeTab === 'hr' && (
             <HRView
               employees={dbData.employees || []}
               onNewEmployee={() => setEmployeeModalOpen(true)}
             />
           )}
-           {activeTab === 'accounting' && (
-             <AccountingView
-               loans={loans}
-               expenses={expenses}
-               receipts={receipts}
-             />
-           )}
-           {activeTab === 'ai' && (
-             <AIView
-               chatHistory={chatHistory}
-               setChatHistory={setChatHistory}
-               dbData={dbData}
-               showToast={showToast}
-             />
-           )}
-           
-           {activeTab === 'clients' && (
-             <ClientsView
-               clients={clients}
-               loans={loans}
-               selectedClientId={selectedClientId}
-               onSelectClient={setSelectedClientId}
-               onSelectLoan={(loanId) => {
-                 setSelectedLoanId(loanId);
-                 setActiveTab('loans');
-               }}
-               onNewClient={() => setClientModalOpen(true)}
-             />
-           )}
-           {activeTab === 'loans' && (
-             <LoansView
-               loans={loans}
-               clients={clients}
-               registerPayment={registerPayment}
-               selectedLoanId={selectedLoanId}
-               onSelectLoan={setSelectedLoanId}
-             />
-           )}
-           {activeTab === 'calculator' && <CalculatorView />}
-           {activeTab === 'settings' && (
-             <SettingsView
-               systemSettings={systemSettings}
-               setSystemSettings={setSystemSettings}
-               collectors={collectors}
-               addCollector={addCollector}
-               clients={clients}
-               assignCollectorToClient={assignCollectorToClient}
-             />
-           )}
+          {activeTab === 'accounting' && (
+            <AccountingView
+              loans={loans}
+              expenses={expenses}
+              receipts={receipts}
+            />
+          )}
+          {activeTab === 'ai' && (
+            <AIView
+              chatHistory={chatHistory}
+              setChatHistory={setChatHistory}
+              dbData={dbData}
+              showToast={showToast}
+            />
+          )}
+          {activeTab === 'clients' && (
+            <ClientsView
+              clients={clients}
+              loans={loans}
+              selectedClientId={selectedClientId}
+              onSelectClient={setSelectedClientId}
+              onSelectLoan={(loanId) => {
+                setSelectedLoanId(loanId);
+                setActiveTab('loans');
+              }}
+              onNewClient={() => setClientModalOpen(true)}
+            />
+          )}
+          {activeTab === 'loans' && (
+            <LoansView
+              loans={loans}
+              clients={clients}
+              registerPayment={registerPayment}
+              selectedLoanId={selectedLoanId}
+              onSelectLoan={setSelectedLoanId}
+            />
+          )}
+          {activeTab === 'calculator' && <CalculatorView />}
+          {activeTab === 'settings' && (
+            <SettingsView
+              systemSettings={systemSettings}
+              setSystemSettings={setSystemSettings}
+              collectors={collectors}
+              addCollector={addCollector}
+              clients={clients}
+              assignCollectorToClient={assignCollectorToClient}
+            />
+          )}
         </div>
       </main>
-
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 text-white md:hidden animate-fade-in backdrop-blur-sm overflow-y-auto">
-           <div className="flex justify-between items-center mb-6">
-              <span className="text-xl font-bold">Menú</span>
-              <button onClick={() => setMobileMenuOpen(false)}><X/></button>
-           </div>
-           {/* Replicate Sidebar Menu Items Here for Mobile */}
-           <div className="space-y-1">
-             <button onClick={() => {setActiveTab('dashboard'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><LayoutDashboard size={18}/> Dashboard</button>
-             <button onClick={() => {setActiveTab('cuadre'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><Banknote size={18}/> Cuadre de Caja</button>
-
-             <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Operaciones</div>
-             <button onClick={() => {setActiveTab('clients'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Users size={18}/> Clientes</button>
-             <button onClick={() => {setActiveTab('loans'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Wallet size={18}/> Préstamos y Cobros</button>
-             <button onClick={() => {setActiveTab('requests'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><FileText size={18}/> Solicitudes</button>
-             <button onClick={() => {setActiveTab('expenses'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><TrendingUp size={18}/> Gastos</button>
-
-             <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Herramientas</div>
-             <button onClick={() => {setActiveTab('ai'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Zap size={18}/> Asistente AI</button>
-             <button onClick={() => {setActiveTab('routes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><MapPin size={18}/> Rutas</button>
-             <button onClick={() => {setActiveTab('notes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><ClipboardList size={18}/> Notas</button>
-             <button onClick={() => {setActiveTab('reports'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Printer size={18}/> Reportes</button>
-             <button onClick={() => {setActiveTab('calculator'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Calculator size={18}/> Simulador</button>
-
-             <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Admin</div>
-             <button onClick={() => { setActiveTab('accounting'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><BookOpen size={18} /> Contabilidad</button>
-             <button onClick={() => { setActiveTab('hr'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><UserCheck size={18} /> RRHH</button>
-             <button onClick={() => { setActiveTab('settings'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Settings size={18} /> Ajustes</button>
-          </div>
-        </div>
-      )}
 
       {/* Mobile Bottom Navigation */}
       <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-slate-200 flex justify-around py-2 px-1 md:hidden print:hidden z-40">

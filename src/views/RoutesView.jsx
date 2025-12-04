@@ -132,6 +132,13 @@ export function RoutesView({
                 showToast && showToast('Selecciona un cobrador para cuadrar la ruta.', 'error');
                 return;
               }
+
+              const confirmed = window.confirm('¿Confirmas que el cobrador entregó todo el dinero cobrado en caja?');
+              if (!confirmed) {
+                showToast && showToast('Cierre de ruta cancelado. Verifica la entrega del dinero.', 'info');
+                return;
+              }
+
               const total = collectorTodayTotal || 0;
               const count = collectorTodayCount || 0;
               const todayIso = new Date().toISOString();
@@ -142,6 +149,7 @@ export function RoutesView({
                 receiptsCount: count,
               });
               finishRoute && finishRoute();
+              showToast && showToast('Ruta cerrada y cuadre del cobrador registrado correctamente.', 'success');
             }}
             className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow-md hover:bg-blue-700"
           >
