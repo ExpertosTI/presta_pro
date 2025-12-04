@@ -39,51 +39,34 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import logoSmall from '../logo-small.svg';
+import { formatCurrency, formatDate, formatDateTime } from './utils/formatters';
+import { generateId, generateSecurityToken } from './utils/ids';
+import { safeLoad } from './utils/storage';
+import { calculateSchedule } from './utils/amortization';
+import { usePrestaProState } from './state/usePrestaProState';
 
-// --- UTILS & HELPERS ---
+// Nuevos componentes modularizados
+import Sidebar from './components/layout/Sidebar.jsx';
+import Header from './components/layout/Header.jsx';
+import MobileMenu from './components/layout/MobileMenu.jsx';
+import BottomNav from './components/layout/BottomNav.jsx';
+import ClientModal from './components/modals/ClientModal.jsx';
+import EmployeeModal from './components/modals/EmployeeModal.jsx';
 
-const generateId = () => Math.random().toString(36).substr(2, 9);
-
-const generateSecurityToken = () => {
-  if (window.crypto && window.crypto.getRandomValues) {
-    const array = new Uint32Array(2);
-    window.crypto.getRandomValues(array);
-    return Array.from(array)
-      .map(v => v.toString(16).padStart(8, '0'))
-      .join('')
-      .slice(0, 12)
-      .toUpperCase();
-  }
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(amount);
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  return new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
-};
-
-const formatDateTime = (dateString) => {
-  if (!dateString) return '';
-  return new Date(dateString).toLocaleString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-};
-
-const safeLoad = (key, defaultValue) => {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return defaultValue;
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(defaultValue) && !Array.isArray(parsed)) return defaultValue;
-    return parsed ?? defaultValue;
-  } catch (e) {
-    console.error('Error loading data from localStorage key', key, e);
-    try { localStorage.removeItem(key); } catch {}
-    return defaultValue;
-  }
-};
+import DashboardView from './views/DashboardView.jsx';
+import AIView from './views/AIView.jsx';
+import ClientsView from './views/ClientsView.jsx';
+import LoansView from './views/LoansView.jsx';
+import ExpensesView from './views/ExpensesView.jsx';
+import CuadreView from './views/CuadreView.jsx';
+import RequestsView from './views/RequestsView.jsx';
+import RoutesView from './views/RoutesView.jsx';
+import NotesView from './views/NotesView.jsx';
+import ReportsView from './views/ReportsView.jsx';
+import HRView from './views/HRView.jsx';
+import AccountingView from './views/AccountingView.jsx';
+import SettingsView from './views/SettingsView.jsx';
+import CalculatorView from './views/CalculatorView.jsx';
 
 const TAB_TITLES = {
   dashboard: 'Inicio',
@@ -102,68 +85,6 @@ const TAB_TITLES = {
   settings: 'Ajustes',
 };
 
-// Algoritmo de Amortización (Sistema Francés)
-const calculateSchedule = (amount, rate, term, frequency, startDate) => {
-  const schedule = [];
-  const principalAmount = parseFloat(amount) || 0;
-  let balance = principalAmount;
-  const annualRate = (parseFloat(rate) || 0) / 100;
-  const totalTerms = parseInt(term, 10) || 0;
-  
-  let periodsPerYear = 12;
-  let daysPerPeriod = 30;
-  
-  switch(frequency) {
-    case 'Diario': periodsPerYear = 365; daysPerPeriod = 1; break;
-    case 'Semanal': periodsPerYear = 52; daysPerPeriod = 7; break;
-    case 'Quincenal': periodsPerYear = 24; daysPerPeriod = 15; break;
-    case 'Mensual': periodsPerYear = 12; daysPerPeriod = 30; break;
-    default: periodsPerYear = 12;
-  }
-
-  if (!principalAmount || !totalTerms) return [];
-
-  const ratePerPeriod = annualRate / periodsPerYear;
-  let pmt = 0;
-
-  if (ratePerPeriod === 0) {
-    // Préstamo sin interés: cuota fija capital / cuotas
-    pmt = principalAmount / totalTerms;
-  } else {
-    pmt = (principalAmount * ratePerPeriod) / (1 - Math.pow(1 + ratePerPeriod, -totalTerms));
-  }
-
-  pmt = parseFloat(pmt.toFixed(2));
-
-  let currentDate = new Date(startDate);
-
-  for (let i = 1; i <= totalTerms; i++) {
-    const rawInterest = balance * ratePerPeriod;
-    const interest = parseFloat(rawInterest.toFixed(2));
-    const principal = parseFloat((pmt - interest).toFixed(2));
-    balance = parseFloat((balance - principal).toFixed(2));
-    if (balance < 0) balance = 0;
-
-    currentDate.setDate(currentDate.getDate() + daysPerPeriod);
-
-    schedule.push({
-      id: generateId(),
-      number: i,
-      date: currentDate.toISOString().split('T')[0],
-      payment: pmt,
-      interest,
-      principal,
-      balance,
-      status: 'PENDING',
-      paidAmount: 0,
-      paidDate: null
-    });
-  }
-  return schedule;
-};
-
-// --- COMPONENTS ---
-
 const Card = ({ children, className = "" }) => (
   <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className} print:border-none print:shadow-none`}>
     {children}
@@ -180,57 +101,136 @@ const Badge = ({ status }) => {
     REJECTED: 'bg-red-50 text-red-600',
     REVIEW: 'bg-yellow-100 text-yellow-800'
   };
+
+  const labels = {
+    ACTIVE: 'Activo',
+    PAID: 'Pagado',
+    LATE: 'Atrasado',
+    PENDING: 'Pendiente',
+    APPROVED: 'Aprobado',
+    REJECTED: 'Rechazado',
+    REVIEW: 'En revisión',
+  };
+
+  const label = labels[status] || status;
+
   return (
     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[status] || styles.PENDING}`}>
-      {status}
+      {label}
     </span>
   );
 };
 
-// --- TICKET DE PAGO (IMPRESIÓN TÉRMICA) ---
-const PaymentTicket = ({ receipt, companyName = "Renace.tech" }) => {
+// --- TICKET DE PAGO (ESTILO MODERNO / IMPRESIÓN TÉRMICA) ---
+const PaymentTicket = ({ receipt, companyName = "Presta Pro" }) => {
   if (!receipt) return null;
   return (
-    <div className="hidden print:block fixed inset-0 bg-white z-[100] p-4 font-mono text-black text-xs leading-tight">
-      <div className="max-w-[80mm] mx-auto text-center">
-        <h1 className="text-xl font-bold mb-1">{companyName}</h1>
-        <p className="mb-2">RNC: 101-00000-1</p>
-        <p className="mb-4 border-b border-black pb-2">RECIBO DE INGRESO</p>
-        
-        <div className="text-left mb-2">
-          <p><strong>Recibo #:</strong> {receipt.id.substr(0,8).toUpperCase()}</p>
-          <p><strong>Fecha:</strong> {formatDateTime(receipt.date)}</p>
-          <p><strong>Cliente:</strong> {receipt.clientName}</p>
-          <p><strong>Préstamo ID:</strong> {receipt.loanId.substr(0,6).toUpperCase()}</p>
-        </div>
-
-        <div className="border-y border-black py-2 my-2 text-left">
-          <div className="flex justify-between font-bold text-sm">
-            <span>MONTO PAGADO:</span>
-            <span>{formatCurrency(receipt.amount)}</span>
+    <div className="hidden print:block fixed inset-0 bg-slate-100 z-[100] p-3 font-sans text-slate-900 text-[12px] leading-tight">
+      <div className="max-w-[80mm] mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* Encabezado */}
+        <div className="px-3 pt-3 pb-1.5 text-center border-b border-slate-200 bg-slate-50">
+          <h1 className="text-lg font-extrabold tracking-tight mb-0.5">{companyName}</h1>
+          <p className="text-[10px] text-slate-600 font-semibold">RNC: 101-00000-1</p>
+          <div className="flex items-center justify-center gap-1 mt-1 text-emerald-600 font-bold text-[12px]">
+            <CheckCircle size={13} className="inline-block" />
+            <span>Pago registrado</span>
           </div>
         </div>
 
-        <div className="text-left mb-4">
-          <p><strong>Cuota #:</strong> {receipt.installmentNumber}</p>
-          <p><strong>Concepto:</strong> Pago de Cuota</p>
-          <p><strong>Cobrador:</strong> Admin</p>
+        {/* Monto principal */}
+        <div className="px-3 py-2 bg-slate-50 border-b border-slate-200">
+          <p className="text-[11px] text-slate-600 font-semibold mb-0.5 uppercase">Monto pagado</p>
+          <p className="text-2xl font-extrabold text-slate-900 tracking-tight">{formatCurrency(receipt.amount)}</p>
         </div>
 
-        <div className="text-center mt-6">
-          <p className="text-[10px]">¡Gracias por su pago puntual!</p>
-          <p className="text-[10px]">Conserve este recibo como constancia.</p>
-          <p className="mt-4">__________________________</p>
-          <p>Firma Autorizada</p>
+        {/* Detalles principales */}
+        <div className="px-3 py-2 space-y-0.5">
+          <div className="flex justify-between text-[11px]">
+            <span className="font-semibold text-slate-700">Recibo</span>
+            <span className="font-mono font-bold text-slate-900">{receipt.id.substr(0,8).toUpperCase()}</span>
+          </div>
+          <div className="flex justify-between text-[11px] items-center">
+            <span className="font-semibold text-slate-700 flex items-center gap-1">
+              <Calendar size={11} /> Fecha pago
+            </span>
+            <span className="font-bold text-slate-900">{formatDateTime(receipt.date)}</span>
+          </div>
+        </div>
+
+        {/* Cliente y préstamo */}
+        <div className="px-3 py-1.5 border-t border-slate-100 space-y-0.5">
+          <p className="text-[11px] font-bold text-slate-800 uppercase">Cliente</p>
+          <p className="text-[12px] font-bold text-slate-900">{receipt.clientName}</p>
+          {receipt.clientPhone && (
+            <p className="text-[11px] text-slate-700 font-semibold">Tel: {receipt.clientPhone}</p>
+          )}
+          {receipt.clientAddress && (
+            <p className="text-[11px] text-slate-700 flex items-center gap-1 font-semibold">
+              <MapPin size={10} /> {receipt.clientAddress}
+            </p>
+          )}
+        </div>
+
+        <div className="px-3 py-1.5 border-t border-slate-100 space-y-0.5">
+          <p className="text-[11px] font-bold text-slate-800 uppercase">Préstamo</p>
+          <div className="flex justify-between text-[11px]">
+            <span className="font-semibold text-slate-700">ID</span>
+            <span className="font-mono font-bold text-slate-900">{receipt.loanId.substr(0,6).toUpperCase()}</span>
+          </div>
+          {typeof receipt.loanAmount === 'number' && (
+            <div className="flex justify-between text-[11px]">
+              <span className="font-semibold text-slate-700">Monto del préstamo</span>
+              <span className="font-bold text-slate-900">{formatCurrency(receipt.loanAmount)}</span>
+            </div>
+          )}
+          {typeof receipt.totalPaidAfter === 'number' && (
+            <div className="flex justify-between text-[11px]">
+              <span className="font-semibold text-slate-700">Total pagado</span>
+              <span className="font-bold text-slate-900">{formatCurrency(receipt.totalPaidAfter)}</span>
+            </div>
+          )}
+          {typeof receipt.remainingBalance === 'number' && (
+            <div className="flex justify-between text-[11px]">
+              <span className="font-semibold text-slate-700">Balance pendiente</span>
+              <span className="font-bold text-slate-900">{formatCurrency(receipt.remainingBalance)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Info de cuota */}
+        <div className="px-3 py-1.5 border-t border-slate-100 space-y-0.5">
+          <p className="text-[11px] font-bold text-slate-800 uppercase">Detalle de la cuota</p>
+          <div className="flex justify-between text-[11px]">
+            <span className="font-semibold text-slate-700">Cuota #</span>
+            <span className="font-bold text-slate-900">{receipt.installmentNumber}</span>
+          </div>
+          {receipt.installmentDate && (
+            <div className="flex justify-between text-[11px]">
+              <span className="font-semibold text-slate-700">Fecha programada</span>
+              <span className="font-bold text-slate-900">{formatDate(receipt.installmentDate)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-[11px]">
+            <span className="font-semibold text-slate-700">Concepto</span>
+            <span className="font-bold text-slate-900">Pago de cuota</span>
+          </div>
+          <div className="flex justify-between text-[11px]">
+            <span className="font-semibold text-slate-700">Cobrador</span>
+            <span className="font-bold text-slate-900">Admin</span>
+          </div>
+        </div>
+
+        {/* Pie */}
+        <div className="px-3 py-2 text-center border-t border-slate-200 bg-slate-50 mt-0.5">
+          <p className="text-[11px] text-slate-600 font-semibold">Gracias por su pago puntual.</p>
+          <p className="text-[11px] text-slate-600 font-semibold">Conserve este recibo como constancia.</p>
         </div>
       </div>
     </div>
   );
 };
 
-
 // --- ASISTENTE AI COMPONENT ---
-
 const AIHelper = ({ chatHistory, setChatHistory, dbData, showToast }) => {
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState('');
@@ -380,7 +380,7 @@ Instrucciones de comportamiento:
 
   return (
     <Card className="flex flex-col h-full">
-      <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Zap size={20} className="text-blue-500"/> Asistente IA</h2>
+      <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Zap size={20} className="text-blue-500"/> Asistente IA</h2>
       
       <div className="flex-1 overflow-y-auto space-y-4 pr-2" style={{ maxHeight: 'calc(100vh - 250px)' }}>
         {/* Mensaje inicial */}
@@ -436,91 +436,6 @@ Instrucciones de comportamiento:
   );
 };
 
-  const CalculatorView = () => {
-    const [simData, setSimData] = useState({ amount: 10000, rate: 10, term: 12, frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
-    const [schedule, setSchedule] = useState([]);
-
-    useEffect(() => {
-      if(simData.amount && simData.rate && simData.term) {
-         setSchedule(calculateSchedule(simData.amount, simData.rate, simData.term, simData.frequency, simData.startDate));
-      }
-    }, [simData]);
-
-    return (
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
-          <div className="lg:col-span-1">
-             <Card>
-                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Calculator size={20}/> Simulador</h3>
-                <div className="space-y-4">
-                   <div>
-                      <label className="block text-sm font-bold text-slate-600 mb-1">Monto a Prestar</label>
-                      <input type="number" className="w-full p-2 border rounded-lg" value={simData.amount} onChange={e => setSimData({...simData, amount: e.target.value})} />
-                   </div>
-                   <div className="grid grid-cols-2 gap-4">
-                      <div>
-                         <label className="block text-sm font-bold text-slate-600 mb-1">Tasa Interés %</label>
-                         <input type="number" className="w-full p-2 border rounded-lg" value={simData.rate} onChange={e => setSimData({...simData, rate: e.target.value})} />
-                      </div>
-                      <div>
-                         <label className="block text-sm font-bold text-slate-600 mb-1">Frecuencia</label>
-                         <select className="w-full p-2 border rounded-lg bg-white" value={simData.frequency} onChange={e => setSimData({...simData, frequency: e.target.value})}>
-                            <option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option>
-                         </select>
-                      </div>
-                   </div>
-                   <div>
-                      <label className="block text-sm font-bold text-slate-600 mb-1">Plazo (Cuotas)</label>
-                      <input type="number" className="w-full p-2 border rounded-lg" value={simData.term} onChange={e => setSimData({...simData, term: e.target.value})} />
-                   </div>
-                   <div className="mt-6 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                      <div className="flex justify-between mb-2 text-sm">
-                         <span className="text-blue-800">Cuota Estimada:</span>
-                         <span className="font-bold text-blue-800">{schedule.length > 0 ? formatCurrency(schedule[0].payment) : '$0.00'}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                         <span className="text-blue-800">Total Interés:</span>
-                         <span className="font-bold text-blue-800">{schedule.length > 0 ? formatCurrency(schedule.reduce((a,b)=>a+b.interest,0)) : '$0.00'}</span>
-                      </div>
-                   </div>
-                </div>
-             </Card>
-          </div>
-          
-          <div className="lg:col-span-2">
-             <Card className="h-full overflow-hidden flex flex-col">
-                <h3 className="font-bold text-lg mb-4">Tabla de Amortización Proyectada</h3>
-                <div className="flex-1 overflow-y-auto">
-                   <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50 text-slate-600 sticky top-0">
-                         <tr>
-                            <th className="p-2">#</th>
-                            <th className="p-2">Fecha</th>
-                            <th className="p-2 text-right">Cuota</th>
-                            <th className="p-2 text-right">Interés</th>
-                            <th className="p-2 text-right">Capital</th>
-                            <th className="p-2 text-right">Saldo</th>
-                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                         {schedule.map(item => (
-                            <tr key={item.number}>
-                               <td className="p-2 font-bold text-slate-500">{item.number}</td>
-                               <td className="p-2">{formatDate(item.date)}</td>
-                               <td className="p-2 text-right font-bold">{formatCurrency(item.payment)}</td>
-                               <td className="p-2 text-right text-red-500">{formatCurrency(item.interest)}</td>
-                               <td className="p-2 text-right text-green-600">{formatCurrency(item.principal)}</td>
-                               <td className="p-2 text-right text-slate-500">{formatCurrency(item.balance)}</td>
-                            </tr>
-                         ))}
-                      </tbody>
-                   </table>
-                </div>
-             </Card>
-          </div>
-       </div>
-    );
-  };
-
   const SolicitudesView = () => {
     // Reutilizamos formulario de creación de préstamos pero con otra acción
     const [form, setForm] = useState({ clientId: '', amount: '', rate: '', term: '', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
@@ -552,8 +467,8 @@ Instrucciones de comportamiento:
                        <div>Plazo: {req.term} {req.frequency}</div>
                     </div>
                     <div className="flex gap-2">
-                       <button onClick={() => approveRequest(req)} className="flex-1 bg-teal-600 text-white py-1.5 rounded-lg text-sm font-semibold hover:bg-teal-700">Aprobar</button>
-                       <button onClick={() => rejectRequest(req)} className="flex-1 bg-red-100 text-red-700 py-1.5 rounded-lg text-sm font-semibold hover:bg-red-200">Rechazar</button>
+                       <button onClick={() => approveRequest(req)} className="flex-1 bg-teal-600 text-white py-1.5 rounded-lg text-sm font-bold hover:bg-teal-700">Aprobar</button>
+                       <button onClick={() => rejectRequest(req)} className="flex-1 bg-red-100 text-red-700 py-1.5 rounded-lg text-sm font-bold hover:bg-red-200">Rechazar</button>
                     </div>
                  </div>
                );
@@ -685,51 +600,110 @@ Instrucciones de comportamiento:
                   </div>
                </Card>
             </div>
-         </div>
-      </div>
-    );
+          </div>
+        </div>
+      );
   };
 
-  const NotasView = () => {
-    const [note, setNote] = useState('');
-    const addNote = () => {
-       if(!note) return;
-       setNotes([...notes, { id: generateId(), text: note, date: new Date().toISOString() }]);
-       setNote('');
-    };
-
-    return (
-      <div className="max-w-4xl mx-auto animate-fade-in">
-        <Card>
-           <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><ClipboardList/> Bloc de Notas</h2>
-           <div className="flex gap-2 mb-6">
-              <input className="flex-1 p-3 border rounded-xl" placeholder="Escribe una nota rápida..." value={note} onChange={e => setNote(e.target.value)} />
-              <button onClick={addNote} className="bg-blue-600 text-white px-6 rounded-xl font-bold">Agregar</button>
-           </div>
-           <div className="space-y-3">
-              {notes.map(n => (
-                 <div key={n.id} className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl relative group">
-                    <p className="text-slate-800">{n.text}</p>
-                    <p className="text-xs text-slate-400 mt-2">{formatDateTime(n.date)}</p>
-                    <button onClick={() => setNotes(notes.filter(x => x.id !== n.id))} className="absolute top-2 right-2 text-red-400 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
-                 </div>
-              ))}
-              {notes.length === 0 && <p className="text-center text-slate-400">No hay notas guardadas.</p>}
-           </div>
-        </Card>
-      </div>
-    );
-  };
+  const ContabilidadView = () => (
+    <div className="space-y-4 animate-fade-in">
+      <h2 className="text-2xl font-bold text-slate-800">Contabilidad</h2>
+      <Card>
+        <p className="text-sm text-slate-600">
+          Aquí podrás integrar reportes contables, exportación a Excel y conciliaciones.
+        </p>
+      </Card>
+    </div>
+  );
 
   function App() {
+    const {
+      activeTab,
+      mobileMenuOpen,
+      showNotification,
+      searchQuery,
+      printReceipt,
+      clientModalOpen,
+      employeeModalOpen,
+      securityToken,
+      chatHistory,
+      clients,
+      loans,
+      expenses,
+      requests,
+      notes,
+      receipts,
+      systemSettings,
+      collectors,
+      routeClosings,
+      selectedClientId,
+      selectedLoanId,
+      currentRouteLoanIds,
+      routeActive,
+      setActiveTab,
+      setMobileMenuOpen,
+      setSearchQuery,
+      setPrintReceipt,
+      setClientModalOpen,
+      setEmployeeModalOpen,
+      setSecurityToken,
+      setChatHistory,
+      setClients,
+      setLoans,
+      setExpenses,
+      setRequests,
+      setNotes,
+      setReceipts,
+      setSystemSettings,
+      setCollectors,
+      setRouteClosings,
+      setSelectedClientId,
+      setSelectedLoanId,
+      dbData,
+      handlePrint,
+      addClient,
+      addEmployee,
+      addExpense,
+      addRequest,
+      approveRequest,
+      rejectRequest,
+      createLoan,
+      registerPayment,
+      addCollector,
+      assignCollectorToClient,
+      toggleLoanInRoute,
+      clearCurrentRoute,
+      startRoute,
+      finishRoute,
+      addRouteClosing,
+    } = usePrestaProState();
+
     return (
       <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
         {/* CLIENT MODAL */}
-        {clientModalOpen && <ClientModal />}
+        {clientModalOpen && (
+          <ClientModal
+            open={clientModalOpen}
+            onClose={() => setClientModalOpen(false)}
+            onSave={(data) => {
+              addClient(data);
+              setClientModalOpen(false);
+            }}
+          />
+        )}
         {/* EMPLOYEE MODAL */}
-        {employeeModalOpen && <EmployeeModal />}
-      {/* TICKET PRINTER OVERLAY */}
-      {printReceipt && <PaymentTicket receipt={printReceipt} />}
+        {employeeModalOpen && (
+          <EmployeeModal
+            open={employeeModalOpen}
+            onClose={() => setEmployeeModalOpen(false)}
+            onSave={(data) => {
+              addEmployee(data);
+              setEmployeeModalOpen(false);
+            }}
+          />
+        )}
+        {/* TICKET PRINTER OVERLAY */}
+        {printReceipt && <PaymentTicket receipt={printReceipt} />}
 
       {/* Sidebar - HIDDEN ON PRINT */}
       <aside className="hidden md:flex flex-col w-72 bg-slate-900 text-white shadow-2xl z-20 print:hidden">
@@ -789,7 +763,6 @@ Instrucciones de comportamiento:
         {/* Header - HIDDEN ON PRINT */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10 print:hidden">
           <div className="md:hidden flex items-center gap-3">
-             <button onClick={() => setMobileMenuOpen(true)}><Menu/></button>
              <img src={logoSmall} alt="Presta Pro" className="w-7 h-7 rounded-lg object-contain" />
              <span className="font-bold text-slate-800">Presta Pro</span>
           </div>
@@ -808,23 +781,121 @@ Instrucciones de comportamiento:
 
         {/* Dynamic View Content */}
         <div className="flex-1 overflow-y-auto p-4 pb-20 md:p-8 md:pb-8 relative print:p-0 print:overflow-visible">
-           {activeTab === 'dashboard' && <DashboardView />}
-           {activeTab === 'cuadre' && <CuadreView />}
-           {activeTab === 'expenses' && <GastosView />}
-           {activeTab === 'requests' && <SolicitudesView />}
-           {activeTab === 'routes' && <RutaView />}
-           {activeTab === 'notes' && <NotasView />}
-           {activeTab === 'reports' && <ReportesView />}
-           {activeTab === 'hr' && <RRHHView />}
-           {activeTab === 'accounting' && <ContabilidadView />}
+           {activeTab === 'dashboard' && (
+             <DashboardView
+               loans={loans}
+               clients={clients}
+               selectedClientId={selectedClientId}
+               selectedLoanId={selectedLoanId}
+               onSelectLoan={(loanId) => {
+                 setSelectedLoanId(loanId);
+                 setActiveTab('loans');
+               }}
+               onSelectClient={(clientId) => {
+                 setSelectedClientId(clientId);
+                 setActiveTab('clients');
+               }}
+             />
+           )}
+           {activeTab === 'cuadre' && (
+            <CuadreView receipts={receipts} expenses={expenses} />
+          )}
+           {activeTab === 'expenses' && (
+             <ExpensesView expenses={expenses} addExpense={addExpense} />
+           )}
+           {activeTab === 'requests' && (
+             <RequestsView
+               requests={requests}
+               clients={clients}
+               addRequest={addRequest}
+               approveRequest={approveRequest}
+               rejectRequest={rejectRequest}
+               onNewClient={() => setClientModalOpen(true)}
+             />
+           )}
+           {activeTab === 'routes' && (
+            <RoutesView
+              loans={loans}
+              clients={clients}
+              registerPayment={registerPayment}
+              collectors={collectors}
+              currentRouteLoanIds={currentRouteLoanIds}
+              routeActive={routeActive}
+              toggleLoanInRoute={toggleLoanInRoute}
+              clearCurrentRoute={clearCurrentRoute}
+              startRoute={startRoute}
+              finishRoute={finishRoute}
+              showToast={showToast}
+              addRouteClosing={addRouteClosing}
+              routeClosings={routeClosings}
+              receipts={receipts}
+              includeFutureInstallments={systemSettings.includeFutureInstallmentsInRoutes}
+            />
+          )}
+           {activeTab === 'notes' && (
+             <NotesView
+               notes={notes}
+               setNotes={setNotes}
+             />
+           )}
+           {activeTab === 'reports' && (
+             <ReportsView loans={loans} expenses={expenses} />
+           )}
+           {activeTab === 'hr' && (
+            <HRView
+              employees={dbData.employees || []}
+              onNewEmployee={() => setEmployeeModalOpen(true)}
+            />
+          )}
+           {activeTab === 'accounting' && (
+             <AccountingView
+               loans={loans}
+               expenses={expenses}
+               receipts={receipts}
+             />
+           )}
            {activeTab === 'ai' && (
-             <AIHelper chatHistory={chatHistory} setChatHistory={setChatHistory} dbData={dbData} showToast={showToast} />
+             <AIView
+               chatHistory={chatHistory}
+               setChatHistory={setChatHistory}
+               dbData={dbData}
+               showToast={showToast}
+             />
            )}
            
-           {activeTab === 'clients' && <ClientsView />}
-           {activeTab === 'loans' && <LoansView />}
+           {activeTab === 'clients' && (
+             <ClientsView
+               clients={clients}
+               loans={loans}
+               selectedClientId={selectedClientId}
+               onSelectClient={setSelectedClientId}
+               onSelectLoan={(loanId) => {
+                 setSelectedLoanId(loanId);
+                 setActiveTab('loans');
+               }}
+               onNewClient={() => setClientModalOpen(true)}
+             />
+           )}
+           {activeTab === 'loans' && (
+             <LoansView
+               loans={loans}
+               clients={clients}
+               registerPayment={registerPayment}
+               selectedLoanId={selectedLoanId}
+               onSelectLoan={setSelectedLoanId}
+             />
+           )}
            {activeTab === 'calculator' && <CalculatorView />}
-           {activeTab === 'settings' && <SettingsView />}
+           {activeTab === 'settings' && (
+             <SettingsView
+               systemSettings={systemSettings}
+               setSystemSettings={setSystemSettings}
+               collectors={collectors}
+               addCollector={addCollector}
+               clients={clients}
+               assignCollectorToClient={assignCollectorToClient}
+             />
+           )}
         </div>
       </main>
 
