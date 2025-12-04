@@ -5,3 +5,11 @@ services:
     ports:
       - "8080:80"  # HOST:CONTAINER
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"     # máximo ~50% de 1 core lógico
+          memory: "512M"   # máximo 512MB de RAM
+        reservations:
+          cpus: "0.10"     # al menos 10% de un core reservado
+          memory: "128M"   # al menos 128MB reservados

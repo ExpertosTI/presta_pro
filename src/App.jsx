@@ -378,196 +378,134 @@ Instrucciones de comportamiento:
     setChatHistory(prev => [...prev, { role: 'model', text: text }]);
   };
 
-
   return (
     <Card className="flex flex-col h-full">
       <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Zap size={20} className="text-blue-500"/> Asistente IA</h2>
       
       <div className="flex-1 overflow-y-auto space-y-4 pr-2" style={{ maxHeight: 'calc(100vh - 250px)' }}>
-        {/* Initial message */}
+        {/* Mensaje inicial */}
         {chatHistory.length === 0 && (
-            <div className="bg-blue-50 p-4 rounded-xl text-sm border border-blue-200">
-              <p className="font-semibold text-blue-800 mb-1">Hola, soy el Asistente IA de Renace.tech.</p>
-              <p className="text-blue-700">Puedes preguntarme cosas como: "¿Cuál es el balance total prestado?" o "¿Cuántos clientes tenemos?"</p>
-            </div>
-    );
-
-    const pendingInstallments = loans.flatMap(loan => 
-      loan.schedule
-        .filter(inst => inst.status !== 'PAID')
-        .map(inst => ({
-          loanId: loan.id,
-          installment: inst,
-          client: clients.find(c => c.id === loan.clientId)
-        }))
-    ).sort((a, b) => new Date(a.installment.date) - new Date(b.installment.date));
-
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800">Gestión de Préstamos</h2>
-          <div className="flex gap-2 bg-white p-1 rounded-lg border border-slate-200">
-             {['ACTIVE', 'PAID', 'ALL'].map(status => (
-               <button 
-                 key={status}
-                 onClick={() => setFilterStatus(status)}
-                 className={`px-4 py-1 rounded-md text-xs font-bold transition-colors ${filterStatus === status ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
-               >
-                 {status === 'ALL' ? 'TODOS' : status === 'ACTIVE' ? 'ACTIVOS' : 'PAGADOS'}
-               </button>
-             ))}
+          <div className="bg-blue-50 p-4 rounded-xl text-sm border border-blue-200">
+            <p className="font-semibold text-blue-800 mb-1">Hola, soy el Asistente IA de Renace.tech.</p>
+            <p className="text-blue-700">Puedes preguntarme cosas como: "¿Cuál es el balance total prestado?" o "¿Cuántos clientes tenemos?"</p>
           </div>
-        </div>
-
-        {pendingInstallments.length > 0 && (
-          <Card className="bg-green-50/70 border border-green-200">
-            <h3 className="font-bold text-slate-800 mb-3 text-sm md:text-base flex items-center gap-2">
-              <DollarSign size={18} className="text-green-600"/> Cuotas pendientes para cobrar
-            </h3>
-            <div className="overflow-x-auto max-h-64">
-              <table className="w-full text-xs md:text-sm text-left">
-                <thead className="bg-white text-slate-600">
-                  <tr>
-                    <th className="p-2">Fecha</th>
-                    <th className="p-2">Cliente</th>
-                    <th className="p-2 text-right">Monto</th>
-                    <th className="p-2 text-center">Acción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {pendingInstallments.slice(0, 50).map(({ loanId, installment, client }) => (
-                    <tr key={installment.id}>
-                      <td className="p-2">{formatDate(installment.date)}</td>
-                      <td className="p-2 text-slate-700">{client?.name || 'Cliente'}</td>
-                      <td className="p-2 text-right font-medium text-slate-800">{formatCurrency(installment.payment)}</td>
-                      <td className="p-2 text-center">
-                        <button
-                          onClick={() => registerPayment(loanId, installment.id)}
-                          className="inline-flex items-center justify-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-lg text-[11px] md:text-xs font-bold hover:bg-green-700"
-                        >
-                          <DollarSign size={14}/> Cobrar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           {/* LIST */}
-           <div className="lg:col-span-1 space-y-4 h-[calc(100vh-200px)] overflow-y-auto pr-2">
-              {filteredLoans.map(loan => {
-                const client = clients.find(c => c.id === loan.clientId);
-                const percentPaid = Math.round((loan.totalPaid / (loan.amount + loan.totalInterest)) * 100);
-                return (
-                  <div 
-                    key={loan.id} 
-                    onClick={() => setSelectedLoan(loan)}
-                    className={`bg-white p-4 rounded-xl border cursor-pointer transition-all ${selectedLoan?.id === loan.id ? 'border-blue-500 ring-2 ring-blue-100' : 'border-slate-200 hover:border-blue-300'}`}
-                  >
-                     <div className="flex justify-between items-start mb-2">
-                        <div>
-                           <h4 className="font-bold text-slate-800">{client?.name || 'Cliente Desconocido'}</h4>
-                           <p className="text-xs text-slate-400">ID: {loan.id.substr(0,6)}</p>
-                        </div>
-                        <Badge status={loan.status} />
-                     </div>
-                     <div className="flex justify-between text-sm mb-2">
-                        <span className="text-slate-500">Monto:</span>
-                        <span className="font-bold text-slate-700">{formatCurrency(loan.amount)}</span>
-                     </div>
-                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div className="bg-blue-500 h-full" style={{ width: `${percentPaid}%` }}></div>
-                     </div>
-                     <p className="text-xs text-right mt-1 text-slate-400">{percentPaid}% Pagado</p>
-                  </div>
-                );
-              })}
-              {filteredLoans.length === 0 && <p className="text-center text-slate-400 py-10">No hay préstamos en esta categoría.</p>}
-           </div>
+        {/* Mensajes del chat */}
+        {chatHistory.map((message, index) => (
+          <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-3/4 p-3 rounded-xl ${
+              message.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-tl-none'
+            }`}>
+              <p className="whitespace-pre-wrap">{message.text}</p>
+            </div>
+          </div>
+        ))}
 
-           {/* DETAILS */}
-           <div className="lg:col-span-2">
-              {selectedLoan ? (
-                 <Card className="h-full flex flex-col">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4 border-b border-slate-100 pb-4">
-                       <div>
-                          <h3 className="text-xl font-bold text-slate-800">Detalle del Préstamo</h3>
-                          <p className="text-slate-500 text-sm">Iniciado el {formatDate(selectedLoan.createdAt)}</p>
-                          <p className="text-slate-500 text-xs mt-1">Cliente ID: {selectedLoan.clientId?.substr(0,6)}</p>
-                       </div>
-                       <div className="text-right md:text-right">
-                          <p className="text-sm text-slate-500">Balance Pendiente</p>
-                          <p className="text-2xl font-bold text-slate-800">{formatCurrency((parseFloat(selectedLoan.amount) + selectedLoan.totalInterest) - selectedLoan.totalPaid)}</p>
-                          {selectedLoan.schedule && selectedLoan.schedule.find(i => i.status !== 'PAID') && (
-                            <button
-                              onClick={() => {
-                                const next = selectedLoan.schedule.find(i => i.status !== 'PAID');
-                                if (next) registerPayment(selectedLoan.id, next.id);
-                              }}
-                              className="mt-3 inline-flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold w-full md:w-auto"
-                            >
-                              <DollarSign size={16}/> Registrar próxima cuota
-                            </button>
-                          )}
-                       </div>
-                    </div>
-                    
-                    <div className="flex-1 overflow-y-auto overflow-x-auto">
-                       <table className="w-full text-sm text-left min-w-[500px]">
-                          <thead className="bg-slate-50 text-slate-600 sticky top-0">
-                             <tr>
-                                <th className="p-3">#</th>
-                                <th className="p-3">Fecha</th>
-                                <th className="p-3 text-right">Cuota</th>
-                                <th className="p-3 text-right">Estado</th>
-                                <th className="p-3 text-center">Acción</th>
-                             </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                             {selectedLoan.schedule.map(item => (
-                                <tr key={item.id} className={item.status === 'PAID' ? 'bg-green-50/50' : ''}>
-                                   <td className="p-3 font-bold text-slate-500">{item.number}</td>
-                                   <td className="p-3">{formatDate(item.date)}</td>
-                                   <td className="p-3 text-right font-medium">{formatCurrency(item.payment)}</td>
-                                   <td className="p-3 text-right"><Badge status={item.status}/></td>
-                                   <td className="p-3 text-center">
-                                      {item.status !== 'PAID' && (
-                                        <button 
-                                          onClick={() => registerPayment(selectedLoan.id, item.id)}
-                                          className="bg-green-100 text-green-700 p-1.5 rounded-lg hover:bg-green-200"
-                                          title="Registrar Pago"
-                                        >
-                                          <DollarSign size={16}/>
-                                        </button>
-                                      )}
-                                   </td>
-                                </tr>
-                             ))}
-                          </tbody>
-                       </table>
-                    </div>
-                 </Card>
-              ) : (
-                 <div className="h-full flex items-center justify-center bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-400">
-                    <p>Selecciona un préstamo para ver los detalles</p>
-                 </div>
-              )}
-           </div>
+        {/* Indicador de carga */}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="p-3 bg-slate-100 text-slate-800 rounded-xl rounded-tl-none">
+              <Loader2 size={20} className="animate-spin text-blue-500"/>
+            </div>
+          </div>
+        )}
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* Input */}
+      <form onSubmit={handleSendMessage} className="mt-4 flex gap-2 pt-4 border-t border-slate-100">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Escribe tu consulta..."
+          className="flex-1 p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          disabled={loading}
+        />
+        <button
+          type="submit"
+          className={`bg-blue-600 text-white p-3 rounded-xl transition-colors ${loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+          disabled={loading}
+        >
+          <Send size={20} />
+        </button>
+      </form>
+    </Card>
+  );
+};
+
+const LoansView = () => {
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [selectedLoan, setSelectedLoan] = useState(null);
+
+  const filteredLoans = loans.filter(loan => {
+    if (filterStatus === 'ALL') return true;
+    if (filterStatus === 'ACTIVE') return loan.status === 'ACTIVE';
+    if (filterStatus === 'PAID') return loan.status === 'PAID';
+    return false;
+  });
+
+  const pendingInstallments = loans.flatMap(loan => 
+    loan.schedule
+      .filter(inst => inst.status !== 'PAID')
+      .map(inst => ({
+        loanId: loan.id,
+        installment: inst,
+        client: clients.find(c => c.id === loan.clientId)
+      }))
+  ).sort((a, b) => new Date(a.installment.date) - new Date(b.installment.date));
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-slate-800">Gestión de Préstamos</h2>
+        <div className="flex gap-2 bg-white p-1 rounded-lg border border-slate-200">
+           {['ACTIVE', 'PAID', 'ALL'].map(status => (
+             <button 
+               key={status}
+               onClick={() => setFilterStatus(status)}
+               className={`px-4 py-1 rounded-md text-xs font-bold transition-colors ${filterStatus === status ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
+             >
+               {status === 'ALL' ? 'TODOS' : status === 'ACTIVE' ? 'ACTIVOS' : 'PAGADOS'}
+             </button>
+           ))}
         </div>
       </div>
-    );
-  };
 
-  const CalculatorView = () => {
-    const [simData, setSimData] = useState({ amount: 10000, rate: 10, term: 12, frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
-    const [schedule, setSchedule] = useState([]);
-
-    useEffect(() => {
-      if(simData.amount && simData.rate && simData.term) {
+      {pendingInstallments.length > 0 && (
+        <Card className="bg-green-50/70 border border-green-200">
+          <h3 className="font-bold text-slate-800 mb-3 text-sm md:text-base flex items-center gap-2">
+            <DollarSign size={18} className="text-green-600"/> Cuotas pendientes para cobrar
+          </h3>
+          <div className="overflow-x-auto max-h-64">
+            <table className="w-full text-xs md:text-sm text-left">
+              <thead className="bg-white text-slate-600">
+                <tr>
+                  <th className="p-2">Fecha</th>
+                  <th className="p-2">Cliente</th>
+                  <th className="p-2 text-right">Monto</th>
+                  <th className="p-2 text-center">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pendingInstallments.slice(0, 50).map(({ loanId, installment, client }) => (
+                  <tr key={installment.id}>
+                    <td className="p-2">{formatDate(installment.date)}</td>
+                    <td className="p-2 text-slate-700">{client?.name || 'Cliente'}</td>
+                    <td className="p-2 text-right font-medium text-slate-800">{formatCurrency(installment.payment)}</td>
+                    <td className="p-2 text-center">
+                      <button
+                        onClick={() => registerPayment(loanId, installment.id)}
+                        className="inline-flex items-center justify-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-lg text-[11px] md:text-xs font-bold hover:bg-green-700"
+                      >
+                        <DollarSign size={14}/> Cobrar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
          setSchedule(calculateSchedule(simData.amount, simData.rate, simData.term, simData.frequency, simData.startDate));
       }
     }, [simData]);
