@@ -1,0 +1,7 @@
+services:
+  presta_pro_web:
+    build: .
+    container_name: presta_pro_web
+    ports:
+      - "8080:80"  # HOST:CONTAINER
+    restart: unless-stopped
