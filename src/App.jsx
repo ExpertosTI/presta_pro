@@ -375,192 +375,66 @@ Instrucciones de comportamiento:
     const candidate = responseData?.candidates?.[0];
     const text = candidate?.content?.parts?.[0]?.text || 'Lo siento, no pude obtener una respuesta del modelo.';
 
-    setChatHistory(prev => [...prev, { role: 'model', text: text }]);
+    setChatHistory(prev => [...prev, { role: 'model', text }]);
   };
-
 
   return (
     <Card className="flex flex-col h-full">
       <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Zap size={20} className="text-blue-500"/> Asistente IA</h2>
       
       <div className="flex-1 overflow-y-auto space-y-4 pr-2" style={{ maxHeight: 'calc(100vh - 250px)' }}>
-        {/* Initial message */}
+        {/* Mensaje inicial */}
         {chatHistory.length === 0 && (
-            <div className="bg-blue-50 p-4 rounded-xl text-sm border border-blue-200">
-              <p className="font-semibold text-blue-800 mb-1">Hola, soy el Asistente IA de Renace.tech.</p>
-              <p className="text-blue-700">Puedes preguntarme cosas como: "¿Cuál es el balance total prestado?" o "¿Cuántos clientes tenemos?"</p>
-            </div>
-    );
-
-    const pendingInstallments = loans.flatMap(loan => 
-      loan.schedule
-        .filter(inst => inst.status !== 'PAID')
-        .map(inst => ({
-          loanId: loan.id,
-          installment: inst,
-          client: clients.find(c => c.id === loan.clientId)
-        }))
-    ).sort((a, b) => new Date(a.installment.date) - new Date(b.installment.date));
-
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800">Gestión de Préstamos</h2>
-          <div className="flex gap-2 bg-white p-1 rounded-lg border border-slate-200">
-             {['ACTIVE', 'PAID', 'ALL'].map(status => (
-               <button 
-                 key={status}
-                 onClick={() => setFilterStatus(status)}
-                 className={`px-4 py-1 rounded-md text-xs font-bold transition-colors ${filterStatus === status ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
-               >
-                 {status === 'ALL' ? 'TODOS' : status === 'ACTIVE' ? 'ACTIVOS' : 'PAGADOS'}
-               </button>
-             ))}
+          <div className="bg-blue-50 p-4 rounded-xl text-sm border border-blue-200">
+            <p className="font-semibold text-blue-800 mb-1">Hola, soy el Asistente IA de Renace.tech.</p>
+            <p className="text-blue-700">Puedes preguntarme cosas como: "¿Cuál es el balance total prestado?" o "¿Cuántos clientes tenemos?"</p>
           </div>
-        </div>
-
-        {pendingInstallments.length > 0 && (
-          <Card className="bg-green-50/70 border border-green-200">
-            <h3 className="font-bold text-slate-800 mb-3 text-sm md:text-base flex items-center gap-2">
-              <DollarSign size={18} className="text-green-600"/> Cuotas pendientes para cobrar
-            </h3>
-            <div className="overflow-x-auto max-h-64">
-              <table className="w-full text-xs md:text-sm text-left">
-                <thead className="bg-white text-slate-600">
-                  <tr>
-                    <th className="p-2">Fecha</th>
-                    <th className="p-2">Cliente</th>
-                    <th className="p-2 text-right">Monto</th>
-                    <th className="p-2 text-center">Acción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {pendingInstallments.slice(0, 50).map(({ loanId, installment, client }) => (
-                    <tr key={installment.id}>
-                      <td className="p-2">{formatDate(installment.date)}</td>
-                      <td className="p-2 text-slate-700">{client?.name || 'Cliente'}</td>
-                      <td className="p-2 text-right font-medium text-slate-800">{formatCurrency(installment.payment)}</td>
-                      <td className="p-2 text-center">
-                        <button
-                          onClick={() => registerPayment(loanId, installment.id)}
-                          className="inline-flex items-center justify-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-lg text-[11px] md:text-xs font-bold hover:bg-green-700"
-                        >
-                          <DollarSign size={14}/> Cobrar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           {/* LIST */}
-           <div className="lg:col-span-1 space-y-4 h-[calc(100vh-200px)] overflow-y-auto pr-2">
-              {filteredLoans.map(loan => {
-                const client = clients.find(c => c.id === loan.clientId);
-                const percentPaid = Math.round((loan.totalPaid / (loan.amount + loan.totalInterest)) * 100);
-                return (
-                  <div 
-                    key={loan.id} 
-                    onClick={() => setSelectedLoan(loan)}
-                    className={`bg-white p-4 rounded-xl border cursor-pointer transition-all ${selectedLoan?.id === loan.id ? 'border-blue-500 ring-2 ring-blue-100' : 'border-slate-200 hover:border-blue-300'}`}
-                  >
-                     <div className="flex justify-between items-start mb-2">
-                        <div>
-                           <h4 className="font-bold text-slate-800">{client?.name || 'Cliente Desconocido'}</h4>
-                           <p className="text-xs text-slate-400">ID: {loan.id.substr(0,6)}</p>
-                        </div>
-                        <Badge status={loan.status} />
-                     </div>
-                     <div className="flex justify-between text-sm mb-2">
-                        <span className="text-slate-500">Monto:</span>
-                        <span className="font-bold text-slate-700">{formatCurrency(loan.amount)}</span>
-                     </div>
-                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div className="bg-blue-500 h-full" style={{ width: `${percentPaid}%` }}></div>
-                     </div>
-                     <p className="text-xs text-right mt-1 text-slate-400">{percentPaid}% Pagado</p>
-                  </div>
-                );
-              })}
-              {filteredLoans.length === 0 && <p className="text-center text-slate-400 py-10">No hay préstamos en esta categoría.</p>}
-           </div>
+        {/* Mensajes del chat */}
+        {chatHistory.map((message, index) => (
+          <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-3/4 p-3 rounded-xl ${
+              message.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-tl-none'
+            }`}>
+              <p className="whitespace-pre-wrap">{message.text}</p>
+            </div>
+          </div>
+        ))}
 
-           {/* DETAILS */}
-           <div className="lg:col-span-2">
-              {selectedLoan ? (
-                 <Card className="h-full flex flex-col">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4 border-b border-slate-100 pb-4">
-                       <div>
-                          <h3 className="text-xl font-bold text-slate-800">Detalle del Préstamo</h3>
-                          <p className="text-slate-500 text-sm">Iniciado el {formatDate(selectedLoan.createdAt)}</p>
-                          <p className="text-slate-500 text-xs mt-1">Cliente ID: {selectedLoan.clientId?.substr(0,6)}</p>
-                       </div>
-                       <div className="text-right md:text-right">
-                          <p className="text-sm text-slate-500">Balance Pendiente</p>
-                          <p className="text-2xl font-bold text-slate-800">{formatCurrency((parseFloat(selectedLoan.amount) + selectedLoan.totalInterest) - selectedLoan.totalPaid)}</p>
-                          {selectedLoan.schedule && selectedLoan.schedule.find(i => i.status !== 'PAID') && (
-                            <button
-                              onClick={() => {
-                                const next = selectedLoan.schedule.find(i => i.status !== 'PAID');
-                                if (next) registerPayment(selectedLoan.id, next.id);
-                              }}
-                              className="mt-3 inline-flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold w-full md:w-auto"
-                            >
-                              <DollarSign size={16}/> Registrar próxima cuota
-                            </button>
-                          )}
-                       </div>
-                    </div>
-                    
-                    <div className="flex-1 overflow-y-auto overflow-x-auto">
-                       <table className="w-full text-sm text-left min-w-[500px]">
-                          <thead className="bg-slate-50 text-slate-600 sticky top-0">
-                             <tr>
-                                <th className="p-3">#</th>
-                                <th className="p-3">Fecha</th>
-                                <th className="p-3 text-right">Cuota</th>
-                                <th className="p-3 text-right">Estado</th>
-                                <th className="p-3 text-center">Acción</th>
-                             </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                             {selectedLoan.schedule.map(item => (
-                                <tr key={item.id} className={item.status === 'PAID' ? 'bg-green-50/50' : ''}>
-                                   <td className="p-3 font-bold text-slate-500">{item.number}</td>
-                                   <td className="p-3">{formatDate(item.date)}</td>
-                                   <td className="p-3 text-right font-medium">{formatCurrency(item.payment)}</td>
-                                   <td className="p-3 text-right"><Badge status={item.status}/></td>
-                                   <td className="p-3 text-center">
-                                      {item.status !== 'PAID' && (
-                                        <button 
-                                          onClick={() => registerPayment(selectedLoan.id, item.id)}
-                                          className="bg-green-100 text-green-700 p-1.5 rounded-lg hover:bg-green-200"
-                                          title="Registrar Pago"
-                                        >
-                                          <DollarSign size={16}/>
-                                        </button>
-                                      )}
-                                   </td>
-                                </tr>
-                             ))}
-                          </tbody>
-                       </table>
-                    </div>
-                 </Card>
-              ) : (
-                 <div className="h-full flex items-center justify-center bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-400">
-                    <p>Selecciona un préstamo para ver los detalles</p>
-                 </div>
-              )}
-           </div>
-        </div>
+        {/* Indicador de carga */}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="p-3 bg-slate-100 text-slate-800 rounded-xl rounded-tl-none">
+              <Loader2 size={20} className="animate-spin text-blue-500"/>
+            </div>
+          </div>
+        )}
+
+        <div ref={chatEndRef} />
       </div>
-    );
-  };
+
+      {/* Input */}
+      <form onSubmit={handleSendMessage} className="mt-4 flex gap-2 pt-4 border-t border-slate-100">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Escribe tu consulta..."
+          className="flex-1 p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          disabled={loading}
+        />
+        <button
+          type="submit"
+          className={`bg-blue-600 text-white p-3 rounded-xl transition-colors ${loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+          disabled={loading}
+        >
+          <Send size={20} />
+        </button>
+      </form>
+    </Card>
+  );
+};
 
   const CalculatorView = () => {
     const [simData, setSimData] = useState({ amount: 10000, rate: 10, term: 12, frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
@@ -847,250 +721,13 @@ Instrucciones de comportamiento:
     );
   };
 
-  const ReportesView = () => {
-    const [reportType, setReportType] = useState(null);
-    
-    const getReportContent = () => {
-      if (!reportType) return null;
-      
-      const today = new Date();
-      
-      return (
-         <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-4xl h-[90vh] rounded-xl flex flex-col shadow-2xl">
-               <div className="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-xl">
-                  <div>
-                     <h2 className="text-2xl font-bold text-slate-800">{reportType}</h2>
-                     <p className="text-sm text-slate-500">Generado el {formatDateTime(today.toISOString())}</p>
-                  </div>
-                  <button onClick={() => setReportType(null)} className="p-2 hover:bg-slate-200 rounded-full"><X/></button>
-               </div>
-               
-               <div className="flex-1 overflow-y-auto p-8 font-mono text-sm">
-                  <div className="text-center mb-8">
-                     <h1 className="text-2xl font-bold uppercase tracking-widest mb-2">Renace.tech Financial Suite</h1>
-                     <p className="text-slate-500">Reporte Oficial del Sistema</p>
-                     <hr className="my-4 border-slate-300"/>
-                  </div>
-                  
-                  {reportType === 'Reporte General de Cartera' && (
-                     <table className="w-full text-left">
-                        <thead className="border-b-2 border-black">
-                           <tr>
-                              <th className="py-2">Cliente</th>
-                              <th className="py-2">Préstamo ID</th>
-                              <th className="py-2 text-right">Monto Original</th>
-                              <th className="py-2 text-right">Pagado</th>
-                              <th className="py-2 text-right">Pendiente</th>
-                              <th className="py-2 text-center">Estado</th>
-                           </tr>
-                        </thead>
-                        <tbody>
-                           {loans.map(l => {
-                              const c = clients.find(x => x.id === l.clientId);
-                              const balance = (l.amount + l.totalInterest) - l.totalPaid;
-                              return (
-                                 <tr key={l.id} className="border-b border-slate-100">
-                                    <td className="py-2">{c?.name}</td>
-                                    <td className="py-2">{l.id.substr(0,6)}</td>
-                                    <td className="py-2 text-right">{formatCurrency(l.amount)}</td>
-                                    <td className="py-2 text-right">{formatCurrency(l.totalPaid)}</td>
-                                    <td className="py-2 text-right font-bold">{formatCurrency(balance)}</td>
-                                    <td className="py-2 text-center">{l.status}</td>
-                                 </tr>
-                              );
-                           })}
-                           <tr className="font-bold bg-slate-100">
-                              <td className="py-3" colSpan="2">TOTALES</td>
-                              <td className="py-3 text-right">{formatCurrency(loans.reduce((a,b)=>a+b.amount,0))}</td>
-                              <td className="py-3 text-right">{formatCurrency(loans.reduce((a,b)=>a+b.totalPaid,0))}</td>
-                              <td className="py-3 text-right">{formatCurrency(loans.reduce((a,b)=>a + ((b.amount + b.totalInterest) - b.totalPaid), 0))}</td>
-                              <td></td>
-                           </tr>
-                        </tbody>
-                     </table>
-                  )}
-
-                  {/* Placeholder for other reports */}
-                  {reportType !== 'Reporte General de Cartera' && (
-                     <div className="text-center py-20 text-slate-400">
-                        <p>Los datos detallados para "{reportType}" se están recopilando...</p>
-                        <p className="mt-2">Este reporte estará disponible en la próxima actualización de datos.</p>
-                     </div>
-                  )}
-                  
-                  <div className="mt-12 text-center text-xs text-slate-400 border-t pt-4">
-                     <p>Generado automáticamente por Presta Pro v1.4</p>
-                     <p>Renace.tech - Todos los derechos reservados</p>
-                  </div>
-               </div>
-               
-               <div className="p-4 border-t bg-slate-50 rounded-b-xl flex justify-end gap-4">
-                  <button onClick={() => setReportType(null)} className="px-6 py-2 rounded-lg font-bold text-slate-600 hover:bg-slate-200">Cerrar</button>
-                  <button onClick={() => window.print()} className="px-6 py-2 rounded-lg font-bold bg-slate-800 text-white hover:bg-slate-900 flex items-center gap-2"><Printer size={18}/> Imprimir Reporte</button>
-               </div>
-            </div>
-         </div>
-      );
-    };
-
+  function App() {
     return (
-      <div className="animate-fade-in">
-         {getReportContent()}
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {['Reporte General de Cartera', 'Ingresos Mensuales', 'Clientes en Mora', 'Gastos Operativos', 'Proyección de Intereses', 'Historial de Pagos'].map((rep, i) => (
-               <button key={i} onClick={() => setReportType(rep)} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-400 transition-all text-left group">
-                  <div className="bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center text-blue-600 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                     <FileText size={24}/>
-                  </div>
-                  <h3 className="font-bold text-slate-800 mb-1">{rep}</h3>
-                  <p className="text-xs text-slate-500">Ver y Descargar</p>
-               </button>
-            ))}
-         </div>
-      </div>
-    );
-  };
-
-  const RRHHView = () => (
-     <div className="space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
-           <h2 className="text-2xl font-bold text-slate-800">Recursos Humanos</h2>
-           <button onClick={startNewEmployee} className="bg-slate-800 text-white px-4 py-2 rounded-lg flex items-center gap-2"><Plus size={18}/> Nuevo Empleado</button>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-           {employees.length === 0 && (
-             <div className="md:col-span-3 text-center text-slate-400 text-sm py-10">
-               Aún no hay empleados registrados. Usa "Nuevo Empleado" para crear el primero.
-             </div>
-           )}
-           {employees.map((emp) => (
-              <Card key={emp.id} className="flex items-center gap-4 justify-between">
-                 <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
-                     {emp.name?.charAt(0) || '?'}
-                   </div>
-                   <div>
-                      <h4 className="font-bold text-slate-800">{emp.name}</h4>
-                      <p className="text-xs text-slate-500">{emp.role}</p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${emp.status === 'Activo' ? 'bg-green-100 text-green-700' : emp.status === 'Vacaciones' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-700'}`}>{emp.status}</span>
-                   </div>
-                 </div>
-                 <button onClick={() => startEditEmployee(emp)} className="text-xs font-bold text-blue-600 hover:text-blue-800">Editar</button>
-              </Card>
-           ))}
-        </div>
-     </div>
-  );
-
-  const ContabilidadView = () => (
-     <div className="space-y-6 animate-fade-in">
-        <h2 className="text-2xl font-bold text-slate-800">Resumen Financiero</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-           <Card>
-              <h3 className="font-bold mb-4 text-slate-700">Estado de Resultados (Estimado)</h3>
-              <div className="space-y-3">
-                 <div className="flex justify-between text-sm"><span className="text-slate-500">Ingresos por Intereses</span> <span className="font-bold text-green-600">+{formatCurrency(loans.reduce((a,b)=>a+b.totalInterest,0))}</span></div>
-                 <div className="flex justify-between text-sm"><span className="text-slate-500">Ingresos por Mora</span> <span className="font-bold text-green-600">+{formatCurrency(0)}</span></div>
-                 <hr className="border-dashed"/>
-                 <div className="flex justify-between text-sm"><span className="text-slate-500">Gastos Operativos</span> <span className="font-bold text-red-500">-{formatCurrency(expenses.reduce((a,b)=>a+parseFloat(b.amount),0))}</span></div>
-                 <div className="flex justify-between text-sm"><span className="text-slate-500">Pérdidas por Incobrables</span> <span className="font-bold text-red-500">-{formatCurrency(0)}</span></div>
-                 <div className="bg-slate-100 p-3 rounded-lg flex justify-between font-bold mt-4">
-                    <span>Utilidad Neta</span>
-                    <span className="text-blue-700">{formatCurrency(loans.reduce((a,b)=>a+b.totalInterest,0) - expenses.reduce((a,b)=>a+parseFloat(b.amount),0))}</span>
-                 </div>
-              </div>
-           </Card>
-           <Card>
-              <h3 className="font-bold mb-4 text-slate-700">Balance General</h3>
-              <div className="h-64 flex items-center justify-center text-slate-400 text-sm border border-dashed rounded-lg">
-                 Gráfico de Activos vs Pasivos
-              </div>
-           </Card>
-        </div>
-     </div>
-  );
-  
-  const SettingsView = () => (
-    <div className="max-w-2xl mx-auto animate-fade-in">
-      <Card>
-        <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><Settings/> Configuración del Sistema</h2>
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Nombre de la Empresa</label>
-            <input className="w-full p-3 border rounded-xl" defaultValue="Renace.tech Financial Services" />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Moneda Principal</label>
-            <select className="w-full p-3 border rounded-xl bg-white">
-              <option>Peso Dominicano (DOP)</option>
-              <option>Dólar Estadounidense (USD)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Tasa de Mora por Defecto (%)</label>
-            <input type="number" className="w-full p-3 border rounded-xl" defaultValue="5" />
-          </div>
-          <div className="pt-4 border-t">
-            <h3 className="font-bold text-slate-800 mb-2">Apariencia</h3>
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-full bg-slate-900 cursor-pointer ring-2 ring-offset-2 ring-slate-900"></div>
-              <div className="w-10 h-10 rounded-full bg-blue-600 cursor-pointer"></div>
-              <div className="w-10 h-10 rounded-full bg-teal-600 cursor-pointer"></div>
-              <div className="w-10 h-10 rounded-full bg-purple-600 cursor-pointer"></div>
-            </div>
-          </div>
-          <button onClick={() => showToast('Configuración guardada')} className="w-full bg-slate-800 text-white py-3 rounded-xl font-bold hover:bg-slate-900">Guardar Cambios</button>
-        </div>
-      </Card>
-      <div className="mt-8 text-center">
-         <p className="text-sm text-slate-400 font-medium">Powered by <span className="text-blue-600 font-bold">Renace.tech</span></p>
-         <p className="text-xs text-slate-300">Versión 1.4.2 (Build 2024)</p>
-      </div>
-    </div>
-  );
-  
-  const DashboardView = () => {
-    // Recalcular stats
-    const totalLent = loans.reduce((acc, l) => acc + parseFloat(l.amount), 0);
-    const totalCollected = loans.reduce((acc, l) => acc + l.totalPaid, 0);
-    return (
-      <div className="space-y-6 animate-fade-in">
-         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="border-l-4 border-l-blue-600">
-               <p className="text-xs font-bold text-slate-400 uppercase">Cartera Total</p>
-               <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(totalLent)}</h3>
-            </Card>
-            <Card className="border-l-4 border-l-green-600">
-               <p className="text-xs font-bold text-slate-400 uppercase">Recaudado</p>
-               <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(totalCollected)}</h3>
-            </Card>
-            <Card className="border-l-4 border-l-orange-600">
-               <p className="text-xs font-bold text-slate-400 uppercase">Por Cobrar</p>
-               <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(totalLent * 1.2 - totalCollected)}</h3>
-            </Card>
-            <Card className="border-l-4 border-l-purple-600">
-               <p className="text-xs font-bold text-slate-400 uppercase">Clientes Activos</p>
-               <h3 className="text-2xl font-bold text-slate-800">{clients.length}</h3>
-            </Card>
-         </div>
-         {/* Gráfico Simple Placeholder */}
-         <Card className="h-64 flex items-center justify-center bg-slate-50 border-dashed">
-            <p className="text-slate-400 font-medium">Gráfico de Rendimiento Financiero (Visual)</p>
-         </Card>
-      </div>
-    );
-  };
-  
-  // --- RENDER ---
-  return (
-    <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
-      {/* CLIENT MODAL */}
-      {clientModalOpen && <ClientModal />}
-      {/* EMPLOYEE MODAL */}
-      {employeeModalOpen && <EmployeeModal />}
-
+      <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
+        {/* CLIENT MODAL */}
+        {clientModalOpen && <ClientModal />}
+        {/* EMPLOYEE MODAL */}
+        {employeeModalOpen && <EmployeeModal />}
       {/* TICKET PRINTER OVERLAY */}
       {printReceipt && <PaymentTicket receipt={printReceipt} />}
 
@@ -1292,3 +929,5 @@ const MenuItem = ({ icon: Icon, label, active, onClick }) => (
     <Icon size={18} className="mr-3" /> {label}
   </button>
 );
+
+export default App;
