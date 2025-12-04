@@ -585,14 +585,12 @@ Instrucciones de comportamiento:
                         <span className="text-slate-500">Total a Recaudar</span>
                         <span className="font-bold text-slate-800">{formatCurrency(sortedRoute.reduce((acc, i) => acc + i.payment, 0))}</span>
                      </div>
-          />
-        )}
-        {/* TICKET PRINTER OVERLAY */}
-        {printReceipt && <PaymentTicket receipt={printReceipt} />}
-
-      {/* Sidebar - HIDDEN ON PRINT */}
-      <aside className="hidden md:flex flex-col w-72 bg-slate-900 text-white shadow-2xl z-20 print:hidden">
-        <div className="p-6 flex items-center gap-3 border-b border-slate-800">
+                     <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Paradas Pendientes</span>
+                        <span className="font-bold text-slate-800">{sortedRoute.length}</span>
+                     </div>
+                  </div>
+               </Card>
           <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden">
             <img src={logoSmall} alt="Presta Pro" className="w-8 h-8 object-contain" />
           </div>
