@@ -574,7 +574,7 @@ Instrucciones de comportamiento:
                      <h3 className="text-lg font-bold text-slate-700">¡Ruta Completada!</h3>
                      <p className="text-slate-500">No hay cobros pendientes para hoy.</p>
                   </div>
-               )
+               )}
             </div>
             <div className="lg:col-span-1">
                <Card className="bg-slate-50 border-slate-200">
