@@ -574,9 +574,8 @@ Instrucciones de comportamiento:
                      <h3 className="text-lg font-bold text-slate-700">¡Ruta Completada!</h3>
                      <p className="text-slate-500">No hay cobros pendientes para hoy.</p>
                   </div>
-               )}
+               )
             </div>
-            
             <div className="lg:col-span-1">
                <Card className="bg-slate-50 border-slate-200">
                   <h3 className="font-bold text-slate-800 mb-4">Resumen de Ruta</h3>
@@ -591,21 +590,6 @@ Instrucciones de comportamiento:
                      </div>
                   </div>
                </Card>
-          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden">
-            <img src={logoSmall} alt="Presta Pro" className="w-8 h-8 object-contain" />
-          </div>
-          <div>
-            <span className="text-xl font-extrabold tracking-tight block leading-none">Presta Pro</span>
-            <span className="text-xs text-slate-400 font-medium tracking-wider uppercase">Gestión de Préstamos</span>
-          </div>
-        </div>
-        
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
-          <MenuSection title="Tablero de Control">
-             <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab==='dashboard'} onClick={()=>setActiveTab('dashboard')}/>
-             <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab==='cuadre'} onClick={()=>setActiveTab('cuadre')}/>
-          </MenuSection>
-          
           <MenuSection title="Operaciones">
              <MenuItem icon={Users} label="Clientes" active={activeTab==='clients'} onClick={()=>setActiveTab('clients')}/>
              <MenuItem icon={Wallet} label="Cobros" active={activeTab==='loans'} onClick={()=>setActiveTab('loans')}/>
