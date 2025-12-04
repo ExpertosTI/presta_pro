@@ -576,6 +576,7 @@ Instrucciones de comportamiento:
                   </div>
                )}
             </div>
+            
             <div className="lg:col-span-1">
                <Card className="bg-slate-50 border-slate-200">
                   <h3 className="font-bold text-slate-800 mb-4">Resumen de Ruta</h3>
@@ -585,11 +586,52 @@ Instrucciones de comportamiento:
                         <span className="font-bold text-slate-800">{formatCurrency(sortedRoute.reduce((acc, i) => acc + i.payment, 0))}</span>
                      </div>
                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Paradas Pendientes</span>
-                        <span className="font-bold text-slate-800">{sortedRoute.length}</span>
+                        <span className="text-slate-500">Clientes Visitados</span>
+                        <span className="font-bold text-slate-800">0 / {sortedRoute.length}</span>
                      </div>
-                  </div>
-               </Card>
+                     <hr className="border-slate-200"/>
+                     <div className="bg-white p-3 rounded-lg border border-slate-200">
+                        <p className="text-xs font-bold text-slate-500 uppercase mb-2">Mapa Visual</p>
+                        <div className="h-40 bg-slate-100 rounded flex items-center justify-center text-slate-400 text-xs">
+                           [Mapa Google Maps Integrado]
+            onSave={(data) => {
+              addClient(data);
+              setClientModalOpen(false);
+            }}
+          />
+        )}
+        {/* EMPLOYEE MODAL */}
+        {employeeModalOpen && (
+          <EmployeeModal
+            open={employeeModalOpen}
+            onClose={() => setEmployeeModalOpen(false)}
+            onSave={(data) => {
+              addEmployee(data);
+              setEmployeeModalOpen(false);
+            }}
+          />
+        )}
+        {/* TICKET PRINTER OVERLAY */}
+        {printReceipt && <PaymentTicket receipt={printReceipt} />}
+
+      {/* Sidebar - HIDDEN ON PRINT */}
+      <aside className="hidden md:flex flex-col w-72 bg-slate-900 text-white shadow-2xl z-20 print:hidden">
+        <div className="p-6 flex items-center gap-3 border-b border-slate-800">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden">
+            <img src={logoSmall} alt="Presta Pro" className="w-8 h-8 object-contain" />
+          </div>
+          <div>
+            <span className="text-xl font-extrabold tracking-tight block leading-none">Presta Pro</span>
+            <span className="text-xs text-slate-400 font-medium tracking-wider uppercase">Gestión de Préstamos</span>
+          </div>
+        </div>
+        
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
+          <MenuSection title="Tablero de Control">
+             <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab==='dashboard'} onClick={()=>setActiveTab('dashboard')}/>
+             <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab==='cuadre'} onClick={()=>setActiveTab('cuadre')}/>
+          </MenuSection>
+          
           <MenuSection title="Operaciones">
              <MenuItem icon={Users} label="Clientes" active={activeTab==='clients'} onClick={()=>setActiveTab('clients')}/>
              <MenuItem icon={Wallet} label="Cobros" active={activeTab==='loans'} onClick={()=>setActiveTab('loans')}/>
