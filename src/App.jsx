@@ -678,6 +678,10 @@ Instrucciones de comportamiento:
       addRouteClosing,
     } = usePrestaProState();
 
+    const showToast = (message, type = 'info') => {
+      console.log(`[TOAST:${type}]`, message);
+    };
+
     return (
       <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
         {/* CLIENT MODAL */}
