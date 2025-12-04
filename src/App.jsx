@@ -585,30 +585,6 @@ Instrucciones de comportamiento:
                         <span className="text-slate-500">Total a Recaudar</span>
                         <span className="font-bold text-slate-800">{formatCurrency(sortedRoute.reduce((acc, i) => acc + i.payment, 0))}</span>
                      </div>
-                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Clientes Visitados</span>
-                        <span className="font-bold text-slate-800">0 / {sortedRoute.length}</span>
-                     </div>
-                     <hr className="border-slate-200"/>
-                     <div className="bg-white p-3 rounded-lg border border-slate-200">
-                        <p className="text-xs font-bold text-slate-500 uppercase mb-2">Mapa Visual</p>
-                        <div className="h-40 bg-slate-100 rounded flex items-center justify-center text-slate-400 text-xs">
-                           [Mapa Google Maps Integrado]
-            onSave={(data) => {
-              addClient(data);
-              setClientModalOpen(false);
-            }}
-          />
-        )}
-        {/* EMPLOYEE MODAL */}
-        {employeeModalOpen && (
-          <EmployeeModal
-            open={employeeModalOpen}
-            onClose={() => setEmployeeModalOpen(false)}
-            onSave={(data) => {
-              addEmployee(data);
-              setEmployeeModalOpen(false);
-            }}
           />
         )}
         {/* TICKET PRINTER OVERLAY */}
