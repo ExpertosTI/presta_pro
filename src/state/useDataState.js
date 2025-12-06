@@ -87,11 +87,18 @@ export function useDataState() {
     };
 
     const addClient = (data, token) => {
+        // Optimistic update (or at least preserve data if server returns partial object)
+        const optimisticId = generateId();
+        const clientWithId = { ...data, id: optimisticId, score: 70, createdAt: new Date().toISOString() };
+
         if (!token) {
-            // fallback local-only
-            setClients([...clients, { ...data, id: generateId(), score: 70, createdAt: new Date().toISOString() }]);
+            setClients((prev) => [clientWithId, ...prev]);
             return;
         }
+
+        // Optimistically add to UI immediately to avoid "lag" and ensure photo shows
+        setClients((prev) => [clientWithId, ...prev]);
+
         fetch(`${API_BASE_URL}/api/clients`, {
             method: 'POST',
             headers: {
@@ -103,10 +110,18 @@ export function useDataState() {
             .then((res) => (res.ok ? res.json() : null))
             .then((created) => {
                 if (created) {
-                    setClients((prev) => [created, ...prev]);
+                    // Update the temporary ID with the real server ID
+                    setClients((prev) => prev.map(c => c.id === optimisticId ? { ...created, photoUrl: data.photoUrl || created.photoUrl } : c));
+                } else {
+                    // Rollback if failed
+                    setClients((prev) => prev.filter(c => c.id !== optimisticId));
+                    console.error("Server creation failed");
                 }
             })
-            .catch((err) => console.error('Error creating client via API', err));
+            .catch((err) => {
+                console.error('Error creating client via API', err);
+                setClients((prev) => prev.filter(c => c.id !== optimisticId));
+            });
     };
 
     const updateClient = (updatedClient, token) => {
@@ -186,11 +201,17 @@ export function useDataState() {
     };
 
     const addCollector = (data, token) => {
+        const optimisticId = data.id || generateId();
+        const collectorWithId = { ...data, id: optimisticId };
+
         if (!token) {
-            const id = data.id || generateId();
-            setCollectors([...collectors, { ...data, id }]);
+            setCollectors([...collectors, collectorWithId]);
             return;
         }
+
+        // Optimistically add
+        setCollectors((prev) => [collectorWithId, ...prev]);
+
         fetch(`${API_BASE_URL}/api/collectors`, {
             method: 'POST',
             headers: {
@@ -202,10 +223,15 @@ export function useDataState() {
             .then((res) => (res.ok ? res.json() : null))
             .then((created) => {
                 if (created) {
-                    setCollectors((prev) => [created, ...prev]);
+                    setCollectors((prev) => prev.map(c => c.id === optimisticId ? { ...created, photoUrl: data.photoUrl || created.photoUrl } : c));
+                } else {
+                    setCollectors((prev) => prev.filter(c => c.id !== optimisticId));
                 }
             })
-            .catch((err) => console.error('Error creating collector via API', err));
+            .catch((err) => {
+                console.error('Error creating collector via API', err);
+                setCollectors((prev) => prev.filter(c => c.id !== optimisticId));
+            });
     };
 
     const updateCollector = (updatedCollector, token) => {

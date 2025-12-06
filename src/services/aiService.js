@@ -106,12 +106,31 @@ export const generateLoanContract = async (loan, client, companyName, apiKey) =>
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error('Error generating contract');
+        if (!response.ok) {
+            const body = await response.text().catch(() => '');
+            console.error('Gemini contract API error:', response.status, body);
+
+            if (response.status === 429) {
+                const err = new Error('RATE_LIMIT');
+                err.status = 429;
+                throw err;
+            }
+
+            if (response.status === 401 || response.status === 403) {
+                const err = new Error('INVALID_API_KEY');
+                err.status = response.status;
+                throw err;
+            }
+
+            const err = new Error('CONTRACT_HTTP_ERROR');
+            err.status = response.status;
+            throw err;
+        }
 
         const data = await response.json();
         return data?.candidates?.[0]?.content?.parts?.[0]?.text || "Error generando contrato.";
     } catch (e) {
-        console.error(e);
+        console.error('generateLoanContract error:', e);
         throw e;
     }
 };

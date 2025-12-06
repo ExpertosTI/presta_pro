@@ -99,22 +99,19 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
       setContractContent(contract);
       setShowContractModal(true);
     } catch (error) {
-      console.error(error);
-      alert('Error generando el contrato. Verifica la configuración de la API Key.');
+      console.error('Error generating loan contract with AI', error);
+      const message = error?.message || '';
+
+      if (message === 'API Key missing' || message === 'INVALID_API_KEY') {
+        alert('Falta configurar correctamente la API de IA (VITE_GEMINI_API_KEY) en este servidor.');
+      } else if (message === 'RATE_LIMIT' || error?.status === 429) {
+        alert('La IA de contratos alcanzó el límite de uso. Intenta de nuevo en unos minutos.');
+      } else {
+        alert('No se pudo generar el contrato en este momento. Intenta nuevamente más tarde.');
+      }
     } finally {
       setGeneratingContract(false);
     }
-  };
-
-  const handleDownloadContractTxt = () => {
-    if (!contractContent || !selectedClient) return;
-    const blob = new Blob([contractContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Contrato_${selectedClient.name.replace(/\s+/g, '_')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const handlePrintContract = () => {
@@ -167,12 +164,6 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
               {contractContent}
             </div>
             <div className="p-4 border-t flex gap-3 justify-end bg-white rounded-b-2xl">
-              <button
-                onClick={handleDownloadContractTxt}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700"
-              >
-                Descargar .TXT
-              </button>
               <button
                 onClick={handlePrintContract}
                 className="bg-slate-800 dark:bg-slate-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-900 dark:hover:bg-slate-600"
