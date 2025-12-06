@@ -193,9 +193,11 @@ Instrucciones de comportamiento:
         setInput('');
         setLoading(true);
 
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        // PRIORIDAD: Usar la nueva API Key proporcionada por el usuario (ignorando la variable de entorno expirada por ahora)
+        const apiKey = 'AIzaSyBP3rk48SuOYogpwMenvCn5df2sM69iAT4' || import.meta.env.VITE_GEMINI_API_KEY;
+
         if (!apiKey) {
-            showToast('El Asistente AI no está configurado en esta instalación.', 'error');
+            showToast('El Asistente AI no está configurado (Falta API Key).', 'error');
             setLoading(false);
             return;
         }

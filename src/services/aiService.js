@@ -1,27 +1,37 @@
 
 export const sendMessageToAI = async (chatHistory, userMessage, systemInstruction, apiKey) => {
-    if (!apiKey) {
-        throw new Error('API Key missing');
-    }
+    // FUERZA BRUTA: Usar la API key nueva directamente para garantizar que no llegue la vieja
+    // Si llega una key vieja (por cache o env), la ignoramos y usamos la buena.
+    const effectiveKey = 'AIzaSyBP3rk48SuOYogpwMenvCn5df2sM69iAT4';
 
-    // Modelo estable de AI Studio (sufijo -latest requerido)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    // Modelo Gemini 2.5 Flash
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
 
-    // Enviar la instrucción del sistema como primer mensaje de la conversación
-    const contents = [
-        {
+    // Construir el contenido de la conversación
+    let finalContents = [];
+
+    // Estrategia: Prepend instrucciones del sistema al primer mensaje para evitar errores 400 con systemInstruction field
+    if (chatHistory.length === 0) {
+        finalContents.push({
             role: 'user',
-            parts: [{ text: systemInstruction }],
-        },
-        ...chatHistory.map(msg => ({
+            parts: [{ text: `${systemInstruction}\n\nConsulta del usuario: ${userMessage}` }]
+        });
+    } else {
+        // En historial, simplemente añadimos, confiando en el contexto previo.
+        finalContents = chatHistory.map(msg => ({
             role: msg.role === 'user' ? 'user' : 'model',
             parts: [{ text: msg.text }],
-        })),
-        { role: 'user', parts: [{ text: userMessage }] },
-    ];
+        }));
+
+        // Añadir el mensaje actual
+        finalContents.push({
+            role: 'user',
+            parts: [{ text: userMessage }]
+        });
+    }
 
     const payload = {
-        contents,
+        contents: finalContents,
     };
 
     let responseData = null;
@@ -37,14 +47,17 @@ export const sendMessageToAI = async (chatHistory, userMessage, systemInstructio
             });
 
             if (!response.ok) {
-                if (response.status === 429) { // Too Many Requests
+                const errorBody = await response.text();
+                console.error('Gemini API Error Body:', errorBody);
+
+                if (response.status === 429) {
                     const delay = Math.pow(2, attempts) * 1000;
                     console.warn(`Rate limit hit. Retrying in ${delay / 1000}s...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     attempts++;
                     continue;
                 }
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status} - Details: ${errorBody}`);
             }
 
             responseData = await response.json();
@@ -63,7 +76,8 @@ export const sendMessageToAI = async (chatHistory, userMessage, systemInstructio
 };
 
 export const generateLoanContract = async (loan, client, companyName, apiKey) => {
-    if (!apiKey) throw new Error('API Key missing');
+    // FUERZA BRUTA: Usar la API key nueva directamente
+    const effectiveKey = 'AIzaSyBP3rk48SuOYogpwMenvCn5df2sM69iAT4';
 
     const prompt = `
       Genera un contrato de préstamo legal y formal en formato texto plano (sin markdown, sin negritas) para la siguiente transacción:
@@ -87,7 +101,7 @@ export const generateLoanContract = async (loan, client, companyName, apiKey) =>
       Redacta el contrato de manera profesional, listo para imprimir y firmar.
     `;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
 
     const payload = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
