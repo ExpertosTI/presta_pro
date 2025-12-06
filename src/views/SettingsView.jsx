@@ -275,8 +275,14 @@ export function SettingsView({
                   <button
                     key={color}
                     type="button"
-                    onClick={() => setForm({ ...form, themeColor: color })}
-                    className={`w-8 h-8 rounded-full border-2 ${form.themeColor === color ? 'border-slate-900' : 'border-transparent'
+                    onClick={() => {
+                      const newSettings = { ...systemSettings, themeColor: color };
+                      setSystemSettings(newSettings);
+                      setForm({ ...form, themeColor: color });
+                    }}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${form.themeColor === color
+                        ? 'border-slate-900 dark:border-slate-100 scale-110'
+                        : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
                       } ${color === 'indigo'
                         ? 'bg-indigo-700'
                         : color === 'blue'
