@@ -638,7 +638,6 @@ function App() {
         </MenuSection>
 
         <div className="mt-auto pt-6 border-t border-slate-800 text-center pb-4">
-          <p className="text-[10px] text-slate-500">Powered by</p>
           <p className="font-bold text-slate-400 text-sm tracking-widest">RENACE.TECH</p>
         </div>
       </Sidebar>
