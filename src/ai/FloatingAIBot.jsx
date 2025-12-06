@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Zap, X } from 'lucide-react';
 import AIHelper from './AIHelper.jsx';
 
-export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast }) {
+export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, ownerName, companyName }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ x: 16, y: 96 });
   const [dragging, setDragging] = useState(false);
@@ -98,7 +98,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast }
               </div>
               <div className="flex flex-col leading-tight">
                 <span className="text-xs font-semibold text-slate-50">Asistente IA</span>
-                <span className="text-[11px] text-slate-400">Bot contable de Renace</span>
+                <span className="text-[11px] text-slate-400">Bot contable de {companyName || 'tu financiera'}</span>
               </div>
             </div>
             <button
@@ -115,6 +115,8 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast }
               setChatHistory={setChatHistory}
               dbData={dbData}
               showToast={showToast}
+              ownerName={ownerName}
+              companyName={companyName}
             />
           </div>
         </div>
