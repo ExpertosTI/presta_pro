@@ -44,6 +44,9 @@ export function CalculatorView() {
                 value={simData.amount}
                 onChange={e => setSimData({ ...simData, amount: e.target.value })}
               />
+              <p className="mt-1 text-xs text-slate-500">
+                {formatCurrency(simData.amount || 0)}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

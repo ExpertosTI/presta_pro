@@ -20,6 +20,7 @@ export function useDataState() {
     const [routeClosings, setRouteClosings] = useState(() => safeLoad('rt_route_closings', []));
     const [collectors, setCollectors] = useState(() => safeLoad('rt_collectors', []));
     const [aiMetrics, setAiMetrics] = useState(null);
+    const [clientDocuments, setClientDocuments] = useState(() => safeLoad('rt_client_documents', {}));
 
     const [systemSettings, setSystemSettings] = useState(() =>
         safeLoad('rt_settings', {
@@ -30,6 +31,8 @@ export function useDataState() {
             enableRouteClosing: true,
             enableRouteGpsNotification: true,
             includeFutureInstallmentsInRoutes: true,
+            ownerDisplayName: '',
+            companyLogo: '',
         })
     );
 
@@ -44,10 +47,11 @@ export function useDataState() {
     useEffect(() => localStorage.setItem('rt_route_closings', JSON.stringify(routeClosings)), [routeClosings]);
     useEffect(() => localStorage.setItem('rt_settings', JSON.stringify(systemSettings)), [systemSettings]);
     useEffect(() => localStorage.setItem('rt_collectors', JSON.stringify(collectors)), [collectors]);
+    useEffect(() => localStorage.setItem('rt_client_documents', JSON.stringify(clientDocuments)), [clientDocuments]);
 
     const dbData = useMemo(
-        () => ({ clients, loans, expenses, requests, notes, receipts, employees, collectors, systemSettings, routeClosings, aiMetrics }),
-        [clients, loans, expenses, requests, notes, receipts, employees, collectors, systemSettings, routeClosings, aiMetrics]
+        () => ({ clients, loans, expenses, requests, notes, receipts, employees, collectors, systemSettings, routeClosings, aiMetrics, clientDocuments }),
+        [clients, loans, expenses, requests, notes, receipts, employees, collectors, systemSettings, routeClosings, aiMetrics, clientDocuments]
     );
 
     // --- Remote synced: Clients ---
@@ -122,6 +126,31 @@ export function useDataState() {
 
     const addEmployee = (data) => {
         setEmployees([...employees, { ...data, id: generateId() }]);
+    };
+
+    // --- Documentos por cliente (solo frontend/localStorage) ---
+
+    const addClientDocument = (clientId, doc) => {
+        if (!clientId || !doc) return;
+        setClientDocuments((prev) => {
+            const existing = prev[clientId] || [];
+            const newDoc = {
+                id: generateId(),
+                type: doc.type || 'CONTRACT',
+                title: doc.title || 'Documento',
+                // Para contratos de texto plano
+                content: doc.content || '',
+                // Para archivos subidos (cédula, pagarés, PDFs, fotos)
+                fileName: doc.fileName || null,
+                mimeType: doc.mimeType || null,
+                dataUrl: doc.dataUrl || null,
+                createdAt: new Date().toISOString(),
+            };
+            return {
+                ...prev,
+                [clientId]: [newDoc, ...existing],
+            };
+        });
     };
 
     // --- Remote synced: Collectors ---
@@ -377,10 +406,12 @@ export function useDataState() {
         setEmployees([]);
         setRouteClosings([]);
         setCollectors([]);
+        setAiMetrics(null);
+        setClientDocuments({});
     };
 
     return {
-        clients, loans, expenses, requests, notes, receipts, employees, collectors, routeClosings, systemSettings, dbData,
+        clients, loans, expenses, requests, notes, receipts, employees, collectors, routeClosings, systemSettings, aiMetrics, clientDocuments, dbData,
         setClients, setLoans, setExpenses, setRequests, setNotes, setReceipts, setEmployees, setCollectors, setRouteClosings, setSystemSettings,
         addClient, updateClient,
         addEmployee,
@@ -394,6 +425,7 @@ export function useDataState() {
         registerPayment,
         assignCollectorToClient,
         addRouteClosing,
+        addClientDocument,
         loadClients,
         loadCollectors,
         loadLoans,
