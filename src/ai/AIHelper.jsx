@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Zap, Loader2, Send } from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import Card from '../components/Card.jsx';
+import { sendMessageToAI } from '../services/aiService.js';
 
 // Renderizado simple: sin Markdown, máximo 13 líneas, limpiando viñetas "- " o "* "
 const renderMessageText = (text) => {
@@ -205,43 +206,15 @@ Instrucciones de comportamiento:
     setInput('');
     setLoading(true);
 
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      showToast('El Asistente AI no está configurado en esta instalación.', 'error');
-      setLoading(false);
-      return;
-    }
-
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-    const contents = [
-      ...chatHistory.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }],
-      })),
-      { role: 'user', parts: [{ text: userMessage }] },
-    ];
-
-    const payload = {
-      contents,
-      systemInstruction: { parts: [{ text: systemInstruction }] },
-      tools: [{ google_search: {} }],
-    };
-
     try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        showToast('El Asistente AI no está configurado en esta instalación.', 'error');
+        setLoading(false);
+        return;
       }
 
-      const data = await response.json();
-      const candidate = data?.candidates?.[0];
-      const text = candidate?.content?.parts?.[0]?.text || 'Lo siento, no pude obtener una respuesta del modelo.';
+      const text = await sendMessageToAI(chatHistory, userMessage, systemInstruction, apiKey);
       setChatHistory(prev => [...prev, { role: 'model', text }]);
     } catch (err) {
       console.error('Error fetching AI response:', err);
