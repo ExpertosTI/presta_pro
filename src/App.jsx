@@ -23,7 +23,8 @@ import {
   Zap,
   List,
   Loader2,
-  LogOut
+  LogOut,
+  Info
 } from 'lucide-react';
 
 import logoSmall from '../logo-small.svg';
@@ -134,7 +135,9 @@ function App() {
     auth,
     updateLoan,
     theme,
-    toggleTheme
+    toggleTheme,
+    clientDocuments,
+    addClientDocument
   } = usePrestaProState();
 
   const [loginUser, setLoginUser] = useState('');
@@ -442,8 +445,14 @@ function App() {
 
   const role = auth.user?.role;
 
+  const displayUserName =
+    (systemSettings.ownerDisplayName && systemSettings.ownerDisplayName.trim()) ||
+    auth.user?.name ||
+    auth.user?.email ||
+    'Admin';
+
   return (
-    <div className="flex h-screen bg-slate-100 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-100 print:bg-white">
+    <div className="flex h-screen bg-transparent font-sans text-slate-100 print:bg-white">
       {clientModalOpen && (
         <ClientModal
           open={clientModalOpen}
@@ -481,7 +490,7 @@ function App() {
           userEmail={auth.user?.username || auth.user?.email}
         />
       )}
-      {printReceipt && <PaymentTicket receipt={printReceipt} companyName={systemSettings.companyName} />}
+      {printReceipt && <PaymentTicket receipt={printReceipt} companyName={systemSettings.companyName} companyLogo={systemSettings.companyLogo} />}
 
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} companyName={systemSettings.companyName}>
         <MenuSection title="Tablero de Control">
@@ -649,7 +658,8 @@ function App() {
           theme={theme}
           toggleTheme={toggleTheme}
           companyName={systemSettings.companyName}
-          userName={auth.user?.name || auth.user?.email || 'Admin'}
+          userName={displayUserName}
+          companyLogo={systemSettings.companyLogo}
           onLogout={handleLogout}
         />
 
@@ -720,8 +730,12 @@ function App() {
             {activeTab === 'documents' && hasPermission(role, 'documents') && (
               <DocumentsView
                 clients={clients}
+                loans={loans}
+                companyName={systemSettings.companyName}
                 selectedClientId={selectedClientId}
                 onSelectClient={setSelectedClientId}
+                clientDocuments={clientDocuments}
+                addClientDocument={addClientDocument}
               />
             )}
             {activeTab === 'notes' && hasPermission(role, 'notes') && (
@@ -775,6 +789,7 @@ function App() {
                 selectedLoanId={selectedLoanId}
                 onSelectLoan={setSelectedLoanId}
                 onUpdateLoan={updateLoan}
+                addClientDocument={addClientDocument}
               />
             )}
             {activeTab === 'calculator' && hasPermission(role, 'calculator') && <CalculatorView />}
@@ -838,6 +853,22 @@ function App() {
           showToast={showToast}
         />
       )}
+
+      {showNotification && (
+        <div className={`fixed bottom-20 md:bottom-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl glass flex items-center gap-3 animate-fade-in-up max-w-[90vw] md:max-w-md border-l-4 ${showNotification.type === 'error' ? 'border-l-red-500 text-red-600 dark:text-red-400' :
+          showNotification.type === 'info' ? 'border-l-blue-500 text-blue-600 dark:text-blue-400' :
+            'border-l-emerald-500 text-emerald-600 dark:text-emerald-400'
+          }`}>
+          {showNotification.type === 'error' ? <AlertCircle size={24} /> :
+            showNotification.type === 'info' ? <Info size={24} /> :
+              <CheckCircle size={24} />}
+          <div className="flex-1">
+            <p className="font-bold text-sm tracking-wide">{showNotification.type === 'error' ? 'Error' : showNotification.type === 'info' ? 'Información' : 'Éxito'}</p>
+            <p className="text-sm font-medium opacity-90">{showNotification.msg}</p>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

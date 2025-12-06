@@ -19,11 +19,13 @@ export function SettingsView({
     themeColor: systemSettings.themeColor || 'indigo',
     securityUser: systemSettings.securityUser || 'admin',
     securityPassword: systemSettings.securityPassword || '1234',
+    ownerDisplayName: systemSettings.ownerDisplayName || '',
+    companyLogo: systemSettings.companyLogo || '',
   });
 
-  const [collectorForm, setCollectorForm] = useState({ name: '', phone: '' });
+  const [collectorForm, setCollectorForm] = useState({ name: '', phone: '', photoUrl: '' });
   const [editingCollectorId, setEditingCollectorId] = useState('');
-  const [editingCollectorForm, setEditingCollectorForm] = useState({ name: '', phone: '' });
+  const [editingCollectorForm, setEditingCollectorForm] = useState({ name: '', phone: '', photoUrl: '' });
   const [selectedCollectorId, setSelectedCollectorId] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [userForm, setUserForm] = useState({ name: '', username: '', password: '' });
@@ -39,8 +41,10 @@ export function SettingsView({
       themeColor: form.themeColor,
       enableRouteGpsNotification: systemSettings.enableRouteGpsNotification ?? true,
       includeFutureInstallmentsInRoutes: systemSettings.includeFutureInstallmentsInRoutes ?? true,
-       securityUser: form.securityUser.trim() || 'admin',
-       securityPassword: form.securityPassword,
+      securityUser: form.securityUser.trim() || 'admin',
+      securityPassword: form.securityPassword,
+      ownerDisplayName: form.ownerDisplayName || '',
+      companyLogo: form.companyLogo || systemSettings.companyLogo || '',
     });
   };
 
@@ -48,19 +52,60 @@ export function SettingsView({
     e.preventDefault();
     if (!collectorForm.name.trim()) return;
     addCollector({ ...collectorForm });
-    setCollectorForm({ name: '', phone: '' });
+    setCollectorForm({ name: '', phone: '', photoUrl: '' });
+  };
+
+  const handleCollectorImageChange = async (e, isEditing = false) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const { fileToBase64, resizeImage } = await import('../utils/imageUtils.js');
+      const base64 = await fileToBase64(file);
+      const resized = await resizeImage(base64, 300, 300);
+
+      if (isEditing) {
+        setEditingCollectorForm(prev => ({ ...prev, photoUrl: resized }));
+      } else {
+        setCollectorForm(prev => ({ ...prev, photoUrl: resized }));
+      }
+    } catch (error) {
+      console.error("Error processing image", error);
+    }
+  };
+
+  const handleCompanyLogoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const { fileToBase64, resizeImage } = await import('../utils/imageUtils.js');
+      const base64 = await fileToBase64(file);
+      const resized = await resizeImage(base64, 400, 400);
+      setForm(prev => ({ ...prev, companyLogo: resized }));
+    } catch (error) {
+      console.error('Error processing company logo', error);
+    }
   };
 
   const startEditCollector = (collector) => {
     setEditingCollectorId(collector.id);
-    setEditingCollectorForm({ name: collector.name || '', phone: collector.phone || '' });
+    setEditingCollectorForm({
+      name: collector.name || '',
+      phone: collector.phone || '',
+      photoUrl: collector.photoUrl || ''
+    });
   };
 
   const handleUpdateCollector = (collectorId) => {
     if (!editingCollectorForm.name.trim()) return;
-    updateCollector({ id: collectorId, name: editingCollectorForm.name.trim(), phone: editingCollectorForm.phone.trim() });
+    updateCollector({
+      id: collectorId,
+      name: editingCollectorForm.name.trim(),
+      phone: editingCollectorForm.phone.trim(),
+      photoUrl: editingCollectorForm.photoUrl
+    });
     setEditingCollectorId('');
-    setEditingCollectorForm({ name: '', phone: '' });
+    setEditingCollectorForm({ name: '', phone: '', photoUrl: '' });
   };
 
   const handleRemoveCollector = (collectorId) => {
@@ -105,11 +150,42 @@ export function SettingsView({
             />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Nombre que se muestra en el encabezado</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded-lg bg-slate-50"
+                value={form.ownerDisplayName}
+                onChange={(e) => setForm({ ...form, ownerDisplayName: e.target.value })}
+                placeholder="Ej: Juan Pérez"
+              />
+            </div>
+            <div className="md:col-span-2 flex items-center gap-3">
+              <div className="w-14 h-14 rounded-lg border border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
+                {form.companyLogo ? (
+                  <img src={form.companyLogo} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <span className="text-xs text-slate-400">Logo</span>
+                )}
+              </div>
+              <div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="text-xs"
+                  onChange={handleCompanyLogoChange}
+                />
+                <p className="text-[11px] text-slate-500 mt-1">Se usará en el encabezado y en los recibos.</p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Moneda Principal</label>
+              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Moneda Principal</label>
               <select
-                className="w-full p-2 border rounded-lg bg-slate-50"
+                className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={form.mainCurrency}
                 onChange={(e) => setForm({ ...form, mainCurrency: e.target.value })}
               >
@@ -120,10 +196,10 @@ export function SettingsView({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Tasa de Mora por Defecto (%)</label>
+              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Tasa de Mora por Defecto (%)</label>
               <input
                 type="number"
-                className="w-full p-2 border rounded-lg bg-slate-50"
+                className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={form.defaultPenaltyRate}
                 onChange={(e) => setForm({ ...form, defaultPenaltyRate: e.target.value })}
               />
@@ -137,17 +213,15 @@ export function SettingsView({
                     key={color}
                     type="button"
                     onClick={() => setForm({ ...form, themeColor: color })}
-                    className={`w-8 h-8 rounded-full border-2 ${
-                      form.themeColor === color ? 'border-slate-900' : 'border-transparent'
-                    } ${
-                      color === 'indigo'
+                    className={`w-8 h-8 rounded-full border-2 ${form.themeColor === color ? 'border-slate-900' : 'border-transparent'
+                      } ${color === 'indigo'
                         ? 'bg-indigo-700'
                         : color === 'blue'
-                        ? 'bg-blue-600'
-                        : color === 'emerald'
-                        ? 'bg-emerald-500'
-                        : 'bg-violet-500'
-                    }`}
+                          ? 'bg-blue-600'
+                          : color === 'emerald'
+                            ? 'bg-emerald-500'
+                            : 'bg-violet-500'
+                      }`}
                   />
                 ))}
               </div>
@@ -155,8 +229,8 @@ export function SettingsView({
           </div>
 
           <div className="mt-4 border-t border-slate-100 pt-4">
-            <h4 className="text-sm font-semibold text-slate-700 mb-2">Usuarios de acceso (cobradores)</h4>
-            <p className="text-xs text-slate-500 mb-3">
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Usuarios de acceso (cobradores)</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
               Crea usuarios con nombre de acceso y contraseña para que los cobradores entren al sistema.
             </p>
             {userError && (
@@ -250,14 +324,12 @@ export function SettingsView({
                   enableRouteGpsNotification: !systemSettings.enableRouteGpsNotification,
                 })
               }
-              className={`w-11 h-6 flex items-center rounded-full px-1 transition-colors ${
-                systemSettings.enableRouteGpsNotification ? 'bg-emerald-500' : 'bg-slate-300'
-              }`}
+              className={`w-11 h-6 flex items-center rounded-full px-1 transition-colors ${systemSettings.enableRouteGpsNotification ? 'bg-emerald-500' : 'bg-slate-300'
+                }`}
             >
               <div
-                className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
-                  systemSettings.enableRouteGpsNotification ? 'translate-x-4' : 'translate-x-0'
-                }`}
+                className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${systemSettings.enableRouteGpsNotification ? 'translate-x-4' : 'translate-x-0'
+                  }`}
               />
             </button>
           </div>
@@ -275,14 +347,12 @@ export function SettingsView({
                   includeFutureInstallmentsInRoutes: !systemSettings.includeFutureInstallmentsInRoutes,
                 })
               }
-              className={`w-11 h-6 flex items-center rounded-full px-1 transition-colors ${
-                systemSettings.includeFutureInstallmentsInRoutes ? 'bg-blue-600' : 'bg-slate-300'
-              }`}
+              className={`w-11 h-6 flex items-center rounded-full px-1 transition-colors ${systemSettings.includeFutureInstallmentsInRoutes ? 'bg-blue-600' : 'bg-slate-300'
+                }`}
             >
               <div
-                className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
-                  systemSettings.includeFutureInstallmentsInRoutes ? 'translate-x-4' : 'translate-x-0'
-                }`}
+                className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${systemSettings.includeFutureInstallmentsInRoutes ? 'translate-x-4' : 'translate-x-0'
+                  }`}
               />
             </button>
           </div>
@@ -300,11 +370,28 @@ export function SettingsView({
         <h3 className="text-lg font-bold text-slate-800 mb-4">Gestión de Cobradores</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <form onSubmit={handleAddCollector} className="space-y-3">
+            <div className="flex justify-center mb-2">
+              <div className="relative group cursor-pointer">
+                <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden">
+                  {collectorForm.photoUrl ? (
+                    <img src={collectorForm.photoUrl} alt="New" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl text-slate-400">+</span>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={(e) => handleCollectorImageChange(e, false)}
+                />
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">Nombre del Cobrador</label>
               <input
                 type="text"
-                className="w-full p-2 border rounded-lg bg-slate-50"
+                className="w-full p-2 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={collectorForm.name}
                 onChange={(e) => setCollectorForm({ ...collectorForm, name: e.target.value })}
               />
@@ -313,14 +400,14 @@ export function SettingsView({
               <label className="block text-sm font-medium text-slate-600 mb-1">Teléfono</label>
               <input
                 type="text"
-                className="w-full p-2 border rounded-lg bg-slate-50"
+                className="w-full p-2 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={collectorForm.phone}
                 onChange={(e) => setCollectorForm({ ...collectorForm, phone: e.target.value })}
               />
             </div>
             <button
               type="submit"
-              className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold"
+              className="w-full bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold shadow-md hover:bg-emerald-700 transition"
             >
               Agregar Cobrador
             </button>
@@ -337,28 +424,45 @@ export function SettingsView({
                   return (
                     <li key={c.id} className="py-2 flex flex-col gap-1">
                       {isEditing ? (
-                        <div className="flex flex-col gap-2">
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              className="flex-1 p-2 border rounded-lg bg-slate-50"
-                              value={editingCollectorForm.name}
-                              onChange={(e) => setEditingCollectorForm({ ...editingCollectorForm, name: e.target.value })}
-                              placeholder="Nombre del cobrador"
-                            />
-                            <input
-                              type="text"
-                              className="w-40 p-2 border rounded-lg bg-slate-50"
-                              value={editingCollectorForm.phone}
-                              onChange={(e) => setEditingCollectorForm({ ...editingCollectorForm, phone: e.target.value })}
-                              placeholder="Teléfono"
-                            />
+                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="flex items-center gap-3">
+                            <div className="relative group w-12 h-12 flex-shrink-0">
+                              <div className="w-full h-full rounded-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 overflow-hidden flex items-center justify-center">
+                                {editingCollectorForm.photoUrl ? (
+                                  <img src={editingCollectorForm.photoUrl} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-xs text-slate-400 dark:text-slate-500">Foto</span>
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                onChange={(e) => handleCollectorImageChange(e, true)}
+                              />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <input
+                                type="text"
+                                className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm"
+                                value={editingCollectorForm.name}
+                                onChange={(e) => setEditingCollectorForm({ ...editingCollectorForm, name: e.target.value })}
+                                placeholder="Nombre"
+                              />
+                              <input
+                                type="text"
+                                className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm"
+                                value={editingCollectorForm.phone}
+                                onChange={(e) => setEditingCollectorForm({ ...editingCollectorForm, phone: e.target.value })}
+                                placeholder="Teléfono"
+                              />
+                            </div>
                           </div>
-                          <div className="flex gap-2 justify-end text-xs">
+                          <div className="flex gap-2 justify-end text-xs pt-1">
                             <button
                               type="button"
                               onClick={() => handleUpdateCollector(c.id)}
-                              className="px-3 py-1 rounded-lg bg-emerald-600 text-white font-semibold"
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold shadow-sm"
                             >
                               Guardar
                             </button>
@@ -366,32 +470,41 @@ export function SettingsView({
                               type="button"
                               onClick={() => {
                                 setEditingCollectorId('');
-                                setEditingCollectorForm({ name: '', phone: '' });
+                                setEditingCollectorForm({ name: '', phone: '', photoUrl: '' });
                               }}
-                              className="px-3 py-1 rounded-lg bg-slate-200 text-slate-700 font-semibold"
+                              className="px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 font-semibold hover:bg-slate-600"
                             >
                               Cancelar
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <p className="font-semibold text-slate-800">{c.name}</p>
-                            <p className="text-xs text-slate-500">{c.phone}</p>
+                        <div className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-500/20 flex items-center justify-center overflow-hidden border border-indigo-200 dark:border-indigo-500/30">
+                              {c.photoUrl ? (
+                                <img src={c.photoUrl} alt={c.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="font-bold text-indigo-500 dark:text-indigo-400 text-xs">{c.name.substring(0, 2).toUpperCase()}</span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{c.name}</p>
+                              <p className="text-xs text-slate-500">{c.phone}</p>
+                            </div>
                           </div>
                           <div className="flex gap-2 text-xs">
                             <button
                               type="button"
                               onClick={() => startEditCollector(c)}
-                              className="px-3 py-1 rounded-lg bg-slate-900 text-white font-semibold"
+                              className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-white font-semibold hover:bg-slate-200 dark:hover:bg-slate-600"
                             >
                               Editar
                             </button>
                             <button
                               type="button"
                               onClick={() => handleRemoveCollector(c.id)}
-                              className="px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold"
+                              className="px-3 py-1 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-semibold hover:bg-red-100 dark:hover:bg-red-900/50"
                             >
                               Eliminar
                             </button>
@@ -408,8 +521,8 @@ export function SettingsView({
       </Card>
 
       <Card>
-        <h3 className="text-lg font-bold text-slate-800 mb-1">Asignación de Clientes a Cobradores</h3>
-        <p className="text-xs text-slate-500 mb-4">
+        <h3 className="text-lg font-bold text-slate-200 mb-1">Asignación de Clientes a Cobradores</h3>
+        <p className="text-xs text-slate-400 mb-4">
           Elige un cobrador para cada cliente. El cambio se guarda inmediatamente cuando seleccionas un cobrador.
         </p>
         {clients.length === 0 ? (
@@ -419,7 +532,7 @@ export function SettingsView({
         ) : (
           <div className="overflow-x-auto max-h-[360px]">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600">
+              <thead className="bg-slate-800/50 text-slate-400">
                 <tr>
                   <th className="p-2 text-left">Cliente</th>
                   <th className="p-2 text-left">Teléfono</th>
@@ -427,15 +540,15 @@ export function SettingsView({
                   <th className="p-2 text-left">Cobrador asignado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-800/30">
                 {clients.map((client) => (
-                  <tr key={client.id}>
-                    <td className="p-2 font-medium text-slate-800">{client.name}</td>
+                  <tr key={client.id} className="hover:bg-slate-800/20">
+                    <td className="p-2 font-medium text-slate-200">{client.name}</td>
                     <td className="p-2 text-slate-500">{client.phone || 'N/A'}</td>
                     <td className="p-2 text-slate-500 truncate max-w-[220px]">{client.address || 'N/A'}</td>
                     <td className="p-2">
                       <select
-                        className="w-full p-2 border rounded-lg bg-slate-50 text-sm"
+                        className="w-full p-2 border border-slate-700 rounded-lg bg-slate-900 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         value={client.collectorId || ''}
                         onChange={(e) => assignCollectorToClient(client.id, e.target.value)}
                       >
@@ -454,7 +567,7 @@ export function SettingsView({
           </div>
         )}
       </Card>
-    </div>
+    </div >
   );
 }
 

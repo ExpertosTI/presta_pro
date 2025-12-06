@@ -4,7 +4,7 @@ module.exports = {
     browser: true,
     es2021: true,
   },
-  ignorePatterns: ['dist/**'],
+  ignorePatterns: ['dist/**', 'server/generated/**'],
   extends: [
     'eslint:recommended',
     'plugin:react/recommended',
@@ -22,9 +22,21 @@ module.exports = {
       version: 'detect',
     },
   },
+  overrides: [
+    {
+      files: ['server/**/*.js'],
+      env: {
+        node: true,
+        browser: false,
+        es2021: true,
+      },
+    },
+  ],
   rules: {
     'react/react-in-jsx-scope': 'off',
     'react/prop-types': 'off',
     'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    'react/no-unescaped-entities': 'off',
+    'no-empty': ['error', { allowEmptyCatch: true }],
   },
 };

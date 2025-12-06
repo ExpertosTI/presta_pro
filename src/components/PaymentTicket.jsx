@@ -3,7 +3,7 @@ import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters'
 import logoSmall from '../../logo-small.svg';
 
 // --- TICKET DE PAGO (ESTILO MODERNO / IMPRESIÓN TÉRMICA) ---
-const PaymentTicket = ({ receipt, companyName = "Presta Pro" }) => {
+const PaymentTicket = ({ receipt, companyName = "Presta Pro", companyLogo }) => {
     if (!receipt) return null;
 
     const baseAmount = typeof receipt.amount === 'number' ? receipt.amount : parseFloat(receipt.amount || 0) || 0;
@@ -26,7 +26,7 @@ const PaymentTicket = ({ receipt, companyName = "Presta Pro" }) => {
                 {/* Encabezado compacto con logo */}
                 <div className="text-center mb-1">
                     <div className="flex justify-center mb-1">
-                        <img src={logoSmall} alt={companyName} className="h-8 object-contain" />
+                        <img src={companyLogo || logoSmall} alt={companyName} className="h-8 object-contain" />
                     </div>
                     <p className="text-sm font-extrabold tracking-tight">{companyName}</p>
                     <p className="text-[10px] text-slate-600 font-semibold">RECIBO DE PAGO</p>
@@ -61,6 +61,7 @@ const PaymentTicket = ({ receipt, companyName = "Presta Pro" }) => {
                     {penaltyAmount > 0 && (
                         <p>Mora cobrada: <span className="font-semibold">{formatCurrency(penaltyAmount)}</span></p>
                     )}
+                    <p>Monto pagado hoy: <span className="font-semibold">{formatCurrency(totalCollected)}</span></p>
                     <p>Total pagado a la fecha: <span className="font-semibold">{formatCurrency(totalPaidAfter)}</span></p>
                     <p>Total restante: <span className="font-semibold">{formatCurrency(remainingBalance)}</span></p>
                 </div>

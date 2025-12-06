@@ -52,6 +52,7 @@ export function RoutesView({
         clientName: client?.name,
         clientAddress: client?.address,
         clientPhone: client?.phone,
+        clientPhotoUrl: client?.photoUrl,
         totalDue: pendingInstallment.payment,
       }];
     });
@@ -231,18 +232,27 @@ export function RoutesView({
             return (
               <div
                 key={stop.id}
-                className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:border-indigo-500 transition-colors"
+                className="glass p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4 hover:border-indigo-500/50 transition-colors"
               >
                 <div className="flex items-center gap-4 w-full">
-                  <div className="bg-indigo-100 text-indigo-700 w-10 h-10 rounded-full flex items-center justify-center font-bold">
+                  <div className="bg-indigo-100 dark:bg-indigo-600 text-indigo-700 dark:text-white w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold shadow-sm dark:shadow-indigo-500/30">
                     {index + 1}
                   </div>
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200 dark:border-slate-700 flex-shrink-0">
+                    {stop.clientPhotoUrl ? (
+                      <img src={stop.clientPhotoUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-slate-400 dark:text-slate-500 font-bold">
+                        {stop.clientName?.charAt(0)}
+                      </div>
+                    )}
+                  </div>
                   <div>
-                    <h4 className="font-bold text-slate-800">{stop.clientName}</h4>
-                    <p className="text-sm text-slate-500 flex items-center gap-1">
+                    <h4 className="font-bold text-slate-800 dark:text-slate-100">{stop.clientName}</h4>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <MapPin size={14} /> {stop.clientAddress}
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                       Cuota #{stop.number} • Vence: {formatDate(stop.date)}
                     </p>
                   </div>
@@ -251,15 +261,14 @@ export function RoutesView({
                   <button
                     type="button"
                     onClick={() => toggleLoanInRoute(stop.loanId, stop.id)}
-                    className={`mb-1 inline-flex items-center justify-center px-2 py-1 rounded-full text-[11px] font-semibold border ${
-                      selected
-                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                        : 'bg-slate-50 border-slate-300 text-slate-500'
-                    }`}
+                    className={`mb-1 inline-flex items-center justify-center px-2 py-1 rounded-full text-[11px] font-semibold border transition-all ${selected
+                      ? 'bg-emerald-50 dark:bg-emerald-500/20 border-emerald-500 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
                   >
                     {selected ? 'En ruta' : 'Agregar a ruta'}
                   </button>
-                  <p className="font-bold text-lg text-slate-800">{formatCurrency(stop.payment)}</p>
+                  <p className="font-bold text-lg text-slate-800 dark:text-slate-100">{formatCurrency(stop.payment)}</p>
                   <button
                     onClick={() => {
                       setPenaltyAmountInput('');
@@ -272,7 +281,7 @@ export function RoutesView({
                         clientName: stop.clientName,
                       });
                     }}
-                    className="mt-2 w-full bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-green-600 flex items-center justify-center gap-2"
+                    className="mt-2 w-full bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-emerald-500 flex items-center justify-center gap-2"
                   >
                     <CheckCircle size={16} /> Cobrar
                   </button>

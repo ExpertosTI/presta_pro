@@ -9,19 +9,19 @@ export function ReportsView({ loans, expenses }) {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <h2 className="text-2xl font-bold text-slate-800">Reportes</h2>
+      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Reportes</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <h3 className="text-sm font-semibold text-slate-500 mb-2">Capital Prestado</h3>
-          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalCapital)}</p>
+          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Capital Prestado</h3>
+          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(totalCapital)}</p>
         </Card>
         <Card>
-          <h3 className="text-sm font-semibold text-slate-500 mb-2">Intereses Proyectados</h3>
-          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalInteres)}</p>
+          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Intereses Proyectados</h3>
+          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(totalInteres)}</p>
         </Card>
         <Card>
-          <h3 className="text-sm font-semibold text-slate-500 mb-2">Gastos</h3>
-          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalGastos)}</p>
+          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Gastos</h3>
+          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(totalGastos)}</p>
         </Card>
       </div>
     </div>

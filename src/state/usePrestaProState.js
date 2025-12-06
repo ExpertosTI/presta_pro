@@ -33,6 +33,7 @@ export function usePrestaProState() {
             'rt_employees',
             'rt_route_closings',
             'rt_collectors',
+            'rt_client_documents',
           ];
           keys.forEach((k) => localStorage.removeItem(k));
         } catch (e) {
@@ -45,6 +46,7 @@ export function usePrestaProState() {
           if (data.loadClients) data.loadClients(token);
           if (data.loadCollectors) data.loadCollectors(token);
           if (data.loadLoans) data.loadLoans(token);
+          if (data.loadAiMetrics) data.loadAiMetrics(token);
         }
       } catch (e) {
         console.error('Error resetting data for new tenant', e);
@@ -116,6 +118,14 @@ export function usePrestaProState() {
   const assignCollectorToClient = (cid, colid) => { data.assignCollectorToClient(cid, colid, auth.user?.token); ui.showToast('Ruta / cobrador asignado al cliente'); };
   const addRouteClosing = (d) => { data.addRouteClosing(d); ui.showToast('Cuadre del cobrador registrado correctamente'); };
 
+  const addClientDocument = (clientId, doc) => {
+    if (!clientId || !doc) return;
+    if (data.addClientDocument) {
+      data.addClientDocument(clientId, doc);
+    }
+    ui.showToast('Documento guardado en la ficha del cliente');
+  };
+
   return {
     ...ui,
     ...data,
@@ -141,6 +151,7 @@ export function usePrestaProState() {
     rejectRequest,
     assignCollectorToClient,
     addRouteClosing,
-    updateLoan
+    updateLoan,
+    addClientDocument
   };
 }
