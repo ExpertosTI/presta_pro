@@ -478,6 +478,7 @@ function App() {
           open={showOnboarding}
           onClose={() => setShowOnboarding(false)}
           userName={auth.user?.name || 'Emprendedor'}
+          userEmail={auth.user?.username || auth.user?.email}
         />
       )}
       {printReceipt && <PaymentTicket receipt={printReceipt} companyName={systemSettings.companyName} />}
