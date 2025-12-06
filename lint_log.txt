@@ -1,0 +1,91 @@
+
+> presta-pro@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+
+
+C:\Users\adder\Downloads\renace.tech\presta_pro\BKApp.jsx
+  783:3  error  Parsing error: Unexpected token `}`. Did you mean `&rbrace;` or `{"}"}`?
+
+C:\Users\adder\Downloads\renace.tech\presta_pro\src\App.jsx
+    7:3   warning  'Bell' is defined but never used. Allowed unused vars must match /^_/u                       no-unused-vars
+   84:5   warning  'searchQuery' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+   88:5   warning  'securityToken' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  105:5   warning  'setSearchQuery' is assigned a value but never used. Allowed unused vars must match /^_/u    no-unused-vars
+  106:5   warning  'setPrintReceipt' is assigned a value but never used. Allowed unused vars must match /^_/u   no-unused-vars
+  111:5   warning  'setClients' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+  112:5   warning  'setLoans' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+  113:5   warning  'setExpenses' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  114:5   warning  'setRequests' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  116:5   warning  'setReceipts' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  118:5   warning  'setCollectors' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  119:5   warning  'setRouteClosings' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  123:5   warning  'handlePrint' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  130:5   warning  'createLoan' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+  289:27  error    'LogOut' is not defined                                                                      no-undef
+
+C:\Users\adder\Downloads\renace.tech\presta_pro\src\components\ai\AIHelper.jsx
+  223:85   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  223:121  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  223:125  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  223:152  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\adder\Downloads\renace.tech\presta_pro\src\components\layout\Sidebar.jsx
+  4:27  warning  'activeTab' is defined but never used. Allowed unused args must match /^_/u     no-unused-vars
+  4:38  warning  'setActiveTab' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+C:\Users\adder\Downloads\renace.tech\presta_pro\src\utils\storage.js
+  10:49  error  Empty block statement  no-empty
+
+C:\Users\adder\Downloads\renace.tech\presta_pro\src\views\LoansView.jsx
+    1:17   warning  'useMemo' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   12:10   error    'selectedLoan' is not defined                                              no-undef
+   12:27   error    'selectedClient' is not defined                                            no-undef
+   18:51   error    'selectedLoan' is not defined                                              no-undef
+   18:65   error    'selectedClient' is not defined                                            no-undef
+   49:44   error    'selectedClient' is not defined                                            no-undef
+  111:16   error    'paymentToConfirm' is not defined                                          no-undef
+  117:58   error    'paymentToConfirm' is not defined                                          no-undef
+  118:57   error    'paymentToConfirm' is not defined                                          no-undef
+  121:92   error    'paymentToConfirm' is not defined                                          no-undef
+  124:97   error    'paymentToConfirm' is not defined                                          no-undef
+  126:22   error    'showPenaltyInput' is not defined                                          no-undef
+  133:34   error    'penaltyAmountInput' is not defined                                        no-undef
+  134:44   error    'setPenaltyAmountInput' is not defined                                     no-undef
+  143:39   error    'showPenaltyInput' is not defined                                          no-undef
+  144:25   error    'setShowPenaltyInput' is not defined                                       no-undef
+  146:27   error    'setPenaltyAmountInput' is not defined                                     no-undef
+  151:24   error    'showPenaltyInput' is not defined                                          no-undef
+  156:43   error    'showPenaltyInput' is not defined                                          no-undef
+  156:74   error    'penaltyAmountInput' is not defined                                        no-undef
+  158:45   error    'paymentToConfirm' is not defined                                          no-undef
+  158:70   error    'paymentToConfirm' is not defined                                          no-undef
+  163:45   error    'paymentToConfirm' is not defined                                          no-undef
+  163:70   error    'paymentToConfirm' is not defined                                          no-undef
+  165:27   error    'setPaymentToConfirm' is not defined                                       no-undef
+  173:38   error    'setPaymentToConfirm' is not defined                                       no-undef
+  186:8    error    'selectedLoan' is not defined                                              no-undef
+  190:14   error    'selectedClient' is not defined                                            no-undef
+  192:66   error    'selectedClient' is not defined                                            no-undef
+  196:77   error    'selectedLoan' is not defined                                              no-undef
+  199:61   error    'selectedLoan' is not defined                                              no-undef
+  203:30   error    'selectedLoan' is not defined                                              no-undef
+  206:84   error    'selectedLoan' is not defined                                              no-undef
+  219:14   error    'firstPendingInstallment' is not defined                                   no-undef
+  223:59   error    'firstPendingInstallment' is not defined                                   no-undef
+  223:112  error    'firstPendingInstallment' is not defined                                   no-undef
+  226:81   error    'firstPendingInstallment' is not defined                                   no-undef
+  230:21   error    'setPenaltyAmountInput' is not defined                                     no-undef
+  231:21   error    'setPaymentToConfirm' is not defined                                       no-undef
+  232:31   error    'selectedLoan' is not defined                                              no-undef
+  233:38   error    'firstPendingInstallment' is not defined                                   no-undef
+  234:31   error    'firstPendingInstallment' is not defined                                   no-undef
+  235:31   error    'firstPendingInstallment' is not defined                                   no-undef
+  236:29   error    'firstPendingInstallment' is not defined                                   no-undef
+  237:35   error    'selectedClient' is not defined                                            no-undef
+  264:20   error    'selectedLoan' is not defined                                              no-undef
+
+C:\Users\adder\Downloads\renace.tech\presta_pro\src\views\RoutesView.jsx
+  87:6  warning  React Hook useMemo has a missing dependency: 'includeFutureInstallments'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 70 problems (52 errors, 18 warnings)
+

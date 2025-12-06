@@ -3,17 +3,61 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const { PrismaClient } = require('./generated/prisma');
 const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { OAuth2Client } = require('google-auth-library');
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25', 10);
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_FROM = process.env.SMTP_FROM || 'noreply@renace.tech';
+
+let mailer = null;
+if (SMTP_HOST) {
+  mailer = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+  });
+}
+
+
+// --- Security Middleware ---
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "https://accounts.google.com", "https://oauth2.googleapis.com", process.env.APP_BASE_URL || "http://localhost:4000"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https://lh3.googleusercontent.com"], // Google avatars
+      frameSrc: ["'self'", "https://accounts.google.com"]
+    },
+  },
+}));
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+app.use(limiter);
 
 app.use(cors());
 app.use(express.json());
@@ -27,8 +71,12 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
 // --- Auth middleware ---
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
@@ -38,11 +86,25 @@ function authMiddleware(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
+
+    const tenant = await prisma.tenant.findUnique({ where: { id: payload.tenantId } });
+    if (!tenant) {
+      return res.status(401).json({ error: 'Tenant no encontrado' });
+    }
+
+    if (!tenant.isVerified) {
+      const expiresAt = tenant.verificationExpiresAt;
+      if (expiresAt && expiresAt < new Date()) {
+        return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
+      }
+    }
+
     req.user = {
       id: payload.userId,
       tenantId: payload.tenantId,
       role: payload.role,
     };
+    req.tenant = { id: tenant.id, isVerified: tenant.isVerified };
     next();
   } catch (err) {
     console.error('JWT error', err);
@@ -64,10 +126,16 @@ app.post('/api/tenants/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(adminPassword, 10);
 
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000); // 3 horas
+
     const tenant = await prisma.tenant.create({
       data: {
         name: tenantName,
         slug: tenantSlug,
+        isVerified: false,
+        verificationToken,
+        verificationExpiresAt,
         users: {
           create: {
             email: adminEmail,
@@ -88,10 +156,53 @@ app.post('/api/tenants/register', async (req, res) => {
       { expiresIn: '12h' }
     );
 
+    if (mailer) {
+      const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+      const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
+
+      mailer
+        .sendMail({
+          from: SMTP_FROM,
+          to: adminEmail,
+          subject: 'Activa tu cuenta de Presta Pro',
+          text: `Hola,\n\nHemos creado tu cuenta para ${tenantName}. Para activarla definitivamente haz clic en el siguiente enlace antes de 3 horas:\n\n${verifyUrl}\n\nSi no reconoces este registro, ignora este correo.`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+              <div style="background-color: #0f172a; padding: 20px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Presta Pro</h1>
+              </div>
+              <div style="padding: 30px; background-color: #ffffff;">
+                <h2 style="color: #1e293b; margin-top: 0;">¡Bienvenido, ${tenantName}!</h2>
+                <p style="color: #475569; line-height: 1.6;">Hemos recibido tu solicitud de registro. Para comenzar a utilizar la plataforma, es necesario que actives tu cuenta.</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${verifyUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Activar Cuenta</a>
+                </div>
+                <p style="color: #475569; font-size: 14px;">O copia y pega el siguiente enlace en tu navegador:</p>
+                <p style="background-color: #f1f5f9; padding: 10px; border-radius: 4px; word-break: break-all; font-family: monospace; font-size: 12px; color: #334155;">${verifyUrl}</p>
+                <p style="color: #475569; font-size: 14px; margin-top: 30px;">Este enlace expirará en <strong>3 horas</strong>.</p>
+              </div>
+              <div style="background-color: #f8fafc; padding: 20px; text-align: center; color: #94a3b8; font-size: 12px;">
+                &copy; ${new Date().getFullYear()} Renace Tech. Todos los derechos reservados.
+              </div>
+            </div>
+          `,
+        })
+        .catch((err) => {
+          console.error('MAIL_VERIFY_ERROR', err);
+        });
+    }
+
     return res.json({
       token,
-      tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        isVerified: tenant.isVerified,
+        verificationExpiresAt: tenant.verificationExpiresAt,
+      },
       user: { id: adminUser.id, email: adminUser.email, name: adminUser.name, role: adminUser.role },
+      // verificationToken removed for security
     });
   } catch (err) {
     console.error('TENANT_REGISTER_ERROR', err);
@@ -100,6 +211,38 @@ app.post('/api/tenants/register', async (req, res) => {
       code: err.code || null,
       message: err.message || null,
     });
+  }
+});
+
+app.get('/api/tenants/verify', async (req, res) => {
+  const token = req.query.token;
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ error: 'Token de verificación requerido' });
+  }
+
+  try {
+    const tenant = await prisma.tenant.findFirst({ where: { verificationToken: token } });
+    if (!tenant) {
+      return res.status(400).json({ error: 'Token inválido o ya utilizado' });
+    }
+
+    if (tenant.verificationExpiresAt && tenant.verificationExpiresAt < new Date()) {
+      return res.status(400).json({ error: 'El enlace de verificación ha expirado' });
+    }
+
+    await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: {
+        isVerified: true,
+        verificationToken: null,
+        verificationExpiresAt: null,
+      },
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('TENANT_VERIFY_ERROR', err);
+    return res.status(500).json({ error: 'Error al verificar la cuenta' });
   }
 });
 
@@ -619,6 +762,14 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
+    const tenant = user.tenant;
+    if (!tenant.isVerified) {
+      const expiresAt = tenant.verificationExpiresAt;
+      if (expiresAt && expiresAt < new Date()) {
+        return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
+      }
+    }
+
     const token = jwt.sign(
       { userId: user.id, tenantId: user.tenantId, role: user.role },
       JWT_SECRET,
@@ -637,6 +788,55 @@ app.post('/api/auth/login', async (req, res) => {
       code: err.code || null,
       message: err.message || null,
     });
+  }
+});
+
+app.post('/api/auth/google', async (req, res) => {
+  const { token: googleToken } = req.body;
+  if (!googleToken) {
+    return res.status(400).json({ error: 'Token de Google requerido' });
+  }
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: googleToken,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const email = payload.email;
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { tenant: true },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Usuario no encontrado. Por favor regístrate primero.' });
+    }
+
+    const tenant = user.tenant;
+    if (!tenant.isVerified) {
+      const expiresAt = tenant.verificationExpiresAt;
+      if (expiresAt && expiresAt < new Date()) {
+        return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
+      }
+    }
+
+    const jwtToken = jwt.sign(
+      { userId: user.id, tenantId: user.tenantId, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    return res.json({
+      token: jwtToken,
+      tenant: { id: user.tenant.id, name: user.tenant.name, slug: user.tenant.slug },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    });
+
+  } catch (err) {
+    console.error('GOOGLE_AUTH_ERROR', err);
+    return res.status(401).json({ error: 'Falló la autenticación con Google' });
   }
 });
 

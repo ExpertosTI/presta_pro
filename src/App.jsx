@@ -1,4 +1,6 @@
 import { useState, Suspense, lazy, useEffect } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+
 import {
   LayoutDashboard,
   Users,
@@ -146,6 +148,15 @@ function App() {
   const [registerError, setRegisterError] = useState('');
   const [registerLoading, setRegisterLoading] = useState(false);
 
+  // Sync Company Name from Auth
+  useEffect(() => {
+    if (auth.user?.tenantName && auth.user.tenantName !== systemSettings.companyName) {
+      setSystemSettings(prev => ({ ...prev, companyName: auth.user.tenantName }));
+    } else if (auth.user?.tenant?.name && auth.user.tenant.name !== systemSettings.companyName) {
+      setSystemSettings(prev => ({ ...prev, companyName: auth.user.tenant.name }));
+    }
+  }, [auth.user, setSystemSettings]);
+
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -241,17 +252,17 @@ function App() {
 
   if (!auth.isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-start justify-center bg-slate-950 text-slate-50 px-4 pt-24 md:pt-32 relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50 px-4 py-10 md:py-0 relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/25 rounded-full blur-[110px]"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/25 rounded-full blur-[110px]"></div>
 
         <div className="w-full max-w-md md:max-w-xl relative z-10">
-          <div className="bg-gradient-to-br from-slate-900/95 via-indigo-900/90 to-sky-950/95 border border-slate-700/60 rounded-3xl px-9 pt-8 pb-14 md:px-14 md:pt-10 md:pb-16 shadow-[0_30px_80px_rgba(15,23,42,0.95)] backdrop-blur-2xl">
-            <div className="flex flex-col items-center mb-6 space-y-3">
-              <img src={logoSmall} alt="Presta Pro" className="w-64 h-64 md:w-80 md:h-80 object-contain drop-shadow-2xl" />
+          <div className="bg-gradient-to-br from-slate-900/95 via-indigo-900/90 to-sky-950/95 border border-slate-700/60 rounded-3xl px-8 pt-6 pb-10 md:px-12 md:pt-8 md:pb-12 shadow-[0_30px_80px_rgba(15,23,42,0.95)] backdrop-blur-2xl">
+            <div className="flex flex-col items-center mb-4 space-y-2">
+              <img src={logoSmall} alt="Presta Pro" className="w-40 h-40 md:w-52 md:h-52 object-contain drop-shadow-2xl" />
 
-              <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              <h2 className="text-xl md:text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 {showRegister ? 'Crear cuenta para tu financiera' : 'Acceso seguro'}
               </h2>
               <p className="text-sm text-slate-300 text-center">
@@ -299,6 +310,40 @@ function App() {
                 >
                   Entrar al panel
                 </button>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-slate-700/50"></span>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-slate-900/90 px-2 text-slate-400">O continúa con</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={(credentialResponse) => {
+                      auth.loginWithGoogle(credentialResponse.credential).then((result) => {
+                        if (result.success) {
+                          setLoginError('');
+                          showToast(`Bienvenido con Google, ${result.user?.name || 'Usuario'}`, 'success');
+                          if (result.user?.role === ROLES.COLLECTOR) {
+                            setActiveTab('routes');
+                          } else {
+                            setActiveTab('dashboard');
+                          }
+                        } else {
+                          setLoginError(result.error || 'Error al iniciar sesión con Google');
+                        }
+                      });
+                    }}
+                    onError={() => {
+                      setLoginError('Falló el inicio de sesión con Google');
+                    }}
+                    theme="filled_black"
+                    shape="pill"
+                  />
+                </div>
               </form>
             ) : (
               <form onSubmit={handleRegisterTenant} className="space-y-5">
