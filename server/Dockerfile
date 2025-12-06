@@ -8,6 +8,9 @@ RUN npm ci --only=production
 # Copy app source
 COPY . .
 
+# Generate Prisma client inside the container
+RUN npx prisma generate
+
 # Expose API port
 EXPOSE 4000
 
