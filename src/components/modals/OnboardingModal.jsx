@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { CheckCircle, Shield, Zap, ArrowRight, X } from 'lucide-react';
 
-export default function OnboardingModal({ open, onClose, userName }) {
+export default function OnboardingModal({ open, onClose, userName, userEmail }) {
     const [step, setStep] = useState(1);
+
+    const displayName = userEmail || userName || 'Emprendedor';
 
     if (!open) return null;
 
@@ -38,10 +40,14 @@ export default function OnboardingModal({ open, onClose, userName }) {
                             </div>
                             <div className="text-center space-y-2">
                                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                                    ¡Bienvenido, {userName}!
+                                    ¡Bienvenido, {displayName}!
                                 </h2>
                                 <p className="text-slate-600 dark:text-slate-300">
-                                    Tu cuenta ha sido creada exitosamente. Hemos enviado un enlace de activación a tu correo.
+                                    Tu cuenta ha sido creada exitosamente. Hemos enviado un enlace de activación al correo
+                                    {' '}
+                                    <span className="font-mono font-semibold">
+                                        {userEmail || 'tu correo registrado'}
+                                    </span>.
                                 </p>
                             </div>
 
