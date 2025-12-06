@@ -805,6 +805,7 @@ function App() {
                 removeCollector={removeCollector}
                 clients={clients}
                 assignCollectorToClient={assignCollectorToClient}
+                auth={auth}
               />
             )}
           </Suspense>
