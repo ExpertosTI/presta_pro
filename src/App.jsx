@@ -40,6 +40,7 @@ import BottomNav from './components/layout/BottomNav.jsx';
 import ClientModal from './components/modals/ClientModal.jsx';
 import EmployeeModal from './components/modals/EmployeeModal.jsx';
 import FloatingAIBot from './ai/FloatingAIBot.jsx';
+import OnboardingModal from './components/modals/OnboardingModal.jsx';
 
 // Lazy Load Views
 const DashboardView = lazy(() => import('./views/DashboardView.jsx'));
@@ -147,6 +148,7 @@ function App() {
   const [registerAdminPassword, setRegisterAdminPassword] = useState('');
   const [registerError, setRegisterError] = useState('');
   const [registerLoading, setRegisterLoading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Sync Company Name from Auth
   useEffect(() => {
@@ -225,8 +227,9 @@ function App() {
     setRegisterLoading(false);
 
     if (result.success) {
-      showToast('Cuenta creada correctamente. Bienvenido al panel.', 'success');
+      // showToast('Cuenta creada. Revisa tu correo...', 'success'); // Onboarding handles this message now better
       setShowRegister(false);
+      setShowOnboarding(true); // Trigger welcome flow
       setRegisterTenantName('');
       setRegisterTenantSlug('');
       setRegisterAdminEmail('');
@@ -468,6 +471,13 @@ function App() {
             addEmployee(data);
             setEmployeeModalOpen(false);
           }}
+        />
+      )}
+      {showOnboarding && (
+        <OnboardingModal
+          open={showOnboarding}
+          onClose={() => setShowOnboarding(false)}
+          userName={auth.user?.name || 'Emprendedor'}
         />
       )}
       {printReceipt && <PaymentTicket receipt={printReceipt} companyName={systemSettings.companyName} />}
