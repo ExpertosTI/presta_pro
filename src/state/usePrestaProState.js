@@ -15,7 +15,7 @@ export function usePrestaProState() {
     const currentTenantId = auth.user?.tenantId || null;
     const prevTenantId = prevTenantIdRef.current;
 
-    if (currentTenantId && prevTenantId && currentTenantId !== prevTenantId) {
+    if (currentTenantId && currentTenantId !== prevTenantId) {
       try {
         // Limpiar datos locales en memoria
         if (data.resetDataForNewTenant) {
