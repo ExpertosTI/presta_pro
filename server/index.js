@@ -38,6 +38,10 @@ if (SMTP_HOST) {
     port: SMTP_PORT,
     secure: SMTP_PORT === 465,
     auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+    tls: {
+      // Permitir certificado auto-firmado del servidor SMTP propio
+      rejectUnauthorized: false,
+    },
   });
 }
 
