@@ -1,1 +1,0 @@
-import{j as e,A as i}from"./index-868a038d.js";function n({chatHistory:s,setChatHistory:r,dbData:t,showToast:a}){return e.jsx("div",{className:"h-full",children:e.jsx(i,{chatHistory:s,setChatHistory:r,dbData:t,showToast:a})})}export{n as AIView,n as default};
