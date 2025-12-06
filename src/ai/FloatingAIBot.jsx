@@ -86,7 +86,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
 
   return (
     <div
-      className="fixed z-40 flex flex-col items-end gap-3 pointer-events-none"
+      className="fixed z-[100] flex flex-col items-end gap-3 pointer-events-none"
       style={{ right: position.x, bottom: position.y }}
     >
       {open && (

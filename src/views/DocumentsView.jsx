@@ -120,6 +120,36 @@ Firma PRESTATARIO: ______________________`
     });
   };
 
+  const openTextDocumentAsPrint = (doc) => {
+    const rawContent = doc?.content || '';
+    if (!rawContent.trim()) return;
+
+    const safeTitle = (doc.title || 'Documento').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeContent = rawContent.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${safeTitle}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; }
+            pre { white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; }
+            h1 { text-align: center; margin-bottom: 24px; }
+          </style>
+        </head>
+        <body>
+          <h1>${safeTitle}</h1>
+          <pre>${safeContent}</pre>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
   const getLastLoanForClient = (clientId) => {
     if (!clientId || !Array.isArray(loans) || loans.length === 0) return null;
     const clientLoans = loans.filter((l) => l.clientId === clientId);
@@ -339,18 +369,12 @@ Firma PRESTATARIO: ______________________`
                                   a.download = `${(doc.fileName || doc.title || 'documento').replace(/\s+/g, '_')}`;
                                   a.click();
                                 } else {
-                                  const blob = new Blob([doc.content || ''], { type: 'text/plain' });
-                                  const url = URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = `${(doc.title || 'documento').replace(/\s+/g, '_')}.txt`;
-                                  a.click();
-                                  URL.revokeObjectURL(url);
+                                  openTextDocumentAsPrint(doc);
                                 }
                               }}
                               className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold"
                             >
-                              Descargar
+                              Ver / Imprimir (PDF)
                             </button>
                           </div>
                         </div>
