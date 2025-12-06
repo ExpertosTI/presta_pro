@@ -8,28 +8,19 @@ export const sendMessageToAI = async (chatHistory, userMessage, systemInstructio
     // Modelo Gemini 2.5 Flash (Google AI Studio)
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
 
-    // Construir el contenido de la conversación
-    let finalContents = [];
+    // Construir el contenido de la conversación: siempre reinyectar instrucciones + resumen de datos
+    const historyContents = chatHistory.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.text }],
+    }));
 
-    // Estrategia: Prepend instrucciones del sistema al primer mensaje para evitar errores 400 con systemInstruction field
-    if (chatHistory.length === 0) {
-        finalContents.push({
+    const finalContents = [
+        ...historyContents,
+        {
             role: 'user',
-            parts: [{ text: `${systemInstruction}\n\nConsulta del usuario: ${userMessage}` }]
-        });
-    } else {
-        // En historial, simplemente añadimos, confiando en el contexto previo.
-        finalContents = chatHistory.map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.text }],
-        }));
-
-        // Añadir el mensaje actual
-        finalContents.push({
-            role: 'user',
-            parts: [{ text: userMessage }]
-        });
-    }
+            parts: [{ text: `${systemInstruction}\n\nConsulta del usuario: ${userMessage}` }],
+        },
+    ];
 
     const payload = {
         contents: finalContents,
