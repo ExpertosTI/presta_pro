@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { validateLogin, registerUser, ROLES } from '../logic/authLogic';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.DEV
+        ? 'http://localhost:4000'
+        : (typeof window !== 'undefined' ? window.location.origin : ''));
 const SESSION_KEY = 'presta_pro_auth_v2';
 const SESSION_MAX_AGE_MS = 1000 * 60 * 60 * 8; // 8 hours
 
