@@ -249,6 +249,73 @@ app.get('/api/tenants/verify', async (req, res) => {
   }
 });
 
+// --- AI Metrics ---
+
+app.get('/api/ai/metrics', authMiddleware, async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId;
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setDate(endOfToday.getDate() + 1);
+
+    const [
+      clientsCount,
+      loansCount,
+      activeLoans,
+      loansAgg,
+      receiptsCount,
+      receiptsAgg,
+      receiptsTodayAgg,
+    ] = await Promise.all([
+      prisma.client.count({ where: { tenantId } }),
+      prisma.loan.count({ where: { tenantId } }),
+      prisma.loan.count({ where: { tenantId, status: 'ACTIVE' } }),
+      prisma.loan.aggregate({
+        where: { tenantId },
+        _sum: { amount: true },
+      }),
+      prisma.receipt.count({ where: { tenantId } }),
+      prisma.receipt.aggregate({
+        where: { tenantId },
+        _sum: { amount: true, penaltyAmount: true },
+      }),
+      prisma.receipt.aggregate({
+        where: { tenantId, date: { gte: startOfToday, lt: endOfToday } },
+        _sum: { amount: true, penaltyAmount: true },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const totalLent = loansAgg._sum.amount || 0;
+    const totalCollected = (receiptsAgg._sum.amount || 0) + (receiptsAgg._sum.penaltyAmount || 0);
+    const totalPenalty = receiptsAgg._sum.penaltyAmount || 0;
+
+    const todayTotalCollected = (receiptsTodayAgg._sum.amount || 0) + (receiptsTodayAgg._sum.penaltyAmount || 0);
+    const todayTotalPenalty = receiptsTodayAgg._sum.penaltyAmount || 0;
+    const todayReceiptsCount = receiptsTodayAgg._count._all || 0;
+
+    return res.json({
+      clientsCount,
+      loansCount,
+      activeLoans,
+      totalLent,
+      receiptsCount,
+      totalCollected,
+      totalPenalty,
+      today: {
+        receiptsCount: todayReceiptsCount,
+        totalCollected: todayTotalCollected,
+        totalPenalty: todayTotalPenalty,
+      },
+    });
+  } catch (err) {
+    console.error('AI_METRICS_ERROR', err);
+    return res.status(500).json({ error: 'Error al calcular métricas para IA' });
+  }
+});
+
 app.put('/api/loans/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { amount, rate, term, frequency, startDate } = req.body;

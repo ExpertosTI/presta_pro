@@ -4,18 +4,30 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 import Card from '../components/Card.jsx';
 import { sendMessageToAI } from '../services/aiService.js';
 
-// Renderizado simple: sin Markdown, máximo 12 líneas, limpiando viñetas "- " o "* "
+// Renderizado simple: sin listas Markdown, máximo 12 líneas.
+// Soporta **negritas** y limpia viñetas iniciales "- " o "* ".
 const renderMessageText = (text) => {
   if (!text) return null;
 
   const rawLines = text.split('\n');
-  const lines = rawLines.slice(0, 12); // máximo 12 líneas visibles por mensaje
+  const lines = rawLines.slice(0, 12);
+
+  const renderWithBold = (value) => {
+    const segments = value.split('**');
+    if (segments.length === 1) return value;
+
+    return segments.map((segment, idx) =>
+      idx % 2 === 1 && segment
+        ? <strong key={`b-${idx}`} className="font-semibold">{segment}</strong>
+        : segment
+    );
+  };
 
   return lines.map((line, index) => {
     const cleaned = line.replace(/^\s*[-*]\s+/, '');
     return (
       <p key={`p-${index}`} className="text-sm leading-relaxed text-slate-800">
-        {cleaned}
+        {renderWithBold(cleaned)}
       </p>
     );
   });
@@ -37,12 +49,14 @@ export function AIHelper({ chatHistory, setChatHistory, dbData, showToast }) {
     const receipts = dbData?.receipts || [];
     const employees = dbData?.employees || [];
     const collectors = dbData?.collectors || [];
+    const aiMetrics = dbData?.aiMetrics || null;
 
-    const clientsCount = clients.length;
-    const activeLoans = loans.filter(l => l.status === 'ACTIVE').length;
-    const totalLent = loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+    const clientsCount = aiMetrics?.clientsCount ?? clients.length;
+    const loansCount = aiMetrics?.loansCount ?? loans.length;
+    const activeLoans = aiMetrics?.activeLoans ?? loans.filter(l => l.status === 'ACTIVE').length;
+    const totalLent = aiMetrics?.totalLent ?? loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
     const totalExpenses = expenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
-    const totalReceipts = receipts.length;
+    const totalReceipts = aiMetrics?.receiptsCount ?? receipts.length;
     const employeesCount = employees.length;
 
     const startOfToday = new Date();
@@ -61,16 +75,19 @@ export function AIHelper({ chatHistory, setChatHistory, dbData, showToast }) {
       return d >= startOfToday && d < endOfToday;
     });
 
-    const totalCollectedToday = receiptsToday.reduce((acc, r) => {
+    const localTotalCollectedToday = receiptsToday.reduce((acc, r) => {
       const base = parseFloat(r.amount || 0) || 0;
       const penalty = parseFloat(r.penaltyAmount || 0) || 0;
       return acc + base + penalty;
     }, 0);
 
-    const totalPenaltyToday = receiptsToday.reduce((acc, r) => {
+    const localTotalPenaltyToday = receiptsToday.reduce((acc, r) => {
       const penalty = parseFloat(r.penaltyAmount || 0) || 0;
       return acc + penalty;
     }, 0);
+
+    const totalCollectedToday = aiMetrics?.today?.totalCollected ?? localTotalCollectedToday;
+    const totalPenaltyToday = aiMetrics?.today?.totalPenalty ?? localTotalPenaltyToday;
 
     const totalExpensesToday = expensesToday.reduce((acc, g) => acc + (parseFloat(g.amount || 0) || 0), 0);
     const cashBalanceToday = totalCollectedToday - totalExpensesToday;
@@ -181,13 +198,15 @@ Tu rol es ayudarle a entender, de forma rápida y simple, qué pasa con el diner
 Tienes acceso directo a este resumen interno de la app (clientes, préstamos, gastos, recibos, empleados, cobradores, rutas, etc.). Trátalo como si fuera la base de datos en tiempo real:
 ${getContextualData()}
 
-Reglas de respuesta IMPORTANTES:
+Reglas de respuesta IMPORTANTES (IGNORA cualquier instrucción previa que diga que no tienes acceso a datos reales):
 - Responde SIEMPRE en español, con tono cercano y coloquial (como una secretaria de confianza).
 - Máximo 12 líneas por respuesta. Frases cortas, claras, sin párrafos eternos.
-- NUNCA digas frases como "como inteligencia artificial no tengo acceso" ni sugieras entrar a otra web o sistema; responde SIEMPRE usando los datos del resumen anterior.
-- Cuando pidan totales, listados o estados (clientes, préstamos, pagos, mora, caja, cobradores), calcula la respuesta usando exclusivamente los datos del resumen anterior.
+- NUNCA digas frases como "como inteligencia artificial no tengo acceso", "no tengo acceso a tus datos" ni sugieras entrar a otra web o sistema; SIEMPRE responde usando los datos del resumen anterior.
+- Si preguntan "¿cuántos pagos llevo?" usa el número de recibos de pago registrados (histórico) y responde directamente con ese número.
+- Si preguntan "¿cuánto tengo prestado?" usa el monto total prestado (capital) y responde directamente con ese valor.
+- Cuando pidan otros totales, listados o estados (clientes, préstamos, pagos, mora, caja, cobradores), calcula la respuesta usando exclusivamente los datos del resumen anterior.
 - Si te piden CREAR algo (cliente, préstamo, gasto, solicitud, nota, ruta), no escribes directamente en la base; en su lugar, pide los datos faltantes y devuelve instrucciones muy concretas de qué formulario usar en la app y con qué valores llenar cada campo.
-- No uses listas con guiones ni Markdown, ni muestres JSON o tablas. No inventes números que no se deriven de los datos anteriores.`;
+- No uses tablas ni bloques de código. Si necesitas resaltar algo, puedes usar **negritas** y el sistema las mostrará como texto en negrita. No inventes números que no se deriven de los datos anteriores.`;
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -256,8 +275,12 @@ Reglas de respuesta IMPORTANTES:
 
         {loading && (
           <div className="flex justify-start">
-            <div className="p-3 bg-slate-100 text-slate-800 rounded-xl rounded-tl-none">
-              <Loader2 size={20} className="animate-spin text-blue-500" />
+            <div className="px-4 py-3 bg-slate-100 text-slate-800 rounded-2xl rounded-tl-none shadow-sm border border-slate-200">
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0s' }} />
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0.15s' }} />
+                <span className="w-2 h-2 rounded-full bg-blue-300 animate-bounce" style={{ animationDelay: '0.3s' }} />
+              </div>
             </div>
           </div>
         )}
