@@ -121,6 +121,51 @@ export function useAuth(collectors, systemSettings, addCollector) {
         return { success: false, error: remoteError || result.error };
     };
 
+
+    const loginWithGoogle = async (googleToken) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    token: googleToken,
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const backendRole = data.user?.role;
+                let mappedRole = backendRole;
+                if (backendRole === 'OWNER') {
+                    mappedRole = ROLES.ADMIN;
+                } else if (backendRole === 'COLLECTOR') {
+                    mappedRole = ROLES.COLLECTOR;
+                }
+
+                const remoteUser = {
+                    id: data.user?.id,
+                    username: data.user?.email,
+                    role: mappedRole,
+                    name: data.user?.name,
+                    tenantId: data.tenant?.id,
+                    tenantSlug: data.tenant?.slug,
+                    token: data.token,
+                };
+
+                saveSession(remoteUser);
+                return { success: true, user: remoteUser };
+            }
+
+            const data = await response.json().catch(() => ({}));
+            return { success: false, error: data.error || 'Autenticación con Google fallida' };
+        } catch (err) {
+            console.error('Remote google login error', err);
+            return { success: false, error: 'No se pudo conectar al servidor' };
+        }
+    };
+
     const registerTenant = async (tenantName, tenantSlug, adminEmail, adminPassword) => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/tenants/register`, {
@@ -224,6 +269,7 @@ export function useAuth(collectors, systemSettings, addCollector) {
         isAuthenticated,
         loading,
         login,
+        loginWithGoogle,
         register,
         registerTenant,
         logout
