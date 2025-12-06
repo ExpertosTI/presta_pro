@@ -27,7 +27,10 @@ services:
     restart: unless-stopped
 
   presta_pro_web:
-    build: .
+    build:
+      context: .
+      args:
+        - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
     container_name: presta_pro_web
     depends_on:
       - presta_pro_api

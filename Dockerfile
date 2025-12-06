@@ -2,6 +2,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+ARG VITE_GEMINI_API_KEY
+ENV VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+
 # Install deps
 COPY package*.json ./
 RUN npm ci
