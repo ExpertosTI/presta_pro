@@ -170,12 +170,15 @@ export function SettingsView({
                 )}
               </div>
               <div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="text-xs"
-                  onChange={handleCompanyLogoChange}
-                />
+                <label className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-xs">
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">Cambiar Logo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCompanyLogoChange}
+                  />
+                </label>
                 <p className="text-[11px] text-slate-500 mt-1">Se usará en el encabezado y en los recibos.</p>
               </div>
             </div>
@@ -379,12 +382,14 @@ export function SettingsView({
                     <span className="text-xl text-slate-400">+</span>
                   )}
                 </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  onChange={(e) => handleCollectorImageChange(e, false)}
-                />
+                <label className="absolute inset-0 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleCollectorImageChange(e, false)}
+                  />
+                </label>
               </div>
             </div>
             <div>
@@ -434,12 +439,14 @@ export function SettingsView({
                                   <span className="text-xs text-slate-400 dark:text-slate-500">Foto</span>
                                 )}
                               </div>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                onChange={(e) => handleCollectorImageChange(e, true)}
-                              />
+                              <label className="absolute inset-0 cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleCollectorImageChange(e, true)}
+                                />
+                              </label>
                             </div>
                             <div className="flex-1 space-y-2">
                               <input

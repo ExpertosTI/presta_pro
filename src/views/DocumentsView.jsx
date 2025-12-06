@@ -15,6 +15,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
   const [templateType, setTemplateType] = useState('CONTRACT_SIMPLE');
   const [templateContent, setTemplateContent] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleChangeClient = (e) => {
     const id = e.target.value || null;
@@ -26,6 +27,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
     if (!file || !currentClient || !addClientDocument) {
       return;
     }
+    setIsUploading(true);
     try {
       const { fileToBase64 } = await import('../utils/imageUtils.js');
       const base64 = await fileToBase64(file);
@@ -41,6 +43,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
     } catch (error) {
       console.error('Error uploading client document', error);
     } finally {
+      setIsUploading(false);
       e.target.value = '';
     }
   };
@@ -50,7 +53,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
     switch (type) {
       case 'PAGARE_SIMPLE':
         return (
-`PAGARÉ SIMPLE
+          `PAGARÉ SIMPLE
 
 Yo, ${name}, declaro que debo a __________________ la suma de ___________, que me comprometo a pagar en ___ cuotas.
 
@@ -60,7 +63,7 @@ Firma de deudor: _________________________`
         );
       case 'CARTA_COBRO':
         return (
-`CARTA DE COBRO
+          `CARTA DE COBRO
 
 Estimado(a) ${name},
 
@@ -74,7 +77,7 @@ __________________`
       case 'CONTRACT_SIMPLE':
       default:
         return (
-`CONTRATO DE PRÉSTAMO (SIMPLE)
+          `CONTRATO DE PRÉSTAMO (SIMPLE)
 
 Entre __________________ (PRESTAMISTA) y ${name} (PRESTATARIO) se acuerda el siguiente préstamo:
 - Monto: ___________
@@ -158,10 +161,10 @@ Firma PRESTATARIO: ______________________`
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Documentos</h2>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Documentos</h2>
         {hasClients && (
           <select
-            className="p-2 border rounded-lg bg-white text-sm"
+            className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={currentClient?.id || ''}
             onChange={handleChangeClient}
           >
@@ -176,7 +179,7 @@ Firma PRESTATARIO: ______________________`
 
       {!hasClients && (
         <Card>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             No hay clientes registrados todavía. Crea al menos un cliente para poder
             asociar contratos, pagarés u otros documentos.
           </p>
@@ -186,44 +189,60 @@ Firma PRESTATARIO: ______________________`
       {hasClients && currentClient && (
         <>
           <Card>
-            <h3 className="text-lg font-bold text-slate-800 mb-2">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">
               Documentos del cliente
             </h3>
-            <p className="text-sm text-slate-700 font-semibold mb-1">{currentClient.name}</p>
+            <p className="text-sm text-slate-700 dark:text-slate-300 font-semibold mb-1">{currentClient.name}</p>
             {currentClient.idNumber && (
-              <p className="text-xs text-slate-500">Cédula / ID: {currentClient.idNumber}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Cédula / ID: {currentClient.idNumber}</p>
             )}
             {currentClient.address && (
-              <p className="text-xs text-slate-500">Dirección: {currentClient.address}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Dirección: {currentClient.address}</p>
             )}
             <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
               <div className="md:col-span-2">
-                <label className="block text-[11px] font-medium text-slate-600 mb-1">Descripción del documento</label>
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">Descripción del documento</label>
                 <input
                   type="text"
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
                   placeholder="Ej: Cédula frente, Cédula reverso, Pagaré firmado"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-slate-600 mb-1">Archivo</label>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  className="w-full text-[11px]"
-                  onChange={handleUploadDocument}
-                />
+                <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">Archivo</label>
+                <div className="relative">
+                  <label className="flex items-center gap-2 w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <span className="bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-1 rounded text-xs font-semibold">
+                      Elegir archivo
+                    </span>
+                    <span className="text-xs truncate">
+                      No se ha seleccionado
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleUploadDocument}
+                      disabled={isUploading}
+                      className="hidden"
+                    />
+                  </label>
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 flex items-center justify-center rounded-lg">
+                      <span className="text-xs font-bold text-blue-600 animate-pulse">Subiendo...</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="mt-4 border-t border-slate-100 pt-3 space-y-2 text-xs">
-              <p className="font-semibold text-slate-700">Generar documento de texto rápido</p>
+            <div className="mt-4 border-t border-slate-100 dark:border-slate-700 pt-3 space-y-2 text-xs">
+              <p className="font-semibold text-slate-700 dark:text-slate-300">Generar documento de texto rápido</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Tipo de documento</label>
+                  <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">Tipo de documento</label>
                   <select
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                     value={templateType}
                     onChange={handleChangeTemplateType}
                   >
@@ -234,10 +253,10 @@ Firma PRESTATARIO: ______________________`
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Contenido</label>
+                  <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">Contenido</label>
                   <textarea
                     rows={4}
-                    className="w-full p-2 border rounded-lg font-mono text-[11px]"
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg font-mono text-[11px] bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                     value={templateContent}
                     onChange={(e) => setTemplateContent(e.target.value)}
                     placeholder="Escribe o genera el contenido del documento..."
@@ -248,7 +267,7 @@ Firma PRESTATARIO: ______________________`
                 <button
                   type="button"
                   onClick={handleGenerateTemplate}
-                  className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800 font-semibold"
+                  className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold hover:bg-slate-300 dark:hover:bg-slate-600"
                 >
                   Usar plantilla
                 </button>
@@ -256,75 +275,85 @@ Firma PRESTATARIO: ______________________`
                   type="button"
                   onClick={handleGenerateTemplateWithAI}
                   disabled={aiGenerating}
-                  className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold disabled:opacity-60"
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 dark:bg-indigo-700 text-white font-semibold disabled:opacity-60 hover:bg-indigo-500"
                 >
                   {aiGenerating ? 'Generando con IA...' : 'Generar con IA'}
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveTemplateAsDocument}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 text-white font-semibold"
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-700 text-white font-semibold hover:bg-slate-800"
                 >
                   Guardar como documento
                 </button>
               </div>
             </div>
-            <div className="mt-4 text-sm text-slate-600 space-y-2">
+            <div className="mt-4 text-sm text-slate-600 dark:text-slate-400 space-y-2">
               {documentsForClient.length === 0 ? (
                 <>
-                  <p className="font-semibold">Aún no hay documentos guardados para este cliente.</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="font-semibold text-slate-700 dark:text-slate-300">Aún no hay documentos guardados para este cliente.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Cuando generes un contrato desde la pantalla de Préstamos podrás guardarlo aquí.
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-semibold">Documentos guardados:</p>
-                  <ul className="space-y-1 text-xs">
+                  <p className="font-semibold text-slate-700 dark:text-slate-300">Documentos guardados:</p>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     {documentsForClient.map((doc) => (
                       <li
                         key={doc.id}
-                        className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-md px-3 py-2"
+                        className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       >
-                        <div>
-                          <p className="font-semibold text-slate-700 text-xs">
-                            {doc.title || doc.type || 'Documento'}
-                          </p>
-                          {doc.createdAt && (
-                            <p className="text-[11px] text-slate-500">
-                              {new Date(doc.createdAt).toLocaleString('es-DO')}
-                            </p>
-                          )}
-                          {doc.dataUrl && (doc.mimeType ? doc.mimeType.startsWith('image/') : doc.dataUrl.startsWith('data:image')) && (
+                        {/* Thumbnail Logic */}
+                        <div className="w-16 h-16 flex-shrink-0 bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden flex items-center justify-center border border-slate-300 dark:border-slate-600">
+                          {doc.dataUrl && (doc.mimeType ? doc.mimeType.startsWith('image/') : doc.dataUrl.startsWith('data:image')) ? (
                             <img
                               src={doc.dataUrl}
                               alt={doc.title || 'Documento'}
-                              className="mt-1 w-16 h-16 object-cover rounded border border-slate-200"
+                              className="w-full h-full object-cover"
                             />
+                          ) : (
+                            <div className="text-slate-400 flex flex-col items-center">
+                              <span className="text-[10px] font-bold uppercase">{doc.type === 'TEMPLATE' || !doc.mimeType ? 'DOC' : 'FILE'}</span>
+                            </div>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (doc.dataUrl) {
-                              const a = document.createElement('a');
-                              a.href = doc.dataUrl;
-                              a.download = `${(doc.fileName || doc.title || 'documento').replace(/\s+/g, '_')}`;
-                              a.click();
-                            } else {
-                              const blob = new Blob([doc.content || ''], { type: 'text/plain' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `${(doc.title || 'documento').replace(/\s+/g, '_')}.txt`;
-                              a.click();
-                              URL.revokeObjectURL(url);
-                            }
-                          }}
-                          className="text-xs bg-slate-900 text-white px-2 py-1 rounded-md font-semibold"
-                        >
-                          Descargar
-                        </button>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-slate-800 dark:text-slate-200 text-xs truncate" title={doc.title}>
+                            {doc.title || doc.type || 'Documento'}
+                          </p>
+                          {doc.createdAt && (
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                              {new Date(doc.createdAt).toLocaleDateString('es-DO')}
+                            </p>
+                          )}
+                          <div className="mt-2 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (doc.dataUrl) {
+                                  const a = document.createElement('a');
+                                  a.href = doc.dataUrl;
+                                  a.download = `${(doc.fileName || doc.title || 'documento').replace(/\s+/g, '_')}`;
+                                  a.click();
+                                } else {
+                                  const blob = new Blob([doc.content || ''], { type: 'text/plain' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${(doc.title || 'documento').replace(/\s+/g, '_')}.txt`;
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }
+                              }}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold"
+                            >
+                              Descargar
+                            </button>
+                          </div>
+                        </div>
                       </li>
                     ))}
                   </ul>
