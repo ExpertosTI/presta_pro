@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import Card from '../components/Card.jsx';
 import { registerUser } from '../logic/authLogic';
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV
+    ? 'http://localhost:4000'
+    : (typeof window !== 'undefined' ? window.location.origin : ''));
+
 export function SettingsView({
   systemSettings,
   setSystemSettings,
@@ -11,6 +17,7 @@ export function SettingsView({
   removeCollector,
   clients,
   assignCollectorToClient,
+  auth,
 }) {
   const [form, setForm] = useState({
     companyName: systemSettings.companyName || 'Presta Pro',
@@ -30,6 +37,8 @@ export function SettingsView({
   const [selectedClientId, setSelectedClientId] = useState('');
   const [userForm, setUserForm] = useState({ name: '', username: '', password: '' });
   const [userError, setUserError] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
@@ -133,18 +142,49 @@ export function SettingsView({
     setUserForm({ name: '', username: '', password: '' });
   };
 
+  const handleResendVerificationEmail = async () => {
+    if (!auth || !auth.user || !auth.user.token) {
+      setResendMessage('Esta instalación no está conectada al servidor SaaS.');
+      return;
+    }
+
+    setResendLoading(true);
+    setResendMessage('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/tenants/resend-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.user.token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        setResendMessage(data.error || 'No se pudo reenviar el correo de verificación.');
+      } else {
+        setResendMessage('Correo de verificación reenviado. Revisa tu bandeja de entrada.');
+      }
+    } catch (error) {
+      console.error('Resend verification email error', error);
+      setResendMessage('Error de conexión al intentar reenviar el correo.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <h2 className="text-2xl font-bold text-slate-800">Ajustes</h2>
+      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Ajustes</h2>
 
       <Card>
-        <h3 className="text-lg font-bold text-slate-800 mb-4">Configuración del Sistema</h3>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Configuración del Sistema</h3>
         <form onSubmit={handleSaveSettings} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Nombre de la Empresa</label>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nombre de la Empresa</label>
             <input
               type="text"
-              className="w-full p-2 border rounded-lg bg-slate-50"
+              className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.companyName}
               onChange={(e) => setForm({ ...form, companyName: e.target.value })}
             />
@@ -152,17 +192,17 @@ export function SettingsView({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Nombre que se muestra en el encabezado</label>
+              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nombre que se muestra en el encabezado</label>
               <input
                 type="text"
-                className="w-full p-2 border rounded-lg bg-slate-50"
+                className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={form.ownerDisplayName}
                 onChange={(e) => setForm({ ...form, ownerDisplayName: e.target.value })}
                 placeholder="Ej: Juan Pérez"
               />
             </div>
             <div className="md:col-span-2 flex items-center gap-3">
-              <div className="w-14 h-14 rounded-lg border border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
+              <div className="w-14 h-14 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
                 {form.companyLogo ? (
                   <img src={form.companyLogo} alt="Logo" className="w-full h-full object-contain" />
                 ) : (
@@ -183,6 +223,26 @@ export function SettingsView({
               </div>
             </div>
           </div>
+
+          {auth?.user?.tenantId && (
+            <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Correo de confirmación de cuenta SaaS</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                Si no llegó el correo de activación de la cuenta, puedes reenviarlo al email del administrador.
+              </p>
+              {resendMessage && (
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 mb-2">{resendMessage}</p>
+              )}
+              <button
+                type="button"
+                onClick={handleResendVerificationEmail}
+                disabled={resendLoading}
+                className="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60"
+              >
+                {resendLoading ? 'Reenviando...' : 'Reenviar correo de confirmación'}
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -209,7 +269,7 @@ export function SettingsView({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Apariencia</label>
+              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Apariencia</label>
               <div className="flex gap-2">
                 {['indigo', 'blue', 'emerald', 'violet'].map((color) => (
                   <button
@@ -243,30 +303,30 @@ export function SettingsView({
             )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Nombre completo</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nombre completo</label>
                 <input
                   type="text"
-                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={userForm.name}
                   onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
                   placeholder="Ej: Juan Pérez"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Usuario</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Usuario</label>
                 <input
                   type="text"
-                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={userForm.username}
                   onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
                   placeholder="usuario.cobrador"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Contraseña</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Contraseña</label>
                 <input
                   type="password"
-                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={userForm.password}
                   onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
                   placeholder="Mínimo 4 caracteres"
@@ -289,20 +349,20 @@ export function SettingsView({
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Usuario administrador</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Usuario administrador</label>
                 <input
                   type="text"
-                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={form.securityUser}
                   onChange={(e) => setForm({ ...form, securityUser: e.target.value })}
                   placeholder="admin"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Contraseña / PIN</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Contraseña / PIN</label>
                 <input
                   type="password"
-                  className="w-full p-2 border rounded-lg bg-slate-50"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={form.securityPassword}
                   onChange={(e) => setForm({ ...form, securityPassword: e.target.value })}
                   placeholder="••••••"
@@ -314,9 +374,9 @@ export function SettingsView({
             </div>
           </div>
 
-          <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-3">
+          <div className="mt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
             <div>
-              <p className="text-sm font-medium text-slate-700">Notificación GPS para Rutas</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Notificación GPS para Rutas</p>
               <p className="text-xs text-slate-500">Si está activo, al iniciar una ruta se mostrará alerta de GPS/navegación.</p>
             </div>
             <button
@@ -339,7 +399,7 @@ export function SettingsView({
 
           <div className="mt-3 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-700">Incluir cuotas futuras en Rutas</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Incluir cuotas futuras en Rutas</p>
               <p className="text-xs text-slate-500">Si está activo, la Ruta Inteligente mostrará todas las cuotas pendientes, no solo las vencidas hoy.</p>
             </div>
             <button
@@ -370,7 +430,7 @@ export function SettingsView({
       </Card>
 
       <Card>
-        <h3 className="text-lg font-bold text-slate-800 mb-4">Gestión de Cobradores</h3>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Gestión de Cobradores</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <form onSubmit={handleAddCollector} className="space-y-3">
             <div className="flex justify-center mb-2">
@@ -393,7 +453,7 @@ export function SettingsView({
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Nombre del Cobrador</label>
+              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nombre del Cobrador</label>
               <input
                 type="text"
                 className="w-full p-2 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -402,7 +462,7 @@ export function SettingsView({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">Teléfono</label>
+              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Teléfono</label>
               <input
                 type="text"
                 className="w-full p-2 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -528,7 +588,7 @@ export function SettingsView({
       </Card>
 
       <Card>
-        <h3 className="text-lg font-bold text-slate-200 mb-1">Asignación de Clientes a Cobradores</h3>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Asignación de Clientes a Cobradores</h3>
         <p className="text-xs text-slate-400 mb-4">
           Elige un cobrador para cada cliente. El cambio se guarda inmediatamente cuando seleccionas un cobrador.
         </p>

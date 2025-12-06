@@ -30,6 +30,7 @@ const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25', 10);
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const SMTP_FROM = process.env.SMTP_FROM || 'noreply@renace.tech';
+const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
 
 let mailer = null;
 if (SMTP_HOST) {
@@ -197,6 +198,26 @@ app.post('/api/tenants/register', async (req, res) => {
         .catch((err) => {
           console.error('MAIL_VERIFY_ERROR', err);
         });
+
+      if (ADMIN_NOTIFY_EMAIL) {
+        mailer
+          .sendMail({
+            from: SMTP_FROM,
+            to: ADMIN_NOTIFY_EMAIL,
+            subject: 'Nuevo registro de financiera en Presta Pro',
+            text: `Se ha registrado una nueva cuenta en Presta Pro.\n\nNombre: ${tenantName}\nSlug: ${tenantSlug}\nAdmin: ${adminEmail}\n\nEnlace de verificación:\n${verifyUrl}`,
+            html: `<p>Se ha registrado una nueva cuenta en <strong>Presta Pro</strong>.</p>
+              <ul>
+                <li><strong>Nombre:</strong> ${tenantName}</li>
+                <li><strong>Slug:</strong> ${tenantSlug}</li>
+                <li><strong>Admin:</strong> ${adminEmail}</li>
+              </ul>
+              <p>Enlace de verificación: <a href="${verifyUrl}">${verifyUrl}</a></p>`,
+          })
+          .catch((err) => {
+            console.error('MAIL_ADMIN_REGISTER_ERROR', err);
+          });
+      }
     }
 
     return res.json({
@@ -223,6 +244,88 @@ app.post('/api/tenants/register', async (req, res) => {
   }
 });
 
+app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) => {
+  try {
+    if (!mailer) {
+      return res.status(503).json({ error: 'Servicio de correo no está configurado' });
+    }
+
+    const tenantId = req.user.tenantId;
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      include: { users: true },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ error: 'Tenant no encontrado' });
+    }
+
+    if (tenant.isVerified) {
+      return res.status(400).json({ error: 'La cuenta ya está verificada' });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000);
+
+    const updatedTenant = await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: {
+        verificationToken,
+        verificationExpiresAt,
+      },
+      include: { users: true },
+    });
+
+    const adminUser = updatedTenant.users.find((u) => u.role === 'OWNER') || updatedTenant.users[0];
+    const adminEmail = adminUser?.email;
+
+    if (!adminEmail) {
+      return res.status(400).json({ error: 'No hay correo de administrador registrado' });
+    }
+
+    const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+    const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
+
+    mailer
+      .sendMail({
+        from: SMTP_FROM,
+        to: adminEmail,
+        subject: 'Reenvío de activación de tu cuenta de Presta Pro',
+        text: `Hola,\n\nTe enviamos de nuevo el enlace para activar la cuenta de ${updatedTenant.name}.\n\nEnlace:\n${verifyUrl}\n\nSi ya activaste la cuenta, puedes ignorar este correo.`,
+        html: `<p>Te reenviamos el enlace para <strong>activar</strong> tu cuenta de ${updatedTenant.name}.</p>
+          <p><a href="${verifyUrl}">Activar cuenta ahora</a></p>
+          <p style="font-size:12px;color:#64748b;">Si ya activaste la cuenta, puedes ignorar este mensaje.</p>`,
+      })
+      .catch((err) => {
+        console.error('MAIL_RESEND_VERIFY_ERROR', err);
+      });
+
+    if (ADMIN_NOTIFY_EMAIL && ADMIN_NOTIFY_EMAIL !== adminEmail) {
+      mailer
+        .sendMail({
+          from: SMTP_FROM,
+          to: ADMIN_NOTIFY_EMAIL,
+          subject: 'Reenvío de verificación de cuenta en Presta Pro',
+          text: `Se ha reenviado el correo de verificación para:\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
+          html: `<p>Se ha reenviado el correo de verificación para una cuenta de <strong>Presta Pro</strong>.</p>
+            <ul>
+              <li><strong>Nombre:</strong> ${updatedTenant.name}</li>
+              <li><strong>Slug:</strong> ${updatedTenant.slug}</li>
+              <li><strong>Admin:</strong> ${adminEmail}</li>
+            </ul>`,
+        })
+        .catch((err) => {
+          console.error('MAIL_ADMIN_RESEND_VERIFY_ERROR', err);
+        });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('TENANT_RESEND_VERIFY_ERROR', err);
+    return res.status(500).json({ error: 'Error al reenviar el correo de verificación' });
+  }
+});
+
 app.get('/api/tenants/verify', async (req, res) => {
   const token = req.query.token;
   if (!token || typeof token !== 'string') {
@@ -239,14 +342,39 @@ app.get('/api/tenants/verify', async (req, res) => {
       return res.status(400).json({ error: 'El enlace de verificación ha expirado' });
     }
 
-    await prisma.tenant.update({
+    const updatedTenant = await prisma.tenant.update({
       where: { id: tenant.id },
       data: {
         isVerified: true,
         verificationToken: null,
         verificationExpiresAt: null,
       },
+      include: { users: true },
     });
+
+    if (mailer && ADMIN_NOTIFY_EMAIL) {
+      const adminUser = updatedTenant.users.find((u) => u.role === 'OWNER') || updatedTenant.users[0];
+      const adminEmail = adminUser?.email;
+
+      if (adminEmail) {
+        mailer
+          .sendMail({
+            from: SMTP_FROM,
+            to: ADMIN_NOTIFY_EMAIL,
+            subject: 'Cuenta de financiera verificada en Presta Pro',
+            text: `Se ha verificado la cuenta en Presta Pro.\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
+            html: `<p>Se ha <strong>verificado</strong> una cuenta en Presta Pro.</p>
+              <ul>
+                <li><strong>Nombre:</strong> ${updatedTenant.name}</li>
+                <li><strong>Slug:</strong> ${updatedTenant.slug}</li>
+                <li><strong>Admin:</strong> ${adminEmail}</li>
+              </ul>`,
+          })
+          .catch((err) => {
+            console.error('MAIL_ADMIN_VERIFY_TENANT_ERROR', err);
+          });
+      }
+    }
 
     return res.json({ success: true });
   } catch (err) {
