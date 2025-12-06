@@ -759,6 +759,8 @@ function App() {
                 setChatHistory={setChatHistory}
                 dbData={dbData}
                 showToast={showToast}
+                ownerName={displayUserName}
+                companyName={systemSettings.companyName}
               />
             )}
             {activeTab === 'clients' && hasPermission(role, 'clients') && (
@@ -851,6 +853,8 @@ function App() {
           setChatHistory={setChatHistory}
           dbData={dbData}
           showToast={showToast}
+          ownerName={displayUserName}
+          companyName={systemSettings.companyName}
         />
       )}
 

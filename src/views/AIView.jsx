@@ -1,7 +1,7 @@
 import React from 'react';
 import AIHelper from '../ai/AIHelper.jsx';
 
-export function AIView({ chatHistory, setChatHistory, dbData, showToast }) {
+export function AIView({ chatHistory, setChatHistory, dbData, showToast, ownerName, companyName }) {
   return (
     <div className="h-full">
       <AIHelper
@@ -9,6 +9,8 @@ export function AIView({ chatHistory, setChatHistory, dbData, showToast }) {
         setChatHistory={setChatHistory}
         dbData={dbData}
         showToast={showToast}
+        ownerName={ownerName}
+        companyName={companyName}
       />
     </div>
   );
