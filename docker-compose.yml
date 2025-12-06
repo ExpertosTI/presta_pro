@@ -1,7 +1,25 @@
 services:
+  presta_pro_api:
+    build:
+      context: ./server
+    container_name: presta_pro_api
+    environment:
+      - DATABASE_URL=postgresql://prestapro:prestapro@evolution_db:5432/prestapro?schema=public
+      - JWT_SECRET=${JWT_SECRET:-pon_un_secreto_largo_aqui}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-25}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-noreply@renace.tech}
+      - APP_BASE_URL=https://prestanace.renace.tech/api
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+    restart: unless-stopped
+
   presta_pro_web:
     build: .
     container_name: presta_pro_web
+    depends_on:
+      - presta_pro_api
     ports:
       - "8080:80"  # HOST:CONTAINER
     restart: unless-stopped
