@@ -186,7 +186,7 @@ export function useAuth(collectors, systemSettings, addCollector) {
             });
 
             const data = await response.json().catch(() => ({}));
-            if (!response.ok) {
+            if (!response.ok || data.success === false) {
                 return { success: false, error: data.error || 'No se pudo crear la cuenta' };
             }
 
