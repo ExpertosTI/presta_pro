@@ -183,8 +183,8 @@ Reglas de respuesta IMPORTANTES:
         setInput('');
         setLoading(true);
 
-        // PRIORIDAD: Usar la nueva API Key proporcionada por el usuario (ignorando la variable de entorno expirada por ahora)
-        const apiKey = 'AIzaSyBP3rk48SuOYogpwMenvCn5df2sM69iAT4' || import.meta.env.VITE_GEMINI_API_KEY;
+        // Usar siempre la API key desde variables de entorno (AI Studio)
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
         if (!apiKey) {
             showToast('El Asistente AI no está configurado (Falta API Key).', 'error');

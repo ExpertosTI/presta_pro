@@ -1,10 +1,11 @@
 
 export const sendMessageToAI = async (chatHistory, userMessage, systemInstruction, apiKey) => {
-    // FUERZA BRUTA: Usar la API key nueva directamente para garantizar que no llegue la vieja
-    // Si llega una key vieja (por cache o env), la ignoramos y usamos la buena.
-    const effectiveKey = 'AIzaSyBP3rk48SuOYogpwMenvCn5df2sM69iAT4';
+    const effectiveKey = apiKey;
+    if (!effectiveKey) {
+        throw new Error('API Key missing');
+    }
 
-    // Modelo Gemini 2.5 Flash
+    // Modelo Gemini 2.5 Flash (Google AI Studio)
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
 
     // Construir el contenido de la conversación
@@ -76,8 +77,8 @@ export const sendMessageToAI = async (chatHistory, userMessage, systemInstructio
 };
 
 export const generateLoanContract = async (loan, client, companyName, apiKey) => {
-    // FUERZA BRUTA: Usar la API key nueva directamente
-    const effectiveKey = 'AIzaSyBP3rk48SuOYogpwMenvCn5df2sM69iAT4';
+    const effectiveKey = apiKey;
+    if (!effectiveKey) throw new Error('API Key missing');
 
     const prompt = `
       Genera un contrato de préstamo legal y formal en formato texto plano (sin markdown, sin negritas) para la siguiente transacción:
