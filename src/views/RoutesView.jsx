@@ -18,15 +18,8 @@ export function RoutesView({
   showToast,
   addRouteClosing,
   routeClosings,
-  routeClosings,
   receipts,
   includeFutureInstallments,
-  setPrintReceipt, // Need these from props or context? RoutesView props list shows mostly function refs. 
-  // Wait, RoutesView receives `registerPayment` which comes from usePrestaProState. 
-  // But to handle manual print, I need access to setPrintReceipt or handlePrint which are in useUIState.
-  // RoutesView is a presentation component receiving props from App.jsx -> usePrestaProState.
-  // I need to check if `handlePrint` or `setPrintReceipt` are passed to RoutesView.
-  // Looking at App.jsx... RoutesView is rendered with {...state}. state includes `setPrintReceipt` and `handlePrint`.
   handlePrint,
   setPrintReceipt,
   systemSettings,
