@@ -97,6 +97,7 @@ async function authMiddleware(req, res, next) {
       if (expiresAt && expiresAt < new Date()) {
         return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
       }
+      // Si aún no ha verificado pero no ha expirado, se permite acceso temporal
     }
 
     req.user = {
@@ -193,6 +194,8 @@ app.post('/api/tenants/register', async (req, res) => {
     }
 
     return res.json({
+      success: true,
+      requiresVerification: true,
       token,
       tenant: {
         id: tenant.id,
@@ -202,7 +205,7 @@ app.post('/api/tenants/register', async (req, res) => {
         verificationExpiresAt: tenant.verificationExpiresAt,
       },
       user: { id: adminUser.id, email: adminUser.email, name: adminUser.name, role: adminUser.role },
-      // verificationToken removed for security
+      // verificationToken removed for seguridad
     });
   } catch (err) {
     console.error('TENANT_REGISTER_ERROR', err);
@@ -768,6 +771,7 @@ app.post('/api/auth/login', async (req, res) => {
       if (expiresAt && expiresAt < new Date()) {
         return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
       }
+      // Si no está verificado pero no ha expirado, permitimos el login temporalmente
     }
 
     const token = jwt.sign(
@@ -778,7 +782,13 @@ app.post('/api/auth/login', async (req, res) => {
 
     return res.json({
       token,
-      tenant: { id: user.tenant.id, name: user.tenant.name, slug: user.tenant.slug },
+      tenant: {
+        id: user.tenant.id,
+        name: user.tenant.name,
+        slug: user.tenant.slug,
+        isVerified: tenant.isVerified,
+        verificationExpiresAt: tenant.verificationExpiresAt,
+      },
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
     });
   } catch (err) {
