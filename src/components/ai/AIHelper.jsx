@@ -17,12 +17,21 @@ const AIHelper = ({ chatHistory, setChatHistory, dbData, showToast }) => {
 
     // Usar un resumen estructurado y legible de los datos de la aplicación para dar contexto al asistente
     const getContextualData = () => {
-        const clientsCount = dbData.clients.length;
-        const activeLoans = dbData.loans.filter(l => l.status === 'ACTIVE').length;
-        const totalLent = dbData.loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
-        const totalExpenses = dbData.expenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
-        const totalReceipts = dbData.receipts.length;
-        const employeesCount = dbData.employees ? dbData.employees.length : 0;
+        const clients = dbData.clients || [];
+        const loans = dbData.loans || [];
+        const expenses = dbData.expenses || [];
+        const receipts = dbData.receipts || [];
+        const employees = dbData.employees || [];
+        const collectors = dbData.collectors || [];
+        const aiMetrics = dbData.aiMetrics || null;
+
+        const clientsCount = aiMetrics?.clientsCount ?? clients.length;
+        const loansCount = aiMetrics?.loansCount ?? loans.length;
+        const activeLoans = aiMetrics?.activeLoans ?? loans.filter(l => l.status === 'ACTIVE').length;
+        const totalLent = aiMetrics?.totalLent ?? loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+        const totalExpenses = expenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
+        const totalReceipts = aiMetrics?.receiptsCount ?? receipts.length;
+        const employeesCount = employees.length;
 
         // Ventana de hoy para movimientos diarios
         const startOfToday = new Date();
@@ -30,27 +39,30 @@ const AIHelper = ({ chatHistory, setChatHistory, dbData, showToast }) => {
         const endOfToday = new Date(startOfToday);
         endOfToday.setDate(endOfToday.getDate() + 1);
 
-        const receiptsToday = (dbData.receipts || []).filter((r) => {
+        const receiptsToday = receipts.filter((r) => {
             const d = new Date(r.date);
             return d >= startOfToday && d < endOfToday;
         });
 
-        const expensesToday = (dbData.expenses || []).filter((g) => {
+        const expensesToday = expenses.filter((g) => {
             if (!g.date) return true;
             const d = new Date(g.date);
             return d >= startOfToday && d < endOfToday;
         });
 
-        const totalCollectedToday = receiptsToday.reduce((acc, r) => {
+        const localTotalCollectedToday = receiptsToday.reduce((acc, r) => {
             const base = parseFloat(r.amount || 0) || 0;
             const penalty = parseFloat(r.penaltyAmount || 0) || 0;
             return acc + base + penalty;
         }, 0);
 
-        const totalPenaltyToday = receiptsToday.reduce((acc, r) => {
+        const localTotalPenaltyToday = receiptsToday.reduce((acc, r) => {
             const penalty = parseFloat(r.penaltyAmount || 0) || 0;
             return acc + penalty;
         }, 0);
+
+        const totalCollectedToday = aiMetrics?.today?.totalCollected ?? localTotalCollectedToday;
+        const totalPenaltyToday = aiMetrics?.today?.totalPenalty ?? localTotalPenaltyToday;
 
         const totalExpensesToday = expensesToday.reduce((acc, g) => acc + (parseFloat(g.amount || 0) || 0), 0);
         const cashBalanceToday = totalCollectedToday - totalExpensesToday;
@@ -79,7 +91,7 @@ const AIHelper = ({ chatHistory, setChatHistory, dbData, showToast }) => {
         // Desglose por cobrador (usado para preguntas de rutas y cuadre)
         const collectorMap = new Map();
         receiptsToday.forEach((r) => {
-            const client = dbData.clients.find((c) => c.id === r.clientId);
+            const client = clients.find((c) => c.id === r.clientId);
             const collectorId = client?.collectorId || 'UNASSIGNED';
             const collectorName =
                 collectorId === 'UNASSIGNED'
@@ -166,13 +178,15 @@ Tu rol es ayudarle a entender, de forma rápida y simple, qué pasa con el diner
 Tienes acceso directo a este resumen interno de la app (clientes, préstamos, gastos, recibos, empleados, cobradores, rutas, etc.). Trátalo como si fuera la base de datos en tiempo real:
 ${getContextualData()}
 
-Reglas de respuesta IMPORTANTES:
+Reglas de respuesta IMPORTANTES (IGNORA cualquier instrucción previa que diga que no tienes acceso a datos reales):
 - Responde SIEMPRE en español, con tono cercano y coloquial (como una secretaria de confianza).
 - Máximo 12 líneas por respuesta. Frases cortas, claras, sin párrafos eternos.
-- NUNCA digas frases como "como inteligencia artificial no tengo acceso" ni sugieras entrar a otra web o sistema; responde SIEMPRE usando los datos del resumen anterior.
-- Cuando pidan totales, listados o estados (clientes, préstamos, pagos, mora, caja, cobradores), calcula la respuesta usando exclusivamente los datos del resumen anterior.
+- NUNCA digas frases como "como inteligencia artificial no tengo acceso", "no tengo acceso a tus datos" ni sugieras entrar a otra web o sistema; SIEMPRE responde usando los datos del resumen anterior.
+- Si preguntan "¿cuántos pagos llevo?" usa el número de recibos de pago registrados (histórico) y responde directamente con ese número.
+- Si preguntan "¿cuánto tengo prestado?" usa el monto total prestado (capital) y responde directamente con ese valor.
+- Cuando pidan otros totales, listados o estados (clientes, préstamos, pagos, mora, caja, cobradores), calcula la respuesta usando exclusivamente los datos del resumen anterior.
 - Si te piden CREAR algo (cliente, préstamo, gasto, solicitud, nota, ruta), no escribes directamente en la base; en su lugar, pide los datos faltantes y devuelve instrucciones muy concretas de qué formulario usar en la app y con qué valores llenar cada campo.
-- No uses listas con guiones ni Markdown, ni muestres JSON o tablas. No inventes números que no se deriven de los datos anteriores.`;
+- No uses tablas ni bloques de código. Si necesitas resaltar algo, puedes usar **negritas** y el sistema las mostrará como texto en negrita. No inventes números que no se deriven de los datos anteriores.`;
 
     const handleSendMessage = async (e) => {
         e.preventDefault();

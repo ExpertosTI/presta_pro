@@ -19,6 +19,7 @@ export function useDataState() {
     const [employees, setEmployees] = useState(() => safeLoad('rt_employees', []));
     const [routeClosings, setRouteClosings] = useState(() => safeLoad('rt_route_closings', []));
     const [collectors, setCollectors] = useState(() => safeLoad('rt_collectors', []));
+    const [aiMetrics, setAiMetrics] = useState(null);
 
     const [systemSettings, setSystemSettings] = useState(() =>
         safeLoad('rt_settings', {
@@ -45,8 +46,8 @@ export function useDataState() {
     useEffect(() => localStorage.setItem('rt_collectors', JSON.stringify(collectors)), [collectors]);
 
     const dbData = useMemo(
-        () => ({ clients, loans, expenses, requests, notes, receipts, employees, collectors, systemSettings, routeClosings }),
-        [clients, loans, expenses, requests, notes, receipts, employees, collectors, systemSettings, routeClosings]
+        () => ({ clients, loans, expenses, requests, notes, receipts, employees, collectors, systemSettings, routeClosings, aiMetrics }),
+        [clients, loans, expenses, requests, notes, receipts, employees, collectors, systemSettings, routeClosings, aiMetrics]
     );
 
     // --- Remote synced: Clients ---
@@ -62,6 +63,22 @@ export function useDataState() {
             setClients(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Error loading clients from API', err);
+        }
+    };
+
+    // --- Remote: AI Metrics ---
+
+    const loadAiMetrics = async (token) => {
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/ai/metrics`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            setAiMetrics(data || null);
+        } catch (err) {
+            console.error('Error loading AI metrics from API', err);
         }
     };
 
@@ -344,6 +361,7 @@ export function useDataState() {
             loadClients(token);
             loadCollectors(token);
             loadLoans(token);
+            loadAiMetrics(token);
         } catch (e) {
             console.error('Error restoring auth for data sync', e);
         }
@@ -379,6 +397,7 @@ export function useDataState() {
         loadClients,
         loadCollectors,
         loadLoans,
+        loadAiMetrics,
         resetDataForNewTenant
     };
 }
