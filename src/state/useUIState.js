@@ -11,6 +11,14 @@ export function useUIState() {
     const [securityToken, setSecurityToken] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
 
+    const [theme, setTheme] = useState(() => {
+        try {
+            return localStorage.getItem('theme') || 'light';
+        } catch {
+            return 'light';
+        }
+    });
+
     // Navigation selections
     const [selectedClientId, setSelectedClientId] = useState(null);
     const [selectedLoanId, setSelectedLoanId] = useState(null);
@@ -41,6 +49,22 @@ export function useUIState() {
         setRouteActive(false);
     };
 
+    const toggleTheme = () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+        if (newTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    };
+
+    // Initialize theme on mount (side effect here or in App, but here is fine for state init)
+    // We need useEffect for this to be robust, but we can also just rely on the toggle for now
+    // or let the consumer handle the class application. 
+    // Better: expose theme and toggleTheme, and let App apply the class or do it here with useEffect.
+
     return {
         activeTab, setActiveTab,
         mobileMenuOpen, setMobileMenuOpen,
@@ -56,6 +80,7 @@ export function useUIState() {
         currentRouteLoanIds, setCurrentRouteLoanIds,
         routeActive, setRouteActive,
         showToast, handlePrint,
-        toggleLoanInRoute, clearCurrentRoute
+        toggleLoanInRoute, clearCurrentRoute,
+        theme, toggleTheme
     };
 }

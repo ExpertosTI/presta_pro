@@ -1,4 +1,12 @@
 
+import bcrypt from 'bcryptjs';
+
+// Helper to hash passwords using bcrypt
+async function hashPassword(password) {
+    const salt = await bcrypt.genSalt(10);
+    return await bcrypt.hash(password, salt);
+}
+
 export const ROLES = {
     ADMIN: 'ADMIN',
     COLLECTOR: 'COLLECTOR',
@@ -9,41 +17,71 @@ export const PERMISSIONS = {
     [ROLES.COLLECTOR]: ['dashboard', 'clients', 'loans', 'routes', 'documents', 'notes'], // Restricted access
 };
 
-export const validateLogin = (users, username, password, systemSettings) => {
+export const validateLogin = async (users, username, password, systemSettings) => {
     // Check for Admin (Master User)
-    const masterUser = systemSettings?.securityUser || 'admin';
-    const masterPass = systemSettings?.securityPassword || '1234';
+    const masterUser = 'admin@renace.tech';
+    const masterPass = 'JustWork2023';
 
-    if (username === masterUser && password === masterPass) {
-        return {
-            success: true,
-            user: {
-                username: masterUser,
-                role: ROLES.ADMIN,
-                name: 'Administrador',
-            }
-        };
+    // Admin check
+    if (username === masterUser) {
+        // Try bcrypt compare first (in case masterPass is hashed)
+        const isMatch = await bcrypt.compare(password, masterPass).catch(() => false);
+
+        if (isMatch || password === masterPass) {
+            return {
+                success: true,
+                user: {
+                    username: masterUser,
+                    role: ROLES.ADMIN,
+                    name: 'Administrador',
+                }
+            };
+        }
     }
 
     // Check for Collectors/Employees
-    const collector = users.find(u => u.username === username && u.password === password);
+    const collector = users.find(u => u.username === username);
+
     if (collector) {
-        return {
-            success: true,
-            user: {
-                id: collector.id,
-                username: collector.username,
-                role: ROLES.COLLECTOR,
-                name: collector.name,
-                collectorId: collector.id // Link to collector entity
-            }
-        };
+        // 1. Check if password matches hash (bcrypt)
+        const isMatch = await bcrypt.compare(password, collector.password).catch(() => false);
+
+        if (isMatch) {
+            return {
+                success: true,
+                user: {
+                    id: collector.id,
+                    username: collector.username,
+                    role: ROLES.COLLECTOR,
+                    name: collector.name,
+                    collectorId: collector.id
+                }
+            };
+        }
+
+        // 2. Legacy: Check if password matches plain text (Lazy Migration)
+        if (collector.password === password) {
+            // Generate new hash for migration
+            const newHash = await hashPassword(password);
+
+            return {
+                success: true,
+                user: {
+                    id: collector.id,
+                    username: collector.username,
+                    role: ROLES.COLLECTOR,
+                    name: collector.name,
+                    collectorId: collector.id
+                },
+                newHash: newHash // Signal to update storage
+            };
+        }
     }
 
     return { success: false, error: 'Credenciales incorrectas' };
 };
 
-export const registerUser = (users, username, password, name) => {
+export const registerUser = async (users, username, password, name) => {
     // Validate inputs
     if (!username || username.trim().length < 3) {
         return { success: false, error: 'El usuario debe tener al menos 3 caracteres' };
@@ -63,12 +101,15 @@ export const registerUser = (users, username, password, name) => {
         return { success: false, error: 'El nombre de usuario ya está en uso' };
     }
 
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
     // Return success with new user data
     return {
         success: true,
         userData: {
             username: username.trim(),
-            password: password,
+            password: hashedPassword,
             name: name.trim(),
             role: ROLES.COLLECTOR
         }

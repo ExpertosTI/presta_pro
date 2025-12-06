@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import Card from '../components/Card.jsx';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { Download } from 'lucide-react';
+import { generateReceiptPDF } from '../services/pdfService';
 
 function CuadreView({ receipts = [], expenses = [], clients = [], collectors = [], routeClosings = [] }) {
   const [closingDetail, setClosingDetail] = useState(null);
@@ -165,9 +167,9 @@ function CuadreView({ receipts = [], expenses = [], clients = [], collectors = [
                       width:
                         totalIngresos > 0
                           ? `${Math.min(
-                              ((totalBaseIngresos / totalIngresos) * 100).toFixed(1),
-                              100,
-                            )}%`
+                            ((totalBaseIngresos / totalIngresos) * 100).toFixed(1),
+                            100,
+                          )}%`
                           : '0%',
                     }}
                   />
@@ -235,13 +237,12 @@ function CuadreView({ receipts = [], expenses = [], clients = [], collectors = [
                       )}
                     </td>
                     <td
-                      className={`p-2 text-right font-semibold ${
-                        c.diff === 0
+                      className={`p-2 text-right font-semibold ${c.diff === 0
                           ? 'text-emerald-600'
                           : c.diff > 0
-                          ? 'text-amber-600'
-                          : 'text-rose-600'
-                      }`}
+                            ? 'text-amber-600'
+                            : 'text-rose-600'
+                        }`}
                     >
                       {formatCurrency(c.diff)}
                     </td>
@@ -290,6 +291,13 @@ function CuadreView({ receipts = [], expenses = [], clients = [], collectors = [
                             Mora {formatCurrency(penalty)}
                           </p>
                         )}
+                        <button
+                          onClick={() => generateReceiptPDF(r)}
+                          className="text-slate-400 hover:text-blue-600 ml-2 inline-block"
+                          title="Descargar PDF"
+                        >
+                          <Download size={14} />
+                        </button>
                       </div>
                     </li>
                   );

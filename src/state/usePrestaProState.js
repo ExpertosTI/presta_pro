@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useDataState } from './useDataState';
 import { useUIState } from './useUIState';
 import { useAuth } from './useAuth';
@@ -7,6 +8,51 @@ export function usePrestaProState() {
   const ui = useUIState();
   const data = useDataState();
   const auth = useAuth(data.collectors, data.systemSettings, data.addCollector);
+
+  const prevTenantIdRef = useRef(null);
+
+  useEffect(() => {
+    const currentTenantId = auth.user?.tenantId || null;
+    const prevTenantId = prevTenantIdRef.current;
+
+    if (currentTenantId && prevTenantId && currentTenantId !== prevTenantId) {
+      try {
+        // Limpiar datos locales en memoria
+        if (data.resetDataForNewTenant) {
+          data.resetDataForNewTenant();
+        }
+
+        // Limpiar cache localStorage ligada a datos operativos
+        try {
+          const keys = [
+            'rt_loans',
+            'rt_expenses',
+            'rt_requests',
+            'rt_notes',
+            'rt_receipts',
+            'rt_employees',
+            'rt_route_closings',
+            'rt_collectors',
+          ];
+          keys.forEach((k) => localStorage.removeItem(k));
+        } catch (e) {
+          console.error('Error clearing tenant local data', e);
+        }
+
+        // Recargar datos remotos del nuevo tenant
+        const token = auth.user?.token;
+        if (token) {
+          if (data.loadClients) data.loadClients(token);
+          if (data.loadCollectors) data.loadCollectors(token);
+          if (data.loadLoans) data.loadLoans(token);
+        }
+      } catch (e) {
+        console.error('Error resetting data for new tenant', e);
+      }
+    }
+
+    prevTenantIdRef.current = currentTenantId;
+  }, [auth.user?.tenantId, auth.user?.token, data]);
 
   // Filter data based on Role
   const filteredClients = auth.user?.role === ROLES.COLLECTOR
@@ -22,7 +68,7 @@ export function usePrestaProState() {
 
   // Wrapper for registerPayment to handle UI side effects (print receipt, toast)
   const registerPayment = (loanId, installmentId, options = {}) => {
-    const receipt = data.registerPayment(loanId, installmentId, options);
+    const receipt = data.registerPayment(loanId, installmentId, options, auth.user?.token);
     if (receipt) {
       ui.setPrintReceipt(receipt);
       setTimeout(ui.handlePrint, 100);
@@ -50,21 +96,24 @@ export function usePrestaProState() {
 
   // Wrapper for createLoan to handle UI side effects
   const createLoan = (loanData) => {
-    data.createLoan(loanData);
+    data.createLoan(loanData, auth.user?.token);
     ui.showToast('Préstamo creado exitosamente');
     ui.setActiveTab('loans');
   };
 
   // Wrapper for add functions to show toast
-  const addClient = (d) => { data.addClient(d); ui.showToast('Cliente registrado correctamente'); };
+  const addClient = (d) => { data.addClient(d, auth.user?.token); ui.showToast('Cliente registrado correctamente'); };
   const addEmployee = (d) => { data.addEmployee(d); ui.showToast('Empleado registrado correctamente'); };
-  const addCollector = (d) => { data.addCollector(d); ui.showToast('Cobrador registrado correctamente'); };
+  const addCollector = (d) => { data.addCollector(d, auth.user?.token); ui.showToast('Cobrador registrado correctamente'); };
+  const updateCollector = (d) => { data.updateCollector(d, auth.user?.token); ui.showToast('Cobrador actualizado correctamente'); };
+  const removeCollector = (id) => { data.removeCollector(id, auth.user?.token); ui.showToast('Cobrador eliminado'); };
   const addExpense = (d) => { data.addExpense(d); ui.showToast('Gasto registrado'); };
   const addRequest = (d) => { data.addRequest(d); ui.showToast('Solicitud enviada a revisión'); };
+  const approveRequest = (d) => { data.approveRequest(d, auth.user?.token); ui.showToast('Solicitud aprobada y préstamo creado', 'success'); };
   const updateClient = (d) => { data.updateClient(d); ui.showToast('Cliente actualizado correctamente'); };
-  const updateLoan = (d) => { data.updateLoan(d); ui.showToast('Préstamo actualizado correctamente'); };
+  const updateLoan = (d) => { data.updateLoan(d, auth.user?.token); ui.showToast('Préstamo actualizado correctamente'); };
   const rejectRequest = (d) => { data.rejectRequest(d); ui.showToast('Solicitud rechazada', 'success'); };
-  const assignCollectorToClient = (cid, colid) => { data.assignCollectorToClient(cid, colid); ui.showToast('Ruta / cobrador asignado al cliente'); };
+  const assignCollectorToClient = (cid, colid) => { data.assignCollectorToClient(cid, colid, auth.user?.token); ui.showToast('Ruta / cobrador asignado al cliente'); };
   const addRouteClosing = (d) => { data.addRouteClosing(d); ui.showToast('Cuadre del cobrador registrado correctamente'); };
 
   return {
@@ -84,8 +133,11 @@ export function usePrestaProState() {
     updateClient,
     addEmployee,
     addCollector,
+    updateCollector,
+    removeCollector,
     addExpense,
     addRequest,
+    approveRequest,
     rejectRequest,
     assignCollectorToClient,
     addRouteClosing,

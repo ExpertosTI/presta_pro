@@ -2,7 +2,7 @@ import React from 'react';
 
 export function BottomNav({ activeTab, setActiveTab, setMobileMenuOpen, items }) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-slate-200 flex justify-around py-2 px-1 md:hidden print:hidden z-40">
+    <nav className="fixed inset-x-0 bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-around py-2 px-1 md:hidden print:hidden z-40">
       {items.map((item) => {
         const Icon = item.icon;
         const isActive = item.id !== 'more' && activeTab === item.id;

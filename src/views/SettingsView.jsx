@@ -7,6 +7,8 @@ export function SettingsView({
   setSystemSettings,
   collectors,
   addCollector,
+  updateCollector,
+  removeCollector,
   clients,
   assignCollectorToClient,
 }) {
@@ -20,6 +22,8 @@ export function SettingsView({
   });
 
   const [collectorForm, setCollectorForm] = useState({ name: '', phone: '' });
+  const [editingCollectorId, setEditingCollectorId] = useState('');
+  const [editingCollectorForm, setEditingCollectorForm] = useState({ name: '', phone: '' });
   const [selectedCollectorId, setSelectedCollectorId] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [userForm, setUserForm] = useState({ name: '', username: '', password: '' });
@@ -45,6 +49,25 @@ export function SettingsView({
     if (!collectorForm.name.trim()) return;
     addCollector({ ...collectorForm });
     setCollectorForm({ name: '', phone: '' });
+  };
+
+  const startEditCollector = (collector) => {
+    setEditingCollectorId(collector.id);
+    setEditingCollectorForm({ name: collector.name || '', phone: collector.phone || '' });
+  };
+
+  const handleUpdateCollector = (collectorId) => {
+    if (!editingCollectorForm.name.trim()) return;
+    updateCollector({ id: collectorId, name: editingCollectorForm.name.trim(), phone: editingCollectorForm.phone.trim() });
+    setEditingCollectorId('');
+    setEditingCollectorForm({ name: '', phone: '' });
+  };
+
+  const handleRemoveCollector = (collectorId) => {
+    removeCollector(collectorId);
+    if (selectedCollectorId === collectorId) {
+      setSelectedCollectorId('');
+    }
   };
 
   const handleAssignRoute = (e) => {
@@ -309,12 +332,75 @@ export function SettingsView({
               <p className="text-sm text-slate-400">No hay cobradores registrados.</p>
             ) : (
               <ul className="text-sm divide-y divide-slate-100">
-                {collectors.map((c) => (
-                  <li key={c.id} className="py-1 flex justify-between">
-                    <span>{c.name}</span>
-                    <span className="text-xs text-slate-500">{c.phone}</span>
-                  </li>
-                ))}
+                {collectors.map((c) => {
+                  const isEditing = editingCollectorId === c.id;
+                  return (
+                    <li key={c.id} className="py-2 flex flex-col gap-1">
+                      {isEditing ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              className="flex-1 p-2 border rounded-lg bg-slate-50"
+                              value={editingCollectorForm.name}
+                              onChange={(e) => setEditingCollectorForm({ ...editingCollectorForm, name: e.target.value })}
+                              placeholder="Nombre del cobrador"
+                            />
+                            <input
+                              type="text"
+                              className="w-40 p-2 border rounded-lg bg-slate-50"
+                              value={editingCollectorForm.phone}
+                              onChange={(e) => setEditingCollectorForm({ ...editingCollectorForm, phone: e.target.value })}
+                              placeholder="Teléfono"
+                            />
+                          </div>
+                          <div className="flex gap-2 justify-end text-xs">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCollector(c.id)}
+                              className="px-3 py-1 rounded-lg bg-emerald-600 text-white font-semibold"
+                            >
+                              Guardar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCollectorId('');
+                                setEditingCollectorForm({ name: '', phone: '' });
+                              }}
+                              className="px-3 py-1 rounded-lg bg-slate-200 text-slate-700 font-semibold"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-slate-800">{c.name}</p>
+                            <p className="text-xs text-slate-500">{c.phone}</p>
+                          </div>
+                          <div className="flex gap-2 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => startEditCollector(c)}
+                              className="px-3 py-1 rounded-lg bg-slate-900 text-white font-semibold"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCollector(c.id)}
+                              className="px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -322,45 +408,51 @@ export function SettingsView({
       </Card>
 
       <Card>
-        <h3 className="text-lg font-bold text-slate-800 mb-4">Asignación de Rutas / Cobradores</h3>
-        <form onSubmit={handleAssignRoute} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Cliente</label>
-            <select
-              className="w-full p-2 border rounded-lg bg-slate-50"
-              value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
-            >
-              <option value="">Seleccionar Cliente</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+        <h3 className="text-lg font-bold text-slate-800 mb-1">Asignación de Clientes a Cobradores</h3>
+        <p className="text-xs text-slate-500 mb-4">
+          Elige un cobrador para cada cliente. El cambio se guarda inmediatamente cuando seleccionas un cobrador.
+        </p>
+        {clients.length === 0 ? (
+          <p className="text-sm text-slate-400">No hay clientes registrados.</p>
+        ) : collectors.length === 0 ? (
+          <p className="text-sm text-slate-400">Primero agrega al menos un cobrador para poder asignarlo.</p>
+        ) : (
+          <div className="overflow-x-auto max-h-[360px]">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="p-2 text-left">Cliente</th>
+                  <th className="p-2 text-left">Teléfono</th>
+                  <th className="p-2 text-left">Dirección</th>
+                  <th className="p-2 text-left">Cobrador asignado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {clients.map((client) => (
+                  <tr key={client.id}>
+                    <td className="p-2 font-medium text-slate-800">{client.name}</td>
+                    <td className="p-2 text-slate-500">{client.phone || 'N/A'}</td>
+                    <td className="p-2 text-slate-500 truncate max-w-[220px]">{client.address || 'N/A'}</td>
+                    <td className="p-2">
+                      <select
+                        className="w-full p-2 border rounded-lg bg-slate-50 text-sm"
+                        value={client.collectorId || ''}
+                        onChange={(e) => assignCollectorToClient(client.id, e.target.value)}
+                      >
+                        <option value="">Sin asignar</option>
+                        {collectors.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Cobrador</label>
-            <select
-              className="w-full p-2 border rounded-lg bg-slate-50"
-              value={selectedCollectorId}
-              onChange={(e) => setSelectedCollectorId(e.target.value)}
-            >
-              <option value="">Seleccionar Cobrador</option>
-              {collectors.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold"
-          >
-            Asignar Ruta
-          </button>
-        </form>
+        )}
       </Card>
     </div>
   );

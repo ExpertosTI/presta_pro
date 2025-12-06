@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  collectors Collector[]
+  clients    Client[]
+  loans      Loan[]
+  receipts   Receipt[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Collector {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clients   Client[]
+}
+
+model Client {
+  id          String     @id @default(cuid())
+  name        String
+  phone       String?
+  address     String?
+  idNumber    String?    // Cédula / DNI
+  email       String?
+  score       Int        @default(70)
+  collector   Collector? @relation(fields: [collectorId], references: [id])
+  collectorId String?
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  tenantId    String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  loans       Loan[]
+  receipts    Receipt[]
+}
+
+model Loan {
+  id            String            @id @default(cuid())
+  tenant        Tenant            @relation(fields: [tenantId], references: [id])
+  tenantId      String
+  client        Client            @relation(fields: [clientId], references: [id])
+  clientId      String
+  amount        Float
+  rate          Float
+  term          Int
+  frequency     String
+  startDate     DateTime
+  status        String            @default("ACTIVE")
+  totalInterest Float             @default(0)
+  totalPaid     Float             @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  installments  LoanInstallment[]
+  receipts      Receipt[]
+}
+
+model LoanInstallment {
+  id         String   @id @default(cuid())
+  loan       Loan     @relation(fields: [loanId], references: [id])
+  loanId     String
+  number     Int
+  date       DateTime
+  payment    Float
+  interest   Float
+  principal  Float
+  balance    Float
+  status     String   @default("PENDING")
+  paidAmount Float?
+  paidDate   DateTime?
+}
+
+model Receipt {
+  id                String   @id @default(cuid())
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId          String
+  loan              Loan     @relation(fields: [loanId], references: [id])
+  loanId            String
+  client            Client?  @relation(fields: [clientId], references: [id])
+  clientId          String?
+  amount            Float
+  penaltyAmount     Float    @default(0)
+  installmentNumber Int
+  installmentDate   DateTime?
+  loanAmount        Float?
+  totalPaidAfter    Float?
+  remainingBalance  Float?
+  withPenalty       Boolean  @default(false)
+  date              DateTime @default(now())
+  createdAt         DateTime @default(now())
+}
