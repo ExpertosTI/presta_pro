@@ -14,6 +14,8 @@ const rateLimit = require('express-rate-limit');
 const { OAuth2Client } = require('google-auth-library');
 
 const app = express();
+// Detrás de Nginx / reverse proxy, confiar en la IP de X-Forwarded-For para que express-rate-limit funcione bien
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
