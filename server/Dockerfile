@@ -8,7 +8,10 @@ RUN npm ci --only=production
 # Copy app source
 COPY . .
 
-# Generate Prisma client inside the container
+# Dummy DATABASE_URL just for Prisma generate at build time (se sobreescribe en runtime)
+ENV DATABASE_URL=postgresql://user:pass@localhost:5432/db
+
+# Generate Prisma client
 RUN npx prisma generate
 
 # Expose API port
