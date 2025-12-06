@@ -7,20 +7,21 @@ export const sendMessageToAI = async (chatHistory, userMessage, systemInstructio
     // Modelo estable de AI Studio (sufijo -latest requerido)
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
+    // Enviar la instrucción del sistema como primer mensaje de la conversación
     const contents = [
+        {
+            role: 'user',
+            parts: [{ text: systemInstruction }],
+        },
         ...chatHistory.map(msg => ({
             role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.text }]
+            parts: [{ text: msg.text }],
         })),
-        { role: 'user', parts: [{ text: userMessage }] }
+        { role: 'user', parts: [{ text: userMessage }] },
     ];
 
     const payload = {
-        contents: contents,
-        systemInstruction: {
-            parts: [{ text: systemInstruction }]
-        },
-        // Tools removed to prevent 400 errors if not enabled
+        contents,
     };
 
     let responseData = null;
@@ -86,7 +87,7 @@ export const generateLoanContract = async (loan, client, companyName, apiKey) =>
       Redacta el contrato de manera profesional, listo para imprimir y firmar.
     `;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
     const payload = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
