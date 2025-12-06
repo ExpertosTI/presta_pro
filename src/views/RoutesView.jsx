@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import Card from '../components/Card.jsx';
 import { MapPin, CheckCircle, Printer } from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import DigitalReceipt from '../components/DigitalReceipt';
 
 export function RoutesView({
   loans,
@@ -17,8 +18,18 @@ export function RoutesView({
   showToast,
   addRouteClosing,
   routeClosings,
+  routeClosings,
   receipts,
   includeFutureInstallments,
+  setPrintReceipt, // Need these from props or context? RoutesView props list shows mostly function refs. 
+  // Wait, RoutesView receives `registerPayment` which comes from usePrestaProState. 
+  // But to handle manual print, I need access to setPrintReceipt or handlePrint which are in useUIState.
+  // RoutesView is a presentation component receiving props from App.jsx -> usePrestaProState.
+  // I need to check if `handlePrint` or `setPrintReceipt` are passed to RoutesView.
+  // Looking at App.jsx... RoutesView is rendered with {...state}. state includes `setPrintReceipt` and `handlePrint`.
+  handlePrint,
+  setPrintReceipt,
+  systemSettings,
 }) {
   const [collectorFilter, setCollectorFilter] = useState('');
   const [confirmClosing, setConfirmClosing] = useState(false);
@@ -27,6 +38,7 @@ export function RoutesView({
   const [confirmClearRoute, setConfirmClearRoute] = useState(false);
   const [showPenaltyInput, setShowPenaltyInput] = useState(false);
   const [showClosingDetail, setShowClosingDetail] = useState(false);
+  const [receiptToShow, setReceiptToShow] = useState(null);
 
   const { pendingCollections, sortedRoute, totalToCollect, selectedStops, collectorTodayTotal, collectorTodayCount } = useMemo(() => {
     const today = new Date();
@@ -468,13 +480,15 @@ export function RoutesView({
               <button
                 onClick={() => {
                   const penalty = showPenaltyInput ? (parseFloat(penaltyAmountInput || '0') || 0) : 0;
-                  if (penalty > 0) {
-                    registerPayment(paymentToConfirm.loanId, paymentToConfirm.installmentId, {
-                      withPenalty: true,
-                      penaltyAmountOverride: penalty,
-                    });
-                  } else {
-                    registerPayment(paymentToConfirm.loanId, paymentToConfirm.installmentId);
+                  const options = {
+                    suppressAutoPrint: true,
+                    withPenalty: penalty > 0,
+                    penaltyAmountOverride: penalty > 0 ? penalty : undefined
+                  };
+
+                  const receipt = registerPayment(paymentToConfirm.loanId, paymentToConfirm.installmentId, options);
+                  if (receipt) {
+                    setReceiptToShow(receipt);
                   }
                   setPaymentToConfirm(null);
                 }}
@@ -491,6 +505,22 @@ export function RoutesView({
             </button>
           </div>
         </div>
+      )}
+
+      {receiptToShow && (
+        <DigitalReceipt
+          receipt={receiptToShow}
+          companyName={systemSettings?.companyName || 'Presta Pro'}
+          onClose={() => setReceiptToShow(null)}
+          onPrint={() => {
+            if (setPrintReceipt && handlePrint) {
+              setPrintReceipt(receiptToShow);
+              setTimeout(() => handlePrint(), 100);
+            } else {
+              window.print();
+            }
+          }}
+        />
       )}
     </div>
   );

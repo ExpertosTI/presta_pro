@@ -72,10 +72,13 @@ export function usePrestaProState() {
   const registerPayment = (loanId, installmentId, options = {}) => {
     const receipt = data.registerPayment(loanId, installmentId, options, auth.user?.token);
     if (receipt) {
-      ui.setPrintReceipt(receipt);
-      setTimeout(ui.handlePrint, 100);
+      if (!options.suppressAutoPrint) {
+        ui.setPrintReceipt(receipt);
+        setTimeout(ui.handlePrint, 100);
+      }
       ui.showToast('Pago cobrado y recibo generado');
     }
+    return receipt;
   };
 
   // Wrapper for startRoute to handle UI side effects
