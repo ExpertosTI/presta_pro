@@ -18,7 +18,9 @@ const PaymentTicket = ({ receipt, companyName = "Presta Pro", companyLogo }) => 
         ? receipt.remainingBalance
         : parseFloat(receipt.remainingBalance || 0) || 0;
 
-    const isLoanSettled = remainingBalance <= 0.01 && loanAmount > 0;
+    // Only show "PRÉSTAMO SALDADO" if remaining balance is truly zero/near-zero AND we have loan amount data
+    // This prevents showing it on every single payment
+    const isLoanSettled = remainingBalance <= 0.5 && loanAmount > 0 && totalPaidAfter >= loanAmount;
 
     return (
 
