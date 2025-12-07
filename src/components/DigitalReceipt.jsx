@@ -7,7 +7,14 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
     const receiptRef = useRef(null);
     const [isSharing, setIsSharing] = useState(false);
 
-    const total = baseAmount + penaltyAmount;
+    const receiptBaseAmount = typeof receipt?.amount === 'number' ? receipt.amount : parseFloat(receipt?.amount || 0) || 0;
+    const receiptPenaltyAmount = typeof receipt?.penaltyAmount === 'number' ? receipt.penaltyAmount : parseFloat(receipt?.penaltyAmount || 0) || 0;
+
+    // Use props if provided, otherwise fallback to calculated values
+    const finalBaseAmount = baseAmount !== undefined ? baseAmount : receiptBaseAmount;
+    const finalPenaltyAmount = penaltyAmount !== undefined ? penaltyAmount : receiptPenaltyAmount;
+
+    const total = finalBaseAmount + finalPenaltyAmount;
 
     const handleShareImage = async () => {
         if (!receiptRef.current) return;
@@ -130,8 +137,8 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                                     <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">
                                         Cuota #{receipt.installmentNumber}
                                     </p>
-                                    {penaltyAmount > 0 && (
-                                        <p className="text-xs text-amber-600 font-semibold">Incluye mora: {formatCurrency(penaltyAmount)}</p>
+                                    {finalPenaltyAmount > 0 && (
+                                        <p className="text-xs text-amber-600 font-semibold">Incluye mora: {formatCurrency(finalPenaltyAmount)}</p>
                                     )}
                                 </div>
                             </div>
