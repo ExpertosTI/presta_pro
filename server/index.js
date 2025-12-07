@@ -13,6 +13,14 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { OAuth2Client } = require('google-auth-library');
 
+// Email Templates
+const {
+  getVerificationEmail,
+  getResendVerificationEmail,
+  getAdminNotificationEmail,
+  BRAND_NAME,
+} = require('./emailTemplates');
+
 const app = express();
 // Detrás de Nginx / reverse proxy, confiar en la IP de X-Forwarded-For para que express-rate-limit funcione bien
 app.set('trust proxy', 1);
@@ -168,53 +176,28 @@ app.post('/api/tenants/register', async (req, res) => {
       const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
       const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
 
+      // Enviar correo de verificación al usuario con plantilla profesional
       mailer
         .sendMail({
-          from: `"${tenantName}" <${SMTP_FROM}>`,
+          from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
           to: adminEmail,
-          subject: `Activa tu cuenta de ${tenantName}`,
+          subject: `Activa tu cuenta de ${tenantName} - ${BRAND_NAME}`,
           text: `Hola,\n\nHemos creado tu cuenta para ${tenantName}. Para activarla definitivamente haz clic en el siguiente enlace antes de 3 horas:\n\n${verifyUrl}\n\nSi no reconoces este registro, ignora este correo.`,
-          html: `
-            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-              <div style="background-color: #0f172a; padding: 24px; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.025em;">${tenantName}</h1>
-                <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">Plataforma de Préstamos</p>
-              </div>
-              <div style="padding: 40px 30px; background-color: #ffffff;">
-                <h2 style="color: #1e293b; margin-top: 0; font-size: 20px;">¡Bienvenido/a!</h2>
-                <p style="color: #475569; line-height: 1.6; margin-bottom: 24px;">Hemos recibido la solicitud de registro para <strong>${tenantName}</strong>. Para configurar tu espacio de trabajo y comenzar a utilizar la plataforma, activa tu cuenta haciendo clic en el botón de abajo:</p>
-                <div style="text-align: center; margin: 32px 0;">
-                  <a href="${verifyUrl}" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">Activar mi Cuenta</a>
-                </div>
-                <p style="color: #475569; font-size: 14px;">O copia y pega el siguiente enlace en tu navegador:</p>
-                <p style="background-color: #f1f5f9; padding: 12px; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 12px; color: #334155; border: 1px solid #e2e8f0;">${verifyUrl}</p>
-                <p style="color: #64748b; font-size: 13px; margin-top: 30px; border-top: 1px solid #e2e8f0; pt-4;">Este enlace de seguridad expirará en <strong>3 horas</strong>.</p>
-              </div>
-              <div style="background-color: #f8fafc; padding: 20px; text-align: center; color: #94a3b8; font-size: 12px;">
-                &copy; ${new Date().getFullYear()} ${tenantName}. Todos los derechos reservados.<br/>
-                <span style="opacity: 0.7;">Powered by Presta Pro</span>
-              </div>
-            </div>
-          `,
+          html: getVerificationEmail(tenantName, verifyUrl),
         })
         .catch((err) => {
           console.error('MAIL_VERIFY_ERROR', err);
         });
 
+      // Notificar al administrador del sistema con plantilla profesional
       if (ADMIN_NOTIFY_EMAIL) {
         mailer
           .sendMail({
-            from: SMTP_FROM,
+            from: `"${BRAND_NAME} Admin" <${SMTP_FROM}>`,
             to: ADMIN_NOTIFY_EMAIL,
-            subject: 'Nuevo registro de financiera en Presta Pro',
-            text: `Se ha registrado una nueva cuenta en Presta Pro.\n\nNombre: ${tenantName}\nSlug: ${tenantSlug}\nAdmin: ${adminEmail}\n\nEnlace de verificación:\n${verifyUrl}`,
-            html: `<p>Se ha registrado una nueva cuenta en <strong>Presta Pro</strong>.</p>
-              <ul>
-                <li><strong>Nombre:</strong> ${tenantName}</li>
-                <li><strong>Slug:</strong> ${tenantSlug}</li>
-                <li><strong>Admin:</strong> ${adminEmail}</li>
-              </ul>
-              <p>Enlace de verificación: <a href="${verifyUrl}">${verifyUrl}</a></p>`,
+            subject: `Nuevo registro de financiera en ${BRAND_NAME}`,
+            text: `Se ha registrado una nueva cuenta en ${BRAND_NAME}.\n\nNombre: ${tenantName}\nSlug: ${tenantSlug}\nAdmin: ${adminEmail}\n\nEnlace de verificación:\n${verifyUrl}`,
+            html: getAdminNotificationEmail(tenantName, tenantSlug, adminEmail, verifyUrl),
           })
           .catch((err) => {
             console.error('MAIL_ADMIN_REGISTER_ERROR', err);
@@ -288,27 +271,14 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
     const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
     const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
 
+    // Enviar correo de reenvío de verificación con plantilla profesional
     mailer
       .sendMail({
-        from: `"${updatedTenant.name}" <${SMTP_FROM}>`,
+        from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
         to: adminEmail,
-        subject: `Reenvío de activación de cuenta`,
+        subject: `Reenvío de activación de cuenta - ${BRAND_NAME}`,
         text: `Hola,\n\nTe enviamos de nuevo el enlace para activar la cuenta de ${updatedTenant.name}.\n\nEnlace:\n${verifyUrl}\n\nSi ya activaste la cuenta, puedes ignorar este correo.`,
-        html: `
-            <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-              <div style="background-color: #0f172a; padding: 24px; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">${updatedTenant.name}</h1>
-              </div>
-              <div style="padding: 40px 30px; background-color: #ffffff;">
-                <h2 style="color: #1e293b; margin-top: 0; font-size: 20px;">Enlace de Activación</h2>
-                <p style="color: #475569; line-height: 1.6; margin-bottom: 24px;">Hemos recibido una solicitud para reenviar el enlace de activación de tu cuenta.</p>
-                <div style="text-align: center; margin: 32px 0;">
-                  <a href="${verifyUrl}" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; font-size: 16px;">Activar Cuenta Ahora</a>
-                </div>
-                <p style="color: #64748b; font-size: 13px; margin-top: 30px;">Si ya configuraste tu cuenta, puedes ignorar este mensaje.</p>
-              </div>
-            </div>
-        `,
+        html: getResendVerificationEmail(updatedTenant.name, verifyUrl),
       })
       .catch((err) => {
         console.error('MAIL_RESEND_VERIFY_ERROR', err);
