@@ -62,7 +62,7 @@ app.use(helmet({
 }));
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 2000,
 });
 app.use(limiter);
 
@@ -639,6 +639,8 @@ app.post('/api/clients', authMiddleware, async (req, res) => {
         address: address || null,
         idNumber: idNumber || null,
         email: email || null,
+        notes: req.body.notes || null,
+        photoUrl: req.body.photoUrl || null,
         score: 70,
         collectorId: validCollectorId,
         tenantId: req.user.tenantId,

@@ -59,6 +59,8 @@ model Client {
   address     String?
   idNumber    String?    // Cédula / DNI
   email       String?
+  notes       String?
+  photoUrl    String?
   score       Int        @default(70)
   collector   Collector? @relation(fields: [collectorId], references: [id])
   collectorId String?
