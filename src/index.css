@@ -128,15 +128,21 @@ body {
 
 @keyframes shimmer {
   0% {
-    transform: translateX(-150%) skewX(-25deg);
+    transform: translateX(-10%) translateY(-5%) skewX(-15deg);
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 0.08;
   }
 
   100% {
-    transform: translateX(150%) skewX(-25deg);
+    transform: translateX(10%) translateY(5%) skewX(-15deg);
+    opacity: 0;
   }
 }
 
 .animate-shimmer {
-  animation: shimmer 6s ease-in-out infinite;
-  animation-delay: 1s;
+  animation: shimmer 8s ease-in-out infinite;
+  animation-delay: 2s;
 }

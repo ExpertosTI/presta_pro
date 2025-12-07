@@ -270,11 +270,11 @@ function App() {
             <div className="flex flex-col items-center mb-4 space-y-2">
               <div className="relative group p-4">
                 <img src={logoSmall} alt="Presta Pro" className="w-40 h-40 md:w-52 md:h-52 object-contain drop-shadow-2xl relative z-10" />
-                {/* Cinematic Shine Effect - Very Subtle */}
+                {/* Cinematic Shine Effect - Ultra Subtle Ghost-like */}
                 <div
                   className="absolute inset-0 pointer-events-none z-20 animate-shimmer"
                   style={{
-                    background: 'linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%)',
+                    background: 'linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%)',
                     maskImage: `url(${logoSmall})`,
                     WebkitMaskImage: `url(${logoSmall})`,
                     maskSize: 'contain',
