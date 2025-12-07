@@ -35,6 +35,8 @@ model User {
   passwordHash String
   name         String?
   role         String
+  googleId     String?  // ID de Google para OAuth
+  photoUrl     String?  // URL de la foto de perfil
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   tenantId     String
   createdAt    DateTime @default(now())

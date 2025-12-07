@@ -176,33 +176,40 @@ app.post('/api/tenants/register', async (req, res) => {
       const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
       const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
 
-      // Enviar correo de verificación al usuario con plantilla profesional
-      mailer
-        .sendMail({
+      console.log('📧 Enviando correo de verificación a:', adminEmail);
+      console.log('🔗 URL de verificación:', verifyUrl);
+
+      // IMPORTANTE: Enviar correo de verificación al USUARIO que se registró
+      try {
+        await mailer.sendMail({
           from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
           to: adminEmail,
           subject: `Activa tu cuenta de ${tenantName} - ${BRAND_NAME}`,
           text: `Hola,\n\nHemos creado tu cuenta para ${tenantName}. Para activarla definitivamente haz clic en el siguiente enlace antes de 3 horas:\n\n${verifyUrl}\n\nSi no reconoces este registro, ignora este correo.`,
           html: getVerificationEmail(tenantName, verifyUrl),
-        })
-        .catch((err) => {
-          console.error('MAIL_VERIFY_ERROR', err);
         });
+        console.log('✅ Correo de verificación enviado exitosamente a:', adminEmail);
+      } catch (err) {
+        console.error('❌ MAIL_VERIFY_ERROR - No se pudo enviar a', adminEmail, err);
+      }
 
-      // Notificar al administrador del sistema con plantilla profesional
-      if (ADMIN_NOTIFY_EMAIL) {
-        mailer
-          .sendMail({
+      // Notificar al administrador del sistema (correo separado)
+      if (ADMIN_NOTIFY_EMAIL && ADMIN_NOTIFY_EMAIL !== adminEmail) {
+        try {
+          await mailer.sendMail({
             from: `"${BRAND_NAME} Admin" <${SMTP_FROM}>`,
             to: ADMIN_NOTIFY_EMAIL,
             subject: `Nuevo registro de financiera en ${BRAND_NAME}`,
             text: `Se ha registrado una nueva cuenta en ${BRAND_NAME}.\n\nNombre: ${tenantName}\nSlug: ${tenantSlug}\nAdmin: ${adminEmail}\n\nEnlace de verificación:\n${verifyUrl}`,
             html: getAdminNotificationEmail(tenantName, tenantSlug, adminEmail, verifyUrl),
-          })
-          .catch((err) => {
-            console.error('MAIL_ADMIN_REGISTER_ERROR', err);
           });
+          console.log('✅ Notificación enviada al admin:', ADMIN_NOTIFY_EMAIL);
+        } catch (err) {
+          console.error('❌ MAIL_ADMIN_REGISTER_ERROR', err);
+        }
       }
+    } else {
+      console.warn('⚠️ Mailer no configurado - No se enviaron correos');
     }
 
     return res.json({
@@ -271,36 +278,38 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
     const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
     const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
 
-    // Enviar correo de reenvío de verificación con plantilla profesional
-    mailer
-      .sendMail({
+    console.log('📧 Reenviando correo de verificación a:', adminEmail);
+    console.log('🔗 URL de verificación:', verifyUrl);
+
+    // IMPORTANTE: Enviar correo de reenvío al USUARIO
+    try {
+      await mailer.sendMail({
         from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
         to: adminEmail,
         subject: `Reenvío de activación de cuenta - ${BRAND_NAME}`,
         text: `Hola,\n\nTe enviamos de nuevo el enlace para activar la cuenta de ${updatedTenant.name}.\n\nEnlace:\n${verifyUrl}\n\nSi ya activaste la cuenta, puedes ignorar este correo.`,
         html: getResendVerificationEmail(updatedTenant.name, verifyUrl),
-      })
-      .catch((err) => {
-        console.error('MAIL_RESEND_VERIFY_ERROR', err);
       });
+      console.log('✅ Correo de reenvío enviado exitosamente a:', adminEmail);
+    } catch (err) {
+      console.error('❌ MAIL_RESEND_VERIFY_ERROR - No se pudo enviar a', adminEmail, err);
+      return res.status(500).json({ error: 'No se pudo enviar el correo de verificación' });
+    }
 
+    // Notificar al administrador del sistema (solo si es diferente al usuario)
     if (ADMIN_NOTIFY_EMAIL && ADMIN_NOTIFY_EMAIL !== adminEmail) {
-      mailer
-        .sendMail({
-          from: SMTP_FROM,
+      try {
+        await mailer.sendMail({
+          from: `"${BRAND_NAME} Admin" <${SMTP_FROM}>`,
           to: ADMIN_NOTIFY_EMAIL,
-          subject: 'Reenvío de verificación de cuenta en Presta Pro',
+          subject: `Reenvío de verificación en ${BRAND_NAME}`,
           text: `Se ha reenviado el correo de verificación para:\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
-          html: `<p>Se ha reenviado el correo de verificación para una cuenta de <strong>Presta Pro</strong>.</p>
-            <ul>
-              <li><strong>Nombre:</strong> ${updatedTenant.name}</li>
-              <li><strong>Slug:</strong> ${updatedTenant.slug}</li>
-              <li><strong>Admin:</strong> ${adminEmail}</li>
-            </ul>`,
-        })
-        .catch((err) => {
-          console.error('MAIL_ADMIN_RESEND_VERIFY_ERROR', err);
+          html: getAdminNotificationEmail(updatedTenant.name, updatedTenant.slug, adminEmail, verifyUrl),
         });
+        console.log('✅ Notificación de reenvío enviada al admin:', ADMIN_NOTIFY_EMAIL);
+      } catch (err) {
+        console.error('❌ MAIL_ADMIN_RESEND_VERIFY_ERROR', err);
+      }
     }
 
     return res.json({ success: true });
@@ -989,51 +998,107 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/google', async (req, res) => {
-  const { token: googleToken } = req.body;
+  const { token: googleToken, mode } = req.body; // mode: 'login' o 'register'
+
   if (!googleToken) {
     return res.status(400).json({ error: 'Token de Google requerido' });
   }
 
+  if (!GOOGLE_CLIENT_ID) {
+    console.error('❌ GOOGLE_CLIENT_ID no está configurado');
+    return res.status(500).json({ error: 'Autenticación de Google no está configurada en el servidor' });
+  }
+
   try {
+    console.log('🔐 Verificando token de Google...');
+
     const ticket = await googleClient.verifyIdToken({
       idToken: googleToken,
       audience: GOOGLE_CLIENT_ID,
     });
+
     const payload = ticket.getPayload();
     const email = payload.email;
+    const googleName = payload.name || 'Usuario';
+    const googlePicture = payload.picture || null;
+    const googleId = payload.sub;
 
-    const user = await prisma.user.findUnique({
+    console.log('✅ Token de Google verificado para:', email);
+    console.log('👤 Datos de Google:', { name: googleName, email, picture: googlePicture ? 'Sí' : 'No' });
+
+    // Buscar usuario existente
+    let user = await prisma.user.findUnique({
       where: { email },
       include: { tenant: true },
     });
 
-    if (!user) {
-      return res.status(401).json({ error: 'Usuario no encontrado. Por favor regístrate primero.' });
-    }
+    if (user) {
+      // Usuario existe - actualizar con datos de Google si no tiene
+      console.log('👤 Usuario encontrado, actualizando datos de Google...');
 
-    const tenant = user.tenant;
-    if (!tenant.isVerified) {
-      const expiresAt = tenant.verificationExpiresAt;
-      if (expiresAt && expiresAt < new Date()) {
-        return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          name: user.name === 'Administrador' ? googleName : user.name, // Solo actualiza si es el nombre por defecto
+          googleId: googleId,
+          photoUrl: user.photoUrl || googlePicture, // Solo actualiza si no tiene foto
+        },
+        include: { tenant: true },
+      });
+
+      const tenant = user.tenant;
+      if (!tenant.isVerified) {
+        const expiresAt = tenant.verificationExpiresAt;
+        if (expiresAt && expiresAt < new Date()) {
+          return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
+        }
       }
+
+      const jwtToken = jwt.sign(
+        { userId: user.id, tenantId: user.tenantId, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '12h' }
+      );
+
+      console.log('✅ Login con Google exitoso para:', email);
+
+      return res.json({
+        token: jwtToken,
+        tenant: {
+          id: user.tenant.id,
+          name: user.tenant.name,
+          slug: user.tenant.slug,
+          isVerified: user.tenant.isVerified,
+          verificationExpiresAt: user.tenant.verificationExpiresAt,
+        },
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          photoUrl: user.photoUrl,
+        },
+      });
+    } else {
+      // Usuario no existe - requiere registro
+      console.log('⚠️ Usuario no encontrado:', email);
+      return res.status(401).json({
+        error: 'Usuario no encontrado. Por favor regístrate primero.',
+        requiresRegistration: true,
+        googleData: {
+          email,
+          name: googleName,
+          picture: googlePicture,
+        }
+      });
     }
-
-    const jwtToken = jwt.sign(
-      { userId: user.id, tenantId: user.tenantId, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '12h' }
-    );
-
-    return res.json({
-      token: jwtToken,
-      tenant: { id: user.tenant.id, name: user.tenant.name, slug: user.tenant.slug },
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
-    });
 
   } catch (err) {
-    console.error('GOOGLE_AUTH_ERROR', err);
-    return res.status(401).json({ error: 'Falló la autenticación con Google' });
+    console.error('❌ GOOGLE_AUTH_ERROR:', err.message);
+    return res.status(401).json({
+      error: 'Falló la autenticación con Google',
+      details: err.message
+    });
   }
 });
 
