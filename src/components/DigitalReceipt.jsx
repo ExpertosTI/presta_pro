@@ -1,13 +1,9 @@
-
 import React, { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
-import { X, CheckCircle, Share2, Printer } from 'lucide-react'; // Assuming these are imported
+import { X, CheckCircle, Share2, Printer } from 'lucide-react';
+import { formatCurrency, formatDateTime } from '../utils/formatters';
 
-// Assuming formatCurrency, formatDateTime, companyName, baseAmount, penaltyAmount, receipt, onClose, onPrint are props or defined in scope.
-// For the purpose of this edit, I'll assume they are available.
-// You might need to add `import { useRef, useState } from 'react'; ` if not already present.
-
-const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, penaltyAmount }) => {
+const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, penaltyAmount, companyLogo }) => {
     const receiptRef = useRef(null);
     const [isSharing, setIsSharing] = useState(false);
 
@@ -81,11 +77,17 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
 
                 {/* Body (This part will be captured) */}
                 <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900" ref={receiptRef}>
-                    <div className="p-6 bg-white dark:bg-slate-900"> {/* Added wrapper div for clean capture background */}
+                    <div className="p-6 bg-white dark:bg-slate-900">
                         <div className="flex flex-col items-center mb-6">
-                            <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30 animate-scale-in">
-                                <CheckCircle size={48} className="text-white" strokeWidth={3} />
-                            </div>
+                            {companyLogo ? (
+                                <div className="mb-4">
+                                    <img src={companyLogo} alt={companyName} className="h-20 w-auto object-contain" />
+                                </div>
+                            ) : (
+                                <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30 animate-scale-in">
+                                    <CheckCircle size={48} className="text-white" strokeWidth={3} />
+                                </div>
+                            )}
                             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center">
                                 ¡Transacción completada!
                             </h2>

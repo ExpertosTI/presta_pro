@@ -504,6 +504,7 @@ export function RoutesView({
         <DigitalReceipt
           receipt={receiptToShow}
           companyName={systemSettings?.companyName || 'Presta Pro'}
+          companyLogo={systemSettings?.companyLogo}
           onClose={() => setReceiptToShow(null)}
           onPrint={() => {
             if (setPrintReceipt && handlePrint) {
