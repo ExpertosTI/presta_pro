@@ -725,6 +725,7 @@ function App() {
                 routeClosings={routeClosings}
                 receipts={receipts}
                 includeFutureInstallments={systemSettings?.includeFutureInstallmentsInRoutes}
+                systemSettings={systemSettings}
               />
             )}
             {activeTab === 'documents' && hasPermission(role, 'documents') && (
