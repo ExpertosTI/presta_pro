@@ -6,8 +6,8 @@ import logoSmall from '../logo.png';
 const PaymentTicket = ({ receipt, companyName = "Presta Pro", companyLogo }) => {
     if (!receipt) return null;
 
-    const baseAmount = typeof receipt.amount === 'number' ? receipt.amount : parseFloat(receipt.amount || 0) || 0;
-    const penaltyAmount = typeof receipt.penaltyAmount === 'number' ? receipt.penaltyAmount : parseFloat(receipt.penaltyAmount || 0) || 0;
+    const baseAmount = typeof receipt?.amount === 'number' ? receipt.amount : parseFloat(receipt?.amount || 0) || 0;
+    const penaltyAmount = typeof receipt?.penaltyAmount === 'number' ? receipt.penaltyAmount : parseFloat(receipt?.penaltyAmount || 0) || 0;
     const totalCollected = baseAmount + penaltyAmount;
 
     const loanAmount = typeof receipt.loanAmount === 'number' ? receipt.loanAmount : parseFloat(receipt.loanAmount || 0) || 0;
