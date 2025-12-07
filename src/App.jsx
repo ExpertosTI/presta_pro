@@ -438,10 +438,23 @@ function App() {
                   </div>
                 </div>
 
+
                 <div className="flex justify-center">
                   <GoogleLogin
                     onSuccess={(credentialResponse) => {
-                      handleGoogleLogin(credentialResponse);
+                      auth.loginWithGoogle(credentialResponse.credential).then((result) => {
+                        if (result.success) {
+                          setRegisterError('');
+                          showToast(`Bienvenido con Google, ${result.user?.name || 'Usuario'}`, 'success');
+                          if (result.user?.role === ROLES.COLLECTOR) {
+                            setActiveTab('routes');
+                          } else {
+                            setActiveTab('dashboard');
+                          }
+                        } else {
+                          setRegisterError(result.error || 'Error al registrarse con Google');
+                        }
+                      });
                     }}
                     onError={() => {
                       setRegisterError('Error al iniciar sesión con Google');
