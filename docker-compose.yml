@@ -11,6 +11,7 @@ services:
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
       - SMTP_FROM=${SMTP_FROM:-noreply@renace.tech}
+      - ADMIN_NOTIFY_EMAIL=${ADMIN_NOTIFY_EMAIL:-adderlymarte@hotmail.com}
       - APP_BASE_URL=https://prestanace.renace.tech/api
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
@@ -31,6 +32,7 @@ services:
       context: .
       args:
         - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+        - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     container_name: presta_pro_web
     depends_on:
       - presta_pro_api
