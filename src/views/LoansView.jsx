@@ -384,16 +384,18 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                     <div className="flex flex-col sm:flex-row gap-2 mt-2">
                       <button
                         onClick={() => {
-                          const penalty = showPenaltyInput ? (parseFloat(penaltyAmountInput || '0') || 0) : 0;
-                          if (penalty > 0) {
-                            registerPayment(paymentToConfirm.loanId, paymentToConfirm.installmentId, {
-                              withPenalty: true,
-                              penaltyAmountOverride: penalty,
-                            });
-                          } else {
-                            registerPayment(paymentToConfirm.loanId, paymentToConfirm.installmentId);
+                          let options = {};
+                          if (showPenaltyInput) {
+                            const penaltyVal = parseFloat(penaltyAmountInput) || 0;
+                            if (penaltyVal > 0) {
+                              options = { withPenalty: true, penaltyAmountOverride: penaltyVal };
+                            }
                           }
+
+                          registerPayment(paymentToConfirm.loanId, paymentToConfirm.installmentId, options);
                           setPaymentToConfirm(null);
+                          setPenaltyAmountInput('');
+                          setShowPenaltyInput(false);
                         }}
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 rounded-lg"
                       >
@@ -412,7 +414,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
             </tbody>
           </table>
         </div>
-      </Card>
+      </Card >
 
       {selectedLoan && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -526,8 +528,9 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
             </div>
           </Card>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 
