@@ -268,7 +268,24 @@ function App() {
         <div className="w-full max-w-md md:max-w-xl relative z-10">
           <div className="bg-gradient-to-br from-slate-900/95 via-indigo-900/90 to-sky-950/95 border border-slate-700/60 rounded-3xl px-8 pt-6 pb-10 md:px-12 md:pt-8 md:pb-12 shadow-[0_30px_80px_rgba(15,23,42,0.95)] backdrop-blur-2xl">
             <div className="flex flex-col items-center mb-4 space-y-2">
-              <img src={logoSmall} alt="Presta Pro" className="w-40 h-40 md:w-52 md:h-52 object-contain drop-shadow-2xl" />
+              <div className="relative group p-4">
+                <img src={logoSmall} alt="Presta Pro" className="w-40 h-40 md:w-52 md:h-52 object-contain drop-shadow-2xl relative z-10" />
+                {/* Cinematic Shine Effect */}
+                <div
+                  className="absolute inset-0 pointer-events-none z-20 animate-shimmer"
+                  style={{
+                    background: 'linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.8) 50%, transparent 100%)',
+                    maskImage: `url(${logoSmall})`,
+                    WebkitMaskImage: `url(${logoSmall})`,
+                    maskSize: 'contain',
+                    WebkitMaskSize: 'contain',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskPosition: 'center',
+                    WebkitMaskPosition: 'center',
+                  }}
+                />
+              </div>
 
               <h2 className="text-xl md:text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 {showRegister ? 'Crear cuenta para tu financiera' : 'Acceso seguro'}
