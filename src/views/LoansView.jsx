@@ -3,6 +3,7 @@ import Card from '../components/Card.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { calculateSchedule } from '../utils/amortization';
+import { FileText, Sparkles, X, Printer, FileCheck } from 'lucide-react';
 
 export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument }) {
   const [generatingContract, setGeneratingContract] = useState(false);
@@ -154,33 +155,42 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
     <div className="space-y-6 animate-fade-in">
       {/* Contract Modal */}
       {showContractModal && (
-        <div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
-              <h3 className="font-bold text-lg">Contrato Generado por IA</h3>
-              <button onClick={() => setShowContractModal(false)} className="text-slate-500 hover:text-slate-800 font-bold text-xl">&times;</button>
+        <div className="fixed inset-0 bg-slate-900/90 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 rounded-t-xl sticky top-0 z-10">
+              <div>
+                <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <Sparkles className="text-indigo-500" size={20} />
+                  Contrato Generado por IA
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Revisa el contenido antes de guardar o imprimir.</p>
+              </div>
+              <button
+                onClick={() => setShowContractModal(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 hover:text-red-500"
+              >
+                <X size={24} />
+              </button>
             </div>
-            <div className="p-6 overflow-y-auto flex-1 font-mono text-sm whitespace-pre-wrap bg-slate-50">
-              {contractContent}
+
+            <div className="p-8 overflow-y-auto flex-1 bg-slate-50 dark:bg-slate-950 font-serif text-slate-800 dark:text-slate-200 leading-relaxed text-justify whitespace-pre-wrap shadow-inner selection:bg-indigo-100 dark:selection:bg-indigo-900/30">
+              <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-8 shadow-sm min-h-full">
+                {contractContent}
+              </div>
             </div>
-            <div className="p-4 border-t flex gap-3 justify-end bg-white rounded-b-2xl">
+
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex gap-3 justify-end bg-white dark:bg-slate-900 rounded-b-xl">
               <button
                 onClick={handlePrintContract}
-                className="bg-slate-800 dark:bg-slate-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-900 dark:hover:bg-slate-600"
+                className="flex items-center gap-2 bg-slate-800 dark:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-slate-900 dark:hover:bg-slate-600 transition-all shadow-lg shadow-slate-900/20"
               >
-                Imprimir / PDF
+                <Printer size={18} /> Imprimir / PDF
               </button>
               <button
                 onClick={handleSaveContractToDocuments}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-emerald-700"
+                className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20"
               >
-                Guardar en Documentos
-              </button>
-              <button
-                onClick={() => setShowContractModal(false)}
-                className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-4 py-2 rounded-lg font-bold hover:bg-slate-300 dark:hover:bg-slate-600"
-              >
-                Cerrar
+                <FileCheck size={18} /> Guardar en Documentos
               </button>
             </div>
           </div>
@@ -298,13 +308,23 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
               {loans.map(l => {
                 const client = clients.find(c => c.id === l.clientId);
                 const isSelected = selectedLoanId === l.id;
+                // Check if client has documents (simulated or real property check)
+                const hasDocuments = client?.documents && client.documents.length > 0;
+
                 return (
                   <tr
                     key={l.id}
                     onClick={() => onSelectLoan && onSelectLoan(l.id)}
                     className={`cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                   >
-                    <td className="p-2 text-slate-800 dark:text-slate-200">{client?.name || 'Sin cliente'}</td>
+                    <td className="p-2 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      {client?.name || 'Sin cliente'}
+                      {hasDocuments && (
+                        <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1" title={`${client.documents.length} documentos`}>
+                          <FileText size={10} /> {client.documents.length}
+                        </span>
+                      )}
+                    </td>
                     <td className="p-2 text-slate-800 dark:text-slate-200 font-medium">{formatCurrency(l.amount)}</td>
                     <td className="p-2 text-slate-600 dark:text-slate-400">{l.rate}%</td>
                     <td className="p-2"><Badge status={l.status} /></td>

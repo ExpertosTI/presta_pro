@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
-import logoSmall from '../../logo-small.svg';
+import logoSmall from '../logo.png';
 
 // --- TICKET DE PAGO (ESTILO MODERNO / IMPRESIÓN TÉRMICA) ---
 const PaymentTicket = ({ receipt, companyName = "Presta Pro", companyLogo }) => {
@@ -21,73 +21,104 @@ const PaymentTicket = ({ receipt, companyName = "Presta Pro", companyLogo }) => 
     const isLoanSettled = remainingBalance <= 0.01 && loanAmount > 0;
 
     return (
-        <div className="hidden print:block fixed inset-0 bg-white z-[100] p-2 font-sans text-slate-900 text-[11px] leading-tight">
-            <div className="max-w-[72mm] mx-auto border border-slate-300 rounded-lg p-2">
+
+        <div className="hidden print:block fixed inset-0 bg-white z-[200] font-mono text-black leading-tight">
+            <style>
+                {`
+                @media print {
+                    @page {
+                        margin: 0;
+                        size: 80mm auto;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        -webkit-print-color-adjust: exact;
+                    }
+                }
+                `}
+            </style>
+            <div className="w-[72mm] mx-auto p-2" style={{ maxWidth: '72mm' }}>
                 {/* Encabezado compacto con logo */}
-                <div className="text-center mb-1">
-                    <div className="flex justify-center mb-1">
-                        <img src={companyLogo || logoSmall} alt={companyName} className="h-8 object-contain" />
-                    </div>
-                    <p className="text-sm font-extrabold tracking-tight">{companyName}</p>
-                    <p className="text-[10px] text-slate-600 font-semibold">RECIBO DE PAGO</p>
+                <div className="text-center mb-2">
+                    {companyLogo && (
+                        <div className="flex justify-center mb-1">
+                            <img src={companyLogo} alt={companyName} className="h-10 object-contain grayscale" />
+                        </div>
+                    )}
+                    <p className="text-sm font-bold uppercase">{companyName}</p>
+                    <p className="text-[10px] font-semibold">RECIBO DE PAGO</p>
                 </div>
 
                 {/* Datos básicos */}
-                <div className="text-[10px] mb-1 space-y-0.5">
+                <div className="text-[10px] mb-2 border-b border-black pb-1 border-dashed">
                     <div className="flex justify-between">
-                        <span>
-                            Recibo: <span className="font-mono font-bold">{String(receipt.id).substr(0, 8).toUpperCase()}</span>
-                        </span>
+                        <span>Recibo:</span>
+                        <span className="font-bold">{String(receipt.id).substr(0, 8).toUpperCase()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Fecha:</span>
                         <span>{formatDateTime(receipt.date)}</span>
                     </div>
                     {receipt.clientPhone && (
-                        <p>Tel: <span className="font-mono">{receipt.clientPhone}</span></p>
+                        <div className="flex justify-between">
+                            <span>Tel:</span>
+                            <span>{receipt.clientPhone}</span>
+                        </div>
                     )}
                 </div>
 
                 {/* Cliente */}
-                <div className="text-[10px] mb-1">
-                    <p className="font-semibold">
-                        Cliente: <span className="font-normal">{receipt.clientName}</span>
-                    </p>
+                <div className="text-[10px] mb-2 border-b border-black pb-1 border-dashed">
+                    <p className="font-bold">CLIENTE:</p>
+                    <p className="text-xs">{receipt.clientName}</p>
                     {receipt.clientAddress && (
-                        <p className="text-[9px] text-slate-600">Dir.: {receipt.clientAddress}</p>
+                        <p className="text-[9px] mt-0.5">{receipt.clientAddress}</p>
                     )}
-                </div>
-
-                {/* Resumen de montos */}
-                <div className="text-[10px] border-y border-slate-200 py-1 mb-1 space-y-0.5">
-                    <p>Abono a cuotas: <span className="font-semibold">{formatCurrency(baseAmount)}</span></p>
-                    {penaltyAmount > 0 && (
-                        <p>Mora cobrada: <span className="font-semibold">{formatCurrency(penaltyAmount)}</span></p>
-                    )}
-                    <p>Monto pagado hoy: <span className="font-semibold">{formatCurrency(totalCollected)}</span></p>
-                    <p>Total pagado a la fecha: <span className="font-semibold">{formatCurrency(totalPaidAfter)}</span></p>
-                    <p>Total restante: <span className="font-semibold">{formatCurrency(remainingBalance)}</span></p>
                 </div>
 
                 {/* Detalle de cuota y préstamo */}
-                <div className="text-[10px] mb-1 space-y-0.5">
-                    <p className="font-semibold uppercase tracking-wide text-center">DETALLE</p>
-                    <p>
-                        Préstamo: <span className="font-mono font-semibold">{String(receipt.loanId).substr(0, 6).toUpperCase()}</span>
-                    </p>
-                    <p>
-                        Cuota #{receipt.installmentNumber}
-                        {receipt.installmentDate && ` • ${formatDate(receipt.installmentDate)}`}
-                    </p>
-                    <p>Monto cuota: {formatCurrency(baseAmount)}</p>
-                    {penaltyAmount > 0 && <p>Mora aplicada: {formatCurrency(penaltyAmount)}</p>}
-                    {loanAmount > 0 && (
-                        <p>Monto préstamo: {formatCurrency(loanAmount)}</p>
+                <div className="text-[10px] mb-2 border-b border-black pb-1 border-dashed tracking-tight">
+                    <p className="font-bold mb-1">DETALLE DEL PAGO:</p>
+                    <p>Préstamo: <span className="font-bold">{String(receipt.loanId).substr(0, 6).toUpperCase()}</span></p>
+                    <p>Cuota #{receipt.installmentNumber} {receipt.installmentDate && `(${formatDate(receipt.installmentDate)})`}</p>
+
+                    <div className="flex justify-between mt-1">
+                        <span>Cuota Base:</span>
+                        <span>{formatCurrency(baseAmount)}</span>
+                    </div>
+                    {penaltyAmount > 0 && (
+                        <div className="flex justify-between">
+                            <span>Mora:</span>
+                            <span>{formatCurrency(penaltyAmount)}</span>
+                        </div>
                     )}
-                    <p>Saldo del préstamo: {formatCurrency(remainingBalance)}</p>
+                    <div className="flex justify-between font-bold text-xs mt-1 pt-1 border-t border-black border-dotted">
+                        <span>TOTAL PAGADO:</span>
+                        <span>{formatCurrency(totalCollected)}</span>
+                    </div>
+                </div>
+
+                {/* Saldos */}
+                <div className="text-[10px] mb-4">
+                    <div className="flex justify-between">
+                        <span>Saldo anterior:</span>
+                        <span>{formatCurrency((remainingBalance + totalCollected))}</span>
+                    </div>
+                    <div className="flex justify-between font-bold">
+                        <span>Saldo actual:</span>
+                        <span>{formatCurrency(remainingBalance)}</span>
+                    </div>
                     {isLoanSettled && (
-                        <p className="mt-1 font-bold text-center tracking-wide">PRESTAMO SALDADO</p>
+                        <p className="mt-2 font-black text-center text-sm border border-black p-1 uppercase">*** PRÉSTAMO SALDADO ***</p>
                     )}
                 </div>
 
-                <p className="text-[8px] text-center mt-1 text-slate-500">No somos responsables de dinero entregado sin recibo.</p>
+                <p className="text-[8px] text-center mt-2">
+                    Gracias por su pago.<br />
+                    Conserve este recibo como comprobante.
+                </p>
+                <div className="text-center mt-4 text-[8px]">.</div>
             </div>
         </div>
     );

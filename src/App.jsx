@@ -27,7 +27,7 @@ import {
   Info
 } from 'lucide-react';
 
-import logoSmall from '../logo-small.svg';
+import logoSmall from './logo.png';
 import { generateSecurityToken } from './utils/ids';
 import { usePrestaProState } from './state/usePrestaProState';
 import PaymentTicket from './components/PaymentTicket.jsx';
