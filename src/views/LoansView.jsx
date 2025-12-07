@@ -356,15 +356,16 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                     </p>
                     {showPenaltyInput && (
                       <div className="mb-3">
-                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Monto de mora</label>
+                        <label className="block text-sm font-bold text-amber-700 dark:text-amber-400 mb-2">💰 Monto de mora</label>
                         <input
                           type="number"
                           min="0"
                           step="0.01"
                           value={penaltyAmountInput}
                           onChange={(e) => setPenaltyAmountInput(e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          className="w-full px-4 py-3 rounded-lg border-2 border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-slate-900 dark:text-slate-100 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-600"
                           placeholder="Ej: 50.00"
+                          autoFocus
                         />
                       </div>
                     )}
@@ -418,7 +419,8 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
 
       {selectedLoan && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1">
+          {/* Payment section - moved to top on mobile, left column on desktop */}
+          <Card className="lg:col-span-1 order-1 lg:order-1">
             <h3 className="font-bold text-lg mb-3 text-slate-800 dark:text-slate-100">Detalle del Préstamo</h3>
             {selectedClient && (
               <p className="text-sm text-slate-700 dark:text-slate-300 mb-1">
@@ -439,39 +441,13 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
               <span className="font-semibold">Total Pagado: </span>{formatCurrency(selectedLoan.totalPaid || 0)}
             </p>
 
-            {Array.isArray(selectedLoan.schedule) && selectedLoan.schedule.some(i => i.status === 'PAID') ? (
-              <p className="mt-2 text-xs text-slate-500">
-                Este préstamo ya tiene pagos registrados y no se puede editar.
-              </p>
-            ) : (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={handleOpenEditLoan}
-                  className="w-full bg-slate-900 dark:bg-slate-700 text-white py-2 rounded-lg font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                >
-                  Editar préstamo
-                </button>
-              </div>
-            )}
-
-            <div className="mt-4">
-              <button
-                onClick={handleGenerateContract}
-                disabled={generatingContract}
-                className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 flex justify-center items-center gap-2"
-              >
-                {generatingContract ? 'Generando...' : 'Generar Contrato Legal (IA)'}
-              </button>
-            </div>
-
             {firstPendingInstallment && (
-              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-lg text-sm">
-                <p className="font-semibold text-blue-800 dark:text-blue-300 mb-1">Próxima cuota pendiente</p>
+              <div className="mt-4 p-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-200 dark:border-green-800/50 rounded-xl text-sm shadow-sm">
+                <p className="font-bold text-green-800 dark:text-green-300 mb-2 text-base">💳 Próxima cuota pendiente</p>
                 <p className="text-slate-700 dark:text-slate-300 mb-1">
                   <span className="font-semibold">Cuota #{firstPendingInstallment.number}</span> • {formatDate(firstPendingInstallment.date)}
                 </p>
-                <p className="text-slate-700 dark:text-slate-300 mb-2">
+                <p className="text-slate-700 dark:text-slate-300 mb-3">
                   <span className="font-semibold">Monto: </span>{formatCurrency(firstPendingInstallment.payment)}
                 </p>
                 <button
@@ -486,15 +462,41 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                       clientName: selectedClient?.name || 'Sin cliente',
                     });
                   }}
-                  className="w-full bg-green-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-green-700"
+                  className="w-full bg-green-600 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-green-700 shadow-md hover:shadow-lg transition-all"
                 >
-                  Registrar Pago de esta Cuota
+                  ✓ Registrar Pago de esta Cuota
                 </button>
               </div>
             )}
+
+            {Array.isArray(selectedLoan.schedule) && selectedLoan.schedule.some(i => i.status === 'PAID') ? (
+              <p className="mt-4 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 p-2 rounded">
+                Este préstamo ya tiene pagos registrados y no se puede editar.
+              </p>
+            ) : (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handleOpenEditLoan}
+                  className="w-full bg-slate-900 dark:bg-slate-700 text-white py-2 rounded-lg font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
+                >
+                  Editar préstamo
+                </button>
+              </div>
+            )}
+
+            <div className="mt-3">
+              <button
+                onClick={handleGenerateContract}
+                disabled={generatingContract}
+                className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 flex justify-center items-center gap-2"
+              >
+                {generatingContract ? 'Generando...' : 'Generar Contrato Legal (IA)'}
+              </button>
+            </div>
           </Card>
 
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 order-2 lg:order-2">
             <h3 className="font-bold text-lg mb-3 text-slate-800 dark:text-slate-100">Hoja de amortización</h3>
             <div className="overflow-x-auto max-h-[360px]">
               <table className="w-full text-xs md:text-sm">
