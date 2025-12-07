@@ -137,7 +137,9 @@ function App() {
     theme,
     toggleTheme,
     clientDocuments,
-    addClientDocument
+    addClientDocument,
+    handlePrint,
+    setPrintReceipt
   } = usePrestaProState();
 
   const [loginUser, setLoginUser] = useState('');
@@ -726,6 +728,8 @@ function App() {
                 receipts={receipts}
                 includeFutureInstallments={systemSettings?.includeFutureInstallmentsInRoutes}
                 systemSettings={systemSettings}
+                handlePrint={handlePrint}
+                setPrintReceipt={setPrintReceipt}
               />
             )}
             {activeTab === 'documents' && hasPermission(role, 'documents') && (
