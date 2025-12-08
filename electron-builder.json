@@ -1,0 +1,28 @@
+{
+  "appId": "tech.renace.prestapro",
+  "productName": "PrestaPro",
+  "artifactName": "PrestaPro-${version}-${arch}.exe",
+  "copyright": "© Renace Tech",
+  "win": {
+    "target": "nsis",
+    "verifyUpdateCodeSignature": false,
+    "forceCodeSigning": false,
+    "legalTrademarks": "Renace Tech"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "shortcutName": "PrestaPro",
+    "installerIcon": "favicon.ico",
+    "uninstallerIcon": "favicon.ico",
+    "installerHeaderIcon": "favicon.ico"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*"
+  ],
+  "directories": {
+    "output": "dist_installer"
+  }
+}

@@ -143,7 +143,7 @@ app.post('/api/tenants/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(adminPassword, 10);
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000); // 3 horas
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
 
     const tenant = await prisma.tenant.create({
       data: {
@@ -257,7 +257,7 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
     }
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
 
     const updatedTenant = await prisma.tenant.update({
       where: { id: tenant.id },
