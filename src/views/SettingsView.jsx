@@ -2,11 +2,8 @@ import React, { useState } from 'react';
 import Card from '../components/Card.jsx';
 import { registerUser } from '../logic/authLogic';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV
-    ? 'http://localhost:4000'
-    : (typeof window !== 'undefined' ? window.location.origin : ''));
+// Use relative URLs - nginx will proxy to backend
+const API_BASE_URL = '';
 
 export function SettingsView({
   systemSettings,

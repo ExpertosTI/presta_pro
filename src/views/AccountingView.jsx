@@ -2,15 +2,15 @@ import React from 'react';
 import Card from '../components/Card.jsx';
 import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
 
-export function AccountingView({ loans, expenses, receipts }) {
-  const totalCapital = loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
-  const totalInteresProyectado = loans.reduce((acc, l) => acc + (l.totalInterest || 0), 0);
-  const totalCobrado = receipts.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0);
-  const totalGastos = expenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
+export function AccountingView({ loans = [], expenses = [], receipts = [] }) {
+  const totalCapital = (loans || []).reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+  const totalInteresProyectado = (loans || []).reduce((acc, l) => acc + (l.totalInterest || 0), 0);
+  const totalCobrado = (receipts || []).reduce((acc, r) => acc + parseFloat(r.amount || 0), 0);
+  const totalGastos = (expenses || []).reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
   const utilidadNeta = totalCobrado - totalGastos;
 
-  const lastReceipts = receipts.slice(0, 8);
-  const lastExpenses = expenses.slice(-8).reverse();
+  const lastReceipts = (receipts || []).slice(0, 8);
+  const lastExpenses = (expenses || []).slice(-8).reverse();
 
   return (
     <div className="space-y-6 animate-fade-in">
