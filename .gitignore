@@ -7,12 +7,28 @@ release/
 release_portable/
 build/
 
+# Desktop/Mobile Builds (NOT needed for server)
+android/
+ios/
+electron/
+electron-builder.json
+capacitor.config.json
+*.pfx
+
+# Landing pages (separate deployment)
+landing-delivery/
+
 # Logs
 *.txt
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Development files
+BKApp.jsx
+MODDIR.md
+estructure.txt
 
 # OS
 .DS_Store
