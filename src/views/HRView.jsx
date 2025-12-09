@@ -53,21 +53,34 @@ export function HRView({ employees, onNewEmployee, onEditEmployee }) {
           <ul className="divide-y divide-slate-100 text-sm">
             {list.map(emp => (
               <li key={emp.id} className="py-2 flex justify-between items-center">
-                <div>
-                  <p className="font-semibold text-slate-800">{emp.name}</p>
-                  <p className="text-[11px] text-slate-500">{emp.phone || ''}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden border border-slate-200 dark:border-slate-600 flex-shrink-0">
+                    {emp.photoUrl ? (
+                      <img src={emp.photoUrl} alt={emp.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-sm font-bold text-slate-400 dark:text-slate-500">
+                        {emp.name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-800 dark:text-slate-100">{emp.name}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{emp.phone || ''}</p>
+                  </div>
                 </div>
-                <span className="text-xs px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 mr-2">
-                  {roleLabel(emp.role)}
-                </span>
-                {onEditEmployee && (
-                  <button
-                    onClick={() => onEditEmployee(emp)}
-                    className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
-                  >
-                    Editar
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                    {roleLabel(emp.role)}
+                  </span>
+                  {onEditEmployee && (
+                    <button
+                      onClick={() => onEditEmployee(emp)}
+                      className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+                    >
+                      Editar
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

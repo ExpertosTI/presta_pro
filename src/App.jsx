@@ -135,7 +135,9 @@ function App() {
     companyName: 'Presta Pro',
     companyLogo: logoSmall
   }));
-  const [includeFutureInstallments, setIncludeFutureInstallments] = useState(false);
+  const [includeFutureInstallments, setIncludeFutureInstallments] = useState(
+    () => systemSettings.includeFutureInstallmentsInRoutes ?? true
+  );
 
   // Use this in sidebar
   const sidebarColor = THEME_COLORS[systemSettings.themeColor] || 'bg-slate-900';
@@ -157,6 +159,13 @@ function App() {
   useEffect(() => localStorage.setItem('rt_closings', JSON.stringify(routeClosings)), [routeClosings]);
   useEffect(() => localStorage.setItem('rt_employees', JSON.stringify(employees)), [employees]);
   useEffect(() => localStorage.setItem('rt_settings', JSON.stringify(systemSettings)), [systemSettings]);
+
+  // Sync includeFutureInstallments with systemSettings
+  useEffect(() => {
+    if (systemSettings.includeFutureInstallmentsInRoutes !== undefined) {
+      setIncludeFutureInstallments(systemSettings.includeFutureInstallmentsInRoutes);
+    }
+  }, [systemSettings.includeFutureInstallmentsInRoutes]);
 
   // --- ACCIONES GLOBALES ---
   const showToast = (msg, type = 'success') => {
