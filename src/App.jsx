@@ -515,14 +515,20 @@ function App() {
       {printReceipt && <PaymentTicket receipt={printReceipt} systemSettings={systemSettings} />}
 
       {/* Sidebar - HIDDEN ON PRINT */}
-      <aside className="hidden md:flex flex-col w-72 bg-slate-900 text-white shadow-2xl z-20 print:hidden">
-        <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden">
-            <img src={logoSmall} alt="Presta Pro" className="w-8 h-8 object-contain" />
+      <aside className={`hidden md:flex flex-col w-72 ${sidebarColor} text-white shadow-2xl z-20 print:hidden transition-colors duration-300`}>
+        <div className="p-6 flex items-center gap-3 border-b border-white/10">
+          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden">
+            <img
+              src={systemSettings.companyLogo || logoSmall}
+              alt={systemSettings.companyName || 'Presta Pro'}
+              className="w-8 h-8 object-contain"
+            />
           </div>
           <div>
-            <span className="text-xl font-extrabold tracking-tight block leading-none">Presta Pro</span>
-            <span className="text-xs text-slate-400 font-medium tracking-wider uppercase">Gestión de Préstamos</span>
+            <span className="text-xl font-extrabold tracking-tight block leading-none">
+              {systemSettings.companyName || 'Presta Pro'}
+            </span>
+            <span className="text-xs text-white/60 font-medium tracking-wider uppercase">Gestión de Préstamos</span>
           </div>
         </div>
 
@@ -590,18 +596,28 @@ function App() {
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10 print:hidden">
           <div className="md:hidden flex items-center gap-3">
             <button onClick={() => setMobileMenuOpen(true)}><Menu /></button>
-            <img src={logoSmall} alt="Presta Pro" className="w-7 h-7 rounded-lg object-contain" />
-            <span className="font-bold text-slate-800">Presta Pro</span>
+            <img
+              src={systemSettings.companyLogo || logoSmall}
+              alt={systemSettings.companyName || 'Presta Pro'}
+              className="w-7 h-7 rounded-lg object-contain"
+            />
+            <span className="font-bold text-slate-800">{systemSettings.companyName || 'Presta Pro'}</span>
           </div>
           <h1 className="hidden md:block text-xl font-bold text-slate-800">{TAB_TITLES[activeTab] || 'Presta Pro'}</h1>
           <div className="flex items-center gap-4">
-            <button className="bg-slate-100 p-2 rounded-full relative">
+            <button className="bg-slate-100 p-2 rounded-full relative hover:bg-slate-200 transition-colors">
               <Bell size={20} />
               <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">A</div>
-              <span className="text-sm font-bold hidden md:block">Admin</span>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold overflow-hidden bg-indigo-600">
+                {user?.photoUrl ? (
+                  <img src={user.photoUrl} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  (user?.name || 'A').charAt(0).toUpperCase()
+                )}
+              </div>
+              <span className="text-sm font-bold hidden md:block">{user?.name || 'Admin'}</span>
             </div>
           </div>
         </header>
@@ -705,7 +721,7 @@ function App() {
       {/* Mobile Menu Overlay */}
       {
         mobileMenuOpen && (
-          <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 text-white md:hidden animate-fade-in backdrop-blur-sm overflow-y-auto">
+          <div className={`fixed inset-0 ${sidebarColor} z-50 flex flex-col p-6 text-white md:hidden animate-fade-in backdrop-blur-sm overflow-y-auto`}>
             <div className="flex justify-between items-center mb-6">
               <span className="text-xl font-bold">Menú</span>
               <button onClick={() => setMobileMenuOpen(false)}><X /></button>
