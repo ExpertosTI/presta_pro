@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('../generated/prisma');
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 const authMiddleware = require('../middleware/authMiddleware'); // Asegúrate de tener este middleware o exportarlo desde index.js
 
 // Middleware para asegurar autenticación en todas las rutas de clientes

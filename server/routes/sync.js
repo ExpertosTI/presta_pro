@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('../generated/prisma');
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 // POST /api/sync - Recibe datos masivos de localStorage para migración inicial
 router.post('/', async (req, res) => {

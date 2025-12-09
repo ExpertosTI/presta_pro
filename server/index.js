@@ -41,9 +41,7 @@ const syncRouter = require('./routes/sync');
 // Importar middleware de autenticación
 const authMiddleware = require('./middleware/authMiddleware');
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = require('./lib/prisma');
 
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25', 10);
