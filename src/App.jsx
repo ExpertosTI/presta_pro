@@ -28,7 +28,8 @@ import {
   Briefcase,
   UserCheck,
   BookOpen,
-  Video
+  Video,
+  List
 } from 'lucide-react';
 import logoSmall from '../logo-small.svg';
 
