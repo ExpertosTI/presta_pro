@@ -11,7 +11,8 @@ export default function DashboardView({
     clients = [],
     receipts = [],
     expenses = [],
-    showToast
+    showToast,
+    onNavigate
 }) {
     const [filter, setFilter] = useState('today'); // today, week, month, all
 
@@ -125,8 +126,8 @@ export default function DashboardView({
                             key={key}
                             onClick={() => setFilter(key)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === key
-                                    ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
                                 }`}
                         >
                             {label}
@@ -137,57 +138,93 @@ export default function DashboardView({
 
             {/* Main KPIs */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-blue-100 uppercase tracking-wide">Cartera Total</p>
-                            <p className="text-2xl font-bold mt-1">{formatCurrency(totalLent)}</p>
-                            <p className="text-xs text-blue-200 mt-1">{loans.length} préstamos</p>
+                <button
+                    onClick={() => onNavigate?.('loans')}
+                    className="text-left w-full group"
+                >
+                    <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-xs font-medium text-blue-100 uppercase tracking-wide">Cartera Total</p>
+                                <p className="text-2xl font-bold mt-1">{formatCurrency(totalLent)}</p>
+                                <p className="text-xs text-blue-200 mt-1">{loans.length} préstamos</p>
+                            </div>
+                            <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+                                <Wallet size={20} />
+                            </div>
                         </div>
-                        <div className="p-2 bg-white/20 rounded-lg">
-                            <Wallet size={20} />
+                        <div className="flex items-center gap-1 mt-2 text-xs text-blue-200">
+                            <span>Ver préstamos</span>
+                            <ChevronRight size={14} />
                         </div>
-                    </div>
-                </Card>
+                    </Card>
+                </button>
 
-                <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-emerald-100 uppercase tracking-wide">Recaudado</p>
-                            <p className="text-2xl font-bold mt-1">{formatCurrency(totalCollected)}</p>
-                            <p className="text-xs text-emerald-200 mt-1">{paidLoans} préstamos pagados</p>
+                <button
+                    onClick={() => onNavigate?.('cuadre')}
+                    className="text-left w-full group"
+                >
+                    <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-xs font-medium text-emerald-100 uppercase tracking-wide">Recaudado</p>
+                                <p className="text-2xl font-bold mt-1">{formatCurrency(totalCollected)}</p>
+                                <p className="text-xs text-emerald-200 mt-1">{paidLoans} préstamos pagados</p>
+                            </div>
+                            <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+                                <TrendingUp size={20} />
+                            </div>
                         </div>
-                        <div className="p-2 bg-white/20 rounded-lg">
-                            <TrendingUp size={20} />
+                        <div className="flex items-center gap-1 mt-2 text-xs text-emerald-200">
+                            <span>Ver cuadre</span>
+                            <ChevronRight size={14} />
                         </div>
-                    </div>
-                </Card>
+                    </Card>
+                </button>
 
-                <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-amber-100 uppercase tracking-wide">Por Cobrar</p>
-                            <p className="text-2xl font-bold mt-1">{formatCurrency(pendingAmount)}</p>
-                            <p className="text-xs text-amber-200 mt-1">{activeLoans} préstamos activos</p>
+                <button
+                    onClick={() => onNavigate?.('routes')}
+                    className="text-left w-full group"
+                >
+                    <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-xs font-medium text-amber-100 uppercase tracking-wide">Por Cobrar</p>
+                                <p className="text-2xl font-bold mt-1">{formatCurrency(pendingAmount)}</p>
+                                <p className="text-xs text-amber-200 mt-1">{activeLoans} préstamos activos</p>
+                            </div>
+                            <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+                                <Clock size={20} />
+                            </div>
                         </div>
-                        <div className="p-2 bg-white/20 rounded-lg">
-                            <Clock size={20} />
+                        <div className="flex items-center gap-1 mt-2 text-xs text-amber-200">
+                            <span>Ver rutas</span>
+                            <ChevronRight size={14} />
                         </div>
-                    </div>
-                </Card>
+                    </Card>
+                </button>
 
-                <Card className="bg-gradient-to-br from-violet-500 to-purple-600 text-white">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-violet-100 uppercase tracking-wide">Clientes</p>
-                            <p className="text-2xl font-bold mt-1">{clients.length}</p>
-                            <p className="text-xs text-violet-200 mt-1">Registrados</p>
+                <button
+                    onClick={() => onNavigate?.('clients')}
+                    className="text-left w-full group"
+                >
+                    <Card className="bg-gradient-to-br from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-xs font-medium text-violet-100 uppercase tracking-wide">Clientes</p>
+                                <p className="text-2xl font-bold mt-1">{clients.length}</p>
+                                <p className="text-xs text-violet-200 mt-1">Registrados</p>
+                            </div>
+                            <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+                                <Users size={20} />
+                            </div>
                         </div>
-                        <div className="p-2 bg-white/20 rounded-lg">
-                            <Users size={20} />
+                        <div className="flex items-center gap-1 mt-2 text-xs text-violet-200">
+                            <span>Ver clientes</span>
+                            <ChevronRight size={14} />
                         </div>
-                    </div>
-                </Card>
+                    </Card>
+                </button>
             </div>
 
             {/* Period Stats */}

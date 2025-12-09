@@ -1,8 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Card from '../components/Card.jsx';
-import { Check, Crown, Zap, Building2, CreditCard, Building, Banknote, Loader2 } from 'lucide-react';
+import { Check, Crown, Zap, Building2, CreditCard, Building, Banknote, Loader2, Upload, X, AlertCircle } from 'lucide-react';
 
 const API_BASE_URL = '';
+
+// Azul Logo SVG
+const AzulLogo = () => (
+    <svg viewBox="0 0 120 40" className="h-6 w-auto">
+        <rect width="120" height="40" rx="6" fill="#003366" />
+        <text x="60" y="26" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="Arial, sans-serif">AZUL</text>
+    </svg>
+);
 
 const PLAN_ICONS = {
     FREE: Zap,
@@ -11,15 +19,15 @@ const PLAN_ICONS = {
 };
 
 const PLAN_COLORS = {
-    FREE: 'border-slate-300 dark:border-slate-600',
+    FREE: 'border-slate-400 dark:border-slate-600',
     PRO: 'border-emerald-500 ring-2 ring-emerald-500/20',
-    ENTERPRISE: 'border-slate-800 dark:border-amber-500 ring-2 ring-amber-500/20',
+    ENTERPRISE: 'border-slate-900 dark:border-amber-400 ring-2 ring-amber-400/20',
 };
 
 const PLAN_BADGES = {
-    FREE: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-    PRO: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-    ENTERPRISE: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    FREE: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
+    PRO: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+    ENTERPRISE: 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-900 dark:from-amber-900/40 dark:to-yellow-900/40 dark:text-amber-300',
 };
 
 export function PricingView({ showToast, currentPlan = 'FREE' }) {
@@ -29,6 +37,10 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
     const [billingInterval, setBillingInterval] = useState('monthly');
     const [paymentMethod, setPaymentMethod] = useState('AZUL');
     const [processing, setProcessing] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [proofFile, setProofFile] = useState(null);
+    const [proofPreview, setProofPreview] = useState(null);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         fetchPlans();
@@ -43,7 +55,6 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
             }
         } catch (err) {
             console.error('Error fetching plans:', err);
-            // Use default plans if API fails
             setPlans([
                 {
                     id: 'FREE',
@@ -78,23 +89,53 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
         }
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setProofFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setProofPreview(reader.result);
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleUpgrade = async (planId) => {
         if (planId === 'FREE' || planId === currentPlan) return;
+
+        // For manual payments, show upload modal
+        if ((paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'CASH') && !proofFile) {
+            setShowUploadModal(true);
+            return;
+        }
 
         setProcessing(true);
         try {
             const token = localStorage.getItem('authToken');
-            const res = await fetch(`${API_BASE_URL}/api/subscriptions/upgrade`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
+
+            // Create form data if there's a proof file
+            let body;
+            let headers = { 'Authorization': `Bearer ${token}` };
+
+            if (proofFile && (paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'CASH')) {
+                const formData = new FormData();
+                formData.append('plan', planId);
+                formData.append('interval', billingInterval);
+                formData.append('paymentMethod', paymentMethod);
+                formData.append('proof', proofFile);
+                body = formData;
+            } else {
+                headers['Content-Type'] = 'application/json';
+                body = JSON.stringify({
                     plan: planId,
                     interval: billingInterval,
                     paymentMethod,
-                }),
+                });
+            }
+
+            const res = await fetch(`${API_BASE_URL}/api/subscriptions/upgrade`, {
+                method: 'POST',
+                headers,
+                body,
             });
 
             const data = await res.json();
@@ -105,7 +146,6 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
             }
 
             if (data.method === 'AZUL' && data.formData) {
-                // Create form and submit to Azul
                 const form = document.createElement('form');
                 form.action = data.redirectUrl;
                 form.method = 'POST';
@@ -124,8 +164,11 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
             }
 
             // For manual payments
-            showToast?.(`Pago iniciado. ${data.instructions}`, 'success');
+            showToast?.('Comprobante enviado. Recibirás confirmación por correo y en notificaciones.', 'success');
             setSelectedPlan(null);
+            setShowUploadModal(false);
+            setProofFile(null);
+            setProofPreview(null);
         } catch (err) {
             console.error('Upgrade error:', err);
             showToast?.('Error al procesar el upgrade', 'error');
@@ -137,7 +180,7 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <Loader2 className="animate-spin text-blue-600" size={48} />
+                <Loader2 className="animate-spin text-slate-600" size={48} />
             </div>
         );
     }
@@ -145,18 +188,18 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="text-center">
-                <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Planes y Precios</h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-2">Elige el plan que mejor se adapte a tu negocio</p>
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Planes y Precios</h2>
+                <p className="text-slate-600 dark:text-slate-400 mt-2">Elige el plan que mejor se adapte a tu negocio</p>
             </div>
 
             {/* Billing Toggle */}
             <div className="flex justify-center">
-                <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl inline-flex">
+                <div className="bg-slate-200 dark:bg-slate-800 p-1 rounded-xl inline-flex">
                     <button
                         onClick={() => setBillingInterval('monthly')}
                         className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${billingInterval === 'monthly'
-                            ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
-                            : 'text-slate-500 dark:text-slate-400'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow'
+                            : 'text-slate-600 dark:text-slate-400'
                             }`}
                     >
                         Mensual
@@ -164,8 +207,8 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                     <button
                         onClick={() => setBillingInterval('yearly')}
                         className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${billingInterval === 'yearly'
-                            ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
-                            : 'text-slate-500 dark:text-slate-400'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow'
+                            : 'text-slate-600 dark:text-slate-400'
                             }`}
                     >
                         Anual <span className="text-emerald-600 text-xs ml-1">2 meses gratis</span>
@@ -199,7 +242,7 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                         <Icon size={24} />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{plan.name}</h3>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">{plan.name}</h3>
                                         {isCurrentPlan && (
                                             <span className="text-xs text-emerald-600 font-semibold">Tu plan actual</span>
                                         )}
@@ -207,15 +250,15 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                 </div>
 
                                 <div className="mb-6">
-                                    <span className="text-3xl font-bold text-slate-800 dark:text-slate-100">{price}</span>
-                                    <span className="text-slate-500 dark:text-slate-400 text-sm">
+                                    <span className="text-3xl font-bold text-slate-900 dark:text-slate-50">{price}</span>
+                                    <span className="text-slate-600 dark:text-slate-400 text-sm">
                                         /{billingInterval === 'yearly' ? 'año' : 'mes'}
                                     </span>
                                 </div>
 
                                 <ul className="space-y-3 mb-6">
                                     {plan.features?.map((feature, idx) => (
-                                        <li key={idx} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <li key={idx} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                                             <Check size={16} className="text-emerald-500 flex-shrink-0" />
                                             {feature}
                                         </li>
@@ -225,7 +268,7 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                 {plan.id === 'FREE' ? (
                                     <button
                                         disabled
-                                        className="w-full py-2.5 rounded-lg text-sm font-semibold bg-slate-100 dark:bg-slate-700 text-slate-500 cursor-not-allowed"
+                                        className="w-full py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-500 cursor-not-allowed"
                                     >
                                         {isCurrentPlan ? 'Plan Actual' : 'Gratis'}
                                     </button>
@@ -234,10 +277,10 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                         onClick={() => setSelectedPlan(plan.id)}
                                         disabled={isCurrentPlan || processing}
                                         className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${isCurrentPlan
-                                            ? 'bg-emerald-100 text-emerald-700 cursor-not-allowed'
-                                            : plan.id === 'PRO'
-                                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
-                                                : 'bg-gradient-to-r from-slate-800 to-slate-700 text-white hover:from-slate-900 hover:to-slate-800 shadow-lg shadow-slate-500/25'
+                                                ? 'bg-emerald-100 text-emerald-700 cursor-not-allowed'
+                                                : plan.id === 'PRO'
+                                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
+                                                    : 'bg-gradient-to-r from-slate-800 to-slate-700 text-white hover:from-slate-900 hover:to-slate-800 shadow-lg shadow-slate-500/25'
                                             }`}
                                     >
                                         {isCurrentPlan ? 'Plan Actual' : 'Seleccionar'}
@@ -250,11 +293,11 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
             </div>
 
             {/* Payment Method Modal */}
-            {selectedPlan && (
+            {selectedPlan && !showUploadModal && (
                 <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4">
                     <Card className="w-full max-w-md">
                         <div className="p-6">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50 mb-4">
                                 Selecciona método de pago
                             </h3>
 
@@ -262,60 +305,144 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                 <button
                                     onClick={() => setPaymentMethod('AZUL')}
                                     className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${paymentMethod === 'AZUL'
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                                         : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
                                         }`}
                                 >
-                                    <CreditCard size={24} className="text-blue-600" />
-                                    <div className="text-left">
-                                        <p className="font-semibold text-slate-800 dark:text-slate-100">Tarjeta (Azul)</p>
-                                        <p className="text-xs text-slate-500">Visa, MasterCard, American Express</p>
+                                    <div className="bg-[#003366] p-2 rounded-lg">
+                                        <CreditCard size={20} className="text-white" />
+                                    </div>
+                                    <div className="text-left flex-1">
+                                        <p className="font-semibold text-slate-900 dark:text-slate-100">Tarjeta de Crédito/Débito</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <AzulLogo />
+                                            <span className="text-xs text-slate-500">Visa, MasterCard, AMEX</span>
+                                        </div>
                                     </div>
                                 </button>
 
                                 <button
                                     onClick={() => setPaymentMethod('BANK_TRANSFER')}
                                     className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${paymentMethod === 'BANK_TRANSFER'
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
                                         : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
                                         }`}
                                 >
                                     <Building size={24} className="text-emerald-600" />
                                     <div className="text-left">
-                                        <p className="font-semibold text-slate-800 dark:text-slate-100">Transferencia Bancaria</p>
-                                        <p className="text-xs text-slate-500">Sube tu comprobante para verificación</p>
+                                        <p className="font-semibold text-slate-900 dark:text-slate-100">Transferencia Bancaria</p>
+                                        <p className="text-xs text-slate-500">Adjunta comprobante • Confirmación en 24h</p>
                                     </div>
                                 </button>
 
                                 <button
                                     onClick={() => setPaymentMethod('CASH')}
                                     className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${paymentMethod === 'CASH'
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
                                         : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
                                         }`}
                                 >
                                     <Banknote size={24} className="text-amber-600" />
                                     <div className="text-left">
-                                        <p className="font-semibold text-slate-800 dark:text-slate-100">Efectivo</p>
-                                        <p className="text-xs text-slate-500">Coordina el pago con el administrador</p>
+                                        <p className="font-semibold text-slate-900 dark:text-slate-100">Efectivo / Depósito</p>
+                                        <p className="text-xs text-slate-500">Adjunta comprobante • Confirmación manual</p>
                                     </div>
                                 </button>
                             </div>
 
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => setSelectedPlan(null)}
-                                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                                    onClick={() => { setSelectedPlan(null); setProofFile(null); setProofPreview(null); }}
+                                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={() => handleUpgrade(selectedPlan)}
                                     disabled={processing}
-                                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {processing && <Loader2 className="animate-spin" size={16} />}
                                     Continuar
+                                </button>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* Upload Proof Modal */}
+            {showUploadModal && (
+                <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-50">
+                                    Adjuntar Comprobante
+                                </h3>
+                                <button onClick={() => { setShowUploadModal(false); setProofFile(null); setProofPreview(null); }}>
+                                    <X size={20} className="text-slate-500" />
+                                </button>
+                            </div>
+
+                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4">
+                                <div className="flex gap-2">
+                                    <AlertCircle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                                    <div className="text-sm text-amber-800 dark:text-amber-200">
+                                        <p className="font-semibold">Datos para {paymentMethod === 'BANK_TRANSFER' ? 'transferencia' : 'depósito'}:</p>
+                                        <p className="mt-1">Banco Popular Dominicano</p>
+                                        <p>Cuenta: 123-456789-0</p>
+                                        <p>A nombre de: RENACE TECH SRL</p>
+                                        <p>RNC: 123456789</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 transition-colors"
+                            >
+                                {proofPreview ? (
+                                    <div className="space-y-2">
+                                        <img src={proofPreview} alt="Preview" className="max-h-40 mx-auto rounded-lg" />
+                                        <p className="text-sm text-emerald-600 font-semibold">✓ {proofFile?.name}</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Upload size={32} className="mx-auto text-slate-400 mb-2" />
+                                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                                            Haz clic para subir tu comprobante
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-1">PNG, JPG o PDF</p>
+                                    </>
+                                )}
+                            </div>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*,.pdf"
+                                onChange={handleFileChange}
+                                className="hidden"
+                            />
+
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 text-center">
+                                Recibirás confirmación por correo electrónico y en el centro de notificaciones
+                            </p>
+
+                            <div className="flex gap-3 mt-4">
+                                <button
+                                    onClick={() => { setShowUploadModal(false); setProofFile(null); setProofPreview(null); }}
+                                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={() => handleUpgrade(selectedPlan)}
+                                    disabled={!proofFile || processing}
+                                    className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {processing && <Loader2 className="animate-spin" size={16} />}
+                                    Enviar Comprobante
                                 </button>
                             </div>
                         </div>

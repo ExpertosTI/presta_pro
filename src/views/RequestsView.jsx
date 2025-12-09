@@ -15,7 +15,7 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Solicitudes de Crédito</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Solicitudes de Crédito</h2>
         <button
           onClick={() => document.getElementById('reqForm').scrollIntoView()}
           className="bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
@@ -26,7 +26,7 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="font-bold text-slate-600 dark:text-slate-300 uppercase text-sm tracking-wider">En Revisión</h3>
+          <h3 className="font-bold text-amber-600 dark:text-amber-400 uppercase text-sm tracking-wider flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500"></span>En Revisión</h3>
           {requests.filter(r => r.status === 'REVIEW').map(req => {
             const client = clients.find(c => c.id === req.clientId);
             return (

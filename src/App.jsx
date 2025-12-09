@@ -643,6 +643,7 @@ function App() {
                 receipts={receipts}
                 expenses={expenses}
                 showToast={showToast}
+                onNavigate={setActiveTab}
               />
             )}
             {activeTab === 'cuadre' && (
