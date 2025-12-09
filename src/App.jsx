@@ -153,6 +153,7 @@ function App() {
   useEffect(() => localStorage.setItem('rt_receipts', JSON.stringify(receipts)), [receipts]);
   useEffect(() => localStorage.setItem('rt_closings', JSON.stringify(routeClosings)), [routeClosings]);
   useEffect(() => localStorage.setItem('rt_employees', JSON.stringify(employees)), [employees]);
+  useEffect(() => localStorage.setItem('rt_settings', JSON.stringify(systemSettings)), [systemSettings]);
 
   // --- ACCIONES GLOBALES ---
   const showToast = (msg, type = 'success') => {
@@ -181,7 +182,21 @@ function App() {
   const addEmployee = (data) => {
     const newEmployee = { ...data, id: generateId() };
     setEmployees([...employees, newEmployee]);
-    showToast('Empleado agregado correctamente');
+
+    // Sync with Collectors if role is Cobrador
+    if (data.role === 'Cobrador') {
+      const newCollector = {
+        id: generateId(),
+        name: data.name,
+        active: true,
+        employeeId: newEmployee.id // Link to employee
+      };
+      setCollectors(prev => [...prev, newCollector]);
+      showToast('Empleado agregado y registrado como cobrador');
+    } else {
+      showToast('Empleado agregado correctamente');
+    }
+
     return newEmployee;
   };
 
@@ -479,7 +494,7 @@ function App() {
             {activeTab === 'notes' && <NotasView notes={notes} setNotes={setNotes} />}
             {activeTab === 'reports' && <ReportesView loans={loans} expenses={expenses} />}
             {activeTab === 'hr' && <RRHHView employees={employees} onNewEmployee={() => setEmployeeModalOpen(true)} />}
-            {activeTab === 'accounting' && <ContabilidadView />}
+            {activeTab === 'accounting' && <ContabilidadView receipts={receipts} expenses={expenses} loans={loans} />}
             {activeTab === 'ai' && (
               <AIHelper chatHistory={chatHistory} setChatHistory={setChatHistory} dbData={dbData} showToast={showToast} />
             )}
@@ -516,6 +531,7 @@ function App() {
                 clients={clients}
                 assignCollectorToClient={assignCollectorToClient}
                 auth={{ user: user || { name: 'Admin', role: 'admin' } }}
+                showToast={showToast}
               />
             )}
           </React.Suspense>

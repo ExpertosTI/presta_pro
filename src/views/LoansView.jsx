@@ -358,12 +358,17 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                         type="number"
                         min="0"
                         step="0.01"
-                        value={customPaymentAmount || paymentToConfirm.amount}
+                        value={customPaymentAmount}
                         onChange={(e) => setCustomPaymentAmount(e.target.value)}
                         className="w-full px-4 py-3 rounded-lg border-2 border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-slate-900 dark:text-slate-100 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-600"
                         placeholder={`Sugerido: ${formatCurrency(paymentToConfirm.amount)}`}
                       />
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Cuota sugerida: {formatCurrency(paymentToConfirm.amount)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Cuota sugerida: {formatCurrency(paymentToConfirm.amount)}
+                        <span className="ml-2 text-blue-500 cursor-pointer" onClick={() => setCustomPaymentAmount(paymentToConfirm.amount)}>
+                          (Usar sugerido)
+                        </span>
+                      </p>
                     </div>
                     {showPenaltyInput && (
                       <div className="mb-3">
@@ -399,9 +404,21 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                           let options = {};
 
                           // Custom payment amount
-                          const customAmount = parseFloat(customPaymentAmount) || 0;
-                          if (customAmount > 0 && customAmount !== paymentToConfirm.amount) {
-                            options.customAmount = customAmount;
+                          // Custom payment amount
+                          // Allow any amount that is a valid number
+                          const inputVal = parseFloat(customPaymentAmount);
+                          if (!isNaN(inputVal)) {
+                            options.customAmount = inputVal;
+                          } else {
+                            // If empty/invalid, use original amount as fallback or let backend decide? 
+                            // Current logic implies we must send something. If user cleared it, maybe they want 0?
+                            // Let's assume clear = original amount for safety, or prompt. 
+                            // User requirement says "allow full flexibility". 
+                            // But registerPayment usually expects an amount.
+                            // If user explicitly typed 0, customAmount is 0.
+                            // If user typed nothing (empty string), let's default to original to avoid NaN errors, 
+                            // OR if we want to force explicit entry, we could block.
+                            // Given the placeholder shows suggested, defaulting to original if empty is safest UX.
                           }
 
                           // Penalty

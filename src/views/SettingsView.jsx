@@ -18,6 +18,7 @@ export function SettingsView({
   clients,
   assignCollectorToClient,
   auth,
+  showToast,
 }) {
   const [form, setForm] = useState({
     companyName: systemSettings.companyName || 'Presta Pro',
@@ -55,6 +56,7 @@ export function SettingsView({
       ownerDisplayName: form.ownerDisplayName || '',
       companyLogo: form.companyLogo || systemSettings.companyLogo || '',
     });
+    if (showToast) showToast('Ajustes guardados correctamente');
   };
 
   const handleAddCollector = (e) => {
@@ -281,8 +283,8 @@ export function SettingsView({
                       setForm({ ...form, themeColor: color });
                     }}
                     className={`w-8 h-8 rounded-full border-2 transition-all ${form.themeColor === color
-                        ? 'border-slate-900 dark:border-slate-100 scale-110'
-                        : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
+                      ? 'border-slate-900 dark:border-slate-100 scale-110'
+                      : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
                       } ${color === 'indigo'
                         ? 'bg-indigo-700'
                         : color === 'blue'
