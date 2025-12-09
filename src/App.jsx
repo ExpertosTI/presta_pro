@@ -62,6 +62,9 @@ import EmployeeModal from './components/modals/EmployeeModal';
 import MenuItem from './components/ui/MenuItem';
 import MenuSection from './components/ui/MenuSection';
 
+// API Services
+import { clientService, loanService, paymentService, syncService } from './services/api';
+
 // Utils
 import { generateId, generateSecurityToken } from './utils/ids';
 import { formatCurrency, formatDate, formatDateTime } from './utils/formatters';
@@ -190,6 +193,58 @@ function App() {
     return () => window.removeEventListener('navigate-to-tab', handleNavigate);
   }, []);
 
+  // --- DATA SYNC & LOADING ---
+  const loadServerData = useCallback(async () => {
+    if (!isAuthenticated || !user) return;
+
+    try {
+      // 1. Cargar clientes primero para verificar estado de cuenta
+      const itemsRes = await clientService.getAll().catch(err => ({ data: [] }));
+      const serverClients = itemsRes.data || [];
+
+      // 2. Verificar si necesitamos sincronizar (Local tiene datos, Servidor está vacío)
+      const localClients = safeLoad('rt_clients', []);
+
+      if (serverClients.length === 0 && localClients.length > 0) {
+        showToast('☁️ Sincronizando tus datos con la nube...', 'info');
+
+        const syncPayload = {
+          clients: localClients,
+          loans: safeLoad('rt_loans', []),
+          receipts: safeLoad('rt_receipts', []),
+          expenses: safeLoad('rt_expenses', [])
+        };
+
+        await syncService.syncData(syncPayload);
+        showToast('✅ Datos sincronizados correctamente', 'success');
+
+        // Limpiar temporizadores para forzar recarga limpia si se desea
+        // localStorage.removeItem('rt_clients');
+      }
+
+      // 3. Cargar todos los datos frescos del servidor
+      const [clientsRes, loansRes, paymentsRes] = await Promise.all([
+        clientService.getAll().catch(() => ({ data: [] })),
+        loanService.getAll().catch(() => ({ data: [] })),
+        paymentService.getAll().catch(() => ({ data: [] }))
+      ]);
+
+      if (clientsRes.data?.length > 0) setClients(clientsRes.data);
+      if (loansRes.data?.length > 0) setLoans(loansRes.data);
+      if (paymentsRes.data?.length > 0) setReceipts(paymentsRes.data);
+
+    } catch (error) {
+      console.error('Error loading data from server:', error);
+      // Fail silently to local storage for now if error, or show toast
+    }
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadServerData();
+    }
+  }, [isAuthenticated, loadServerData]);
+
   // --- ACCIONES GLOBALES ---
   const showToast = (msg, type = 'success') => {
     setShowNotification({ msg, type });
@@ -201,12 +256,19 @@ function App() {
     setTimeout(() => setPrintReceipt(null), 1000);
   };
 
-  const addClient = (data) => {
-    const newClient = { ...data, id: generateId(), score: 70 };
-    setClients([...clients, newClient]);
-    showToast('Cliente registrado correctamente');
-    // Don't force tab change - let the caller decide
-    return newClient;
+  const addClient = async (data) => {
+    try {
+      const res = await clientService.create(data);
+      if (res.data) {
+        setClients(prev => [res.data, ...prev]);
+        showToast('Cliente guardado en base de datos');
+        return res.data;
+      }
+    } catch (error) {
+      console.error('Error creating client:', error);
+      showToast('Error al guardar cliente', 'error');
+    }
+    return null;
   };
 
   const addExpense = (data) => {
@@ -278,25 +340,27 @@ function App() {
     showToast('Solicitud rechazada', 'success');
   };
 
-  const createLoan = (loanData) => {
+  const createLoan = async (loanData) => {
     const schedule = calculateSchedule(
       loanData.amount, loanData.rate, loanData.term, loanData.frequency, loanData.startDate
     );
-    const newLoan = {
-      ...loanData,
-      id: generateId(),
-      status: 'ACTIVE',
-      createdAt: new Date().toISOString(),
-      schedule,
-      totalInterest: schedule.reduce((acc, item) => acc + item.interest, 0),
-      totalPaid: 0,
-    };
-    setLoans([newLoan, ...loans]);
-    showToast('Préstamo creado exitosamente');
-    setActiveTab('loans');
+
+    try {
+      const payload = { ...loanData, schedule };
+      const res = await loanService.create(payload);
+
+      if (res.data) {
+        setLoans([res.data, ...loans]);
+        showToast('Préstamo creado en base de datos');
+        setActiveTab('loans');
+      }
+    } catch (error) {
+      console.error('Error creating loan:', error);
+      showToast('Error al crear préstamo', 'error');
+    }
   };
 
-  const registerPayment = (loanId, installmentId, options = {}) => {
+  const registerPayment = async (loanId, installmentId, options = {}) => {
     const loan = loans.find(l => l.id === loanId);
     const startInstallment = loan?.schedule.find(i => i.id === installmentId);
     const client = clients.find(c => c.id === loan?.clientId);
@@ -358,8 +422,7 @@ function App() {
 
     // Create receipt with detailed breakdown
     const newReceipt = {
-      id: generateId(),
-      date: new Date().toISOString(),
+      // id: generateId(), // Let backend generate ID or use temp
       loanId: loan.id,
       clientId: client.id,
       clientName: client.name,
@@ -371,7 +434,6 @@ function App() {
       isCustomAmount: options.customAmount !== undefined,
       collectorName: user?.name || 'Admin',
       remainingBalance: remainingBalance > 0 ? remainingBalance : 0,
-      // Detailed breakdown of payments applied
       paidInstallments: paidInstallments,
       paymentBreakdown: paidInstallments.map(p => ({
         number: p.number,
@@ -380,13 +442,13 @@ function App() {
       }))
     };
 
-    setReceipts([newReceipt, ...receipts]);
+    try {
+      // 1. Save Receipt to DB
+      const receiptRes = await paymentService.create(newReceipt);
+      const savedReceipt = receiptRes.data || { ...newReceipt, id: generateId() };
 
-    // Update loan with all installment changes
-    setLoans(loans.map(l => {
-      if (l.id !== loanId) return l;
-
-      const updatedSchedule = l.schedule.map(inst => {
+      // Calculate updated loan state locally first
+      let updatedSchedule = loan.schedule.map(inst => {
         if (installmentUpdates[inst.id]) {
           return {
             ...inst,
@@ -398,23 +460,43 @@ function App() {
       });
 
       const allPaid = updatedSchedule.every(i => i.status === 'PAID');
-      return {
-        ...l,
-        schedule: updatedSchedule,
-        totalPaid: (l.totalPaid || 0) + paymentAmount,
-        status: allPaid ? 'PAID' : 'ACTIVE',
-      };
-    }));
+      const newTotalPaid = (loan.totalPaid || 0) + paymentAmount;
+      const newStatus = allPaid ? 'PAID' : 'ACTIVE';
 
-    setPrintReceipt(newReceipt);
-    // Don't auto-print on mobile - show modal instead
-    // User can choose to print or share
+      // 2. Update Loan in DB
+      await loanService.update(loan.id, {
+        status: newStatus,
+        totalPaid: newTotalPaid,
+        schedule: updatedSchedule // Sending full schedule to update installments
+      });
 
-    const cuotasMsg = paidInstallments.length > 1
-      ? ` (${paidInstallments.length} cuotas)`
-      : '';
-    showToast(`Pago de ${formatCurrency(totalReceiptAmount)} registrado${cuotasMsg}`);
-    return newReceipt;
+      // 3. Update State
+      setReceipts([savedReceipt, ...receipts]);
+
+      setLoans(loans.map(l => {
+        if (l.id !== loanId) return l;
+        return {
+          ...l,
+          schedule: updatedSchedule,
+          totalPaid: newTotalPaid,
+          status: newStatus,
+        };
+      }));
+
+      setPrintReceipt(savedReceipt);
+
+      const cuotasMsg = paidInstallments.length > 1
+        ? ` (${paidInstallments.length} cuotas)`
+        : '';
+      showToast(`Pago de ${formatCurrency(totalReceiptAmount)} registrado${cuotasMsg}`);
+
+      return savedReceipt;
+
+    } catch (error) {
+      console.error('Error registering payment:', error);
+      showToast('Error al registrar pago. Intente nuevamente.', 'error');
+      return null;
+    }
   };
 
   const handleLogin = (userData) => {

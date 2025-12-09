@@ -32,6 +32,15 @@ const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
+// Importar rutas nuevas
+const clientsRouter = require('./routes/clients');
+const loansRouter = require('./routes/loans');
+const paymentsRouter = require('./routes/payments');
+const syncRouter = require('./routes/sync');
+
+// Importar middleware de autenticación
+const authMiddleware = require('./middleware/authMiddleware');
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -42,6 +51,15 @@ const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const SMTP_FROM = process.env.SMTP_FROM || 'noreply@renace.tech';
 const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
+
+// ... (nodemailer setup logic unchanged)
+
+// MOUNT ROUTES
+// Montar las nuevas rutas protegidas con authMiddleware
+app.use('/api/clients', authMiddleware, clientsRouter);
+app.use('/api/loans', authMiddleware, loansRouter);
+app.use('/api/payments', authMiddleware, paymentsRouter);
+app.use('/api/sync', authMiddleware, syncRouter);
 
 let mailer = null;
 if (SMTP_HOST) {
