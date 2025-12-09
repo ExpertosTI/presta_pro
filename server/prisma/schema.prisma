@@ -27,6 +27,8 @@ model Tenant {
   clients    Client[]
   loans      Loan[]
   receipts   Receipt[]
+  subscription Subscription?
+  usages     Usage[]
 }
 
 model User {
