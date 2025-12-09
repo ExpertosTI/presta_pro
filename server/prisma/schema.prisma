@@ -128,3 +128,160 @@ model Receipt {
   date              DateTime @default(now())
   createdAt         DateTime @default(now())
 }
+
+// ============================================
+// SUBSCRIPTION SYSTEM
+// ============================================
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PENDING
+  EXPIRED
+  CANCELLED
+  SUSPENDED
+}
+
+enum PaymentMethod {
+  PAYPAL
+  CARNET
+  BANK_TRANSFER
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  REFUNDED
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  tenantId  String             @unique
+  tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  plan      SubscriptionPlan   @default(FREE)
+  status    SubscriptionStatus @default(PENDING)
+  
+  // Períodos
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  trialEndsAt        DateTime?
+  
+  // Configuración
+  autoRenew          Boolean   @default(false)
+  cancelledAt        DateTime?
+  cancelReason       String?
+  
+  // Límites específicos del plan (JSON para flexibilidad)
+  limits    Json      @default("{\"maxClients\":10,\"maxLoans\":5,\"maxUsers\":1,\"aiQueries\":0}")
+  
+  // Auditoría
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  payments  Payment[]
+  usage     Usage[]
+  
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  
+  // Monto
+  amount         Float
+  currency       String        @default("DOP")
+  plan           SubscriptionPlan
+  interval       String        // 'monthly' | 'yearly'
+  
+  // Método y estado
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  
+  // Comprobante (para banco/efectivo)
+  proofImageUrl  String?
+  referenceNumber String?      @unique
+  
+  // IDs de transacción externa (PayPal/Carnet)
+  externalTransactionId String? @unique
+  externalPayerId       String?
+  externalData          Json?   // Datos completos del webhook
+  
+  // Verificación manual
+  verifiedBy     String?
+  verifiedAt     DateTime?
+  rejectedReason String?
+  notes          String?       @db.Text
+  
+  // Auditoría
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  
+  @@index([status])
+  @@index([subscriptionId])
+  @@index([externalTransactionId])
+}
+
+model Usage {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // Período (formato: YYYY-MM)
+  month     String
+  
+  // Contadores
+  clientsCount   Int @default(0)
+  loansCount     Int @default(0)
+  usersCount     Int @default(0)
+  aiQueriesCount Int @default(0)
+  documentsCount Int @default(0)
+  
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  
+  @@unique([tenantId, month])
+  @@index([month])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  
+  // Usuario que realizó la acción
+  userId    String?
+  tenantId  String?
+  
+  // Acción
+  action    String   // 'subscription.created', 'payment.verified', etc.
+  resource  String   // 'subscription', 'payment', etc.
+  resourceId String?
+  
+  // Detalles
+  details   Json?
+  
+  // Contexto
+  ipAddress String?
+  userAgent String?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([tenantId])
+  @@index([action])
+  @@index([createdAt])
+}

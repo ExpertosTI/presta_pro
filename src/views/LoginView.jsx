@@ -22,29 +22,42 @@ export function LoginView({ onLogin }) {
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
 
-    const handleCredentialLogin = (e) => {
+    const handleCredentialLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        // Simulate backend verification
-        setTimeout(() => {
-            // Basic hardcoded check for demo/fallback
-            if (
-                (credentials.username === 'admin' && credentials.password === '1234') ||
-                (credentials.username === 'demo' && credentials.password === 'demo')
-            ) {
+        try {
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: credentials.username, // usando username como email
+                    password: credentials.password
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.token) {
+                // Login exitoso
                 onLogin({
-                    name: credentials.username === 'admin' ? 'Administrador' : 'Demo User',
-                    email: 'admin@renace.tech',
-                    token: 'mock-jwt-token-12345',
-                    role: 'admin'
+                    name: data.user.name,
+                    email: data.user.email,
+                    token: data.token,
+                    role: data.user.role,
+                    tenantId: data.tenant.id
                 });
             } else {
-                setError('Credenciales inválidas. Intente user: admin, pass: 1234');
+                setError(data.error || 'Credenciales inválidas');
                 setLoading(false);
             }
-        }, 1000);
+        } catch (err) {
+            console.error('Login error:', err);
+            setError('Error de conexión con el servidor. Verifica que esté executando.');
+            setLoading(false);
+        }
     };
 
     const handleRegister = async (e) => {
