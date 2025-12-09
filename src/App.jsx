@@ -661,7 +661,7 @@ function App() {
               />
             )}
 
-            {activeTab === 'accounting' && <ContabilidadView loans={loans} expenses={expenses} routeClosings={routeClosings} receipts={receipts} />}
+            {activeTab === 'accounting' && <ContabilidadView loans={loans} expenses={expenses} routeClosings={routeClosings} receipts={receipts} systemSettings={systemSettings} />}
 
             {activeTab === 'clients' && (
               <ClientsView
