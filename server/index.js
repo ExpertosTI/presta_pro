@@ -361,21 +361,23 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
 
 app.get('/api/tenants/verify', async (req, res) => {
   const token = req.query.token;
+  const baseUrl = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+
   if (!token || typeof token !== 'string') {
-    return res.status(400).json({ error: 'Token de verificación requerido' });
+    return res.redirect(`${baseUrl}/?error=Token de verificación requerido`);
   }
 
   try {
     const tenant = await prisma.tenant.findFirst({ where: { verificationToken: token } });
     if (!tenant) {
-      return res.status(400).json({ error: 'Token inválido o ya utilizado' });
+      return res.redirect(`${baseUrl}/?error=Token inválido o ya utilizado`);
     }
 
     if (tenant.verificationExpiresAt && tenant.verificationExpiresAt < new Date()) {
       if (!IS_PRODUCTION) {
         console.log('⛔ Verification link expired');
       }
-      return res.status(400).json({ error: 'El enlace de verificación ha expirado' });
+      return res.redirect(`${baseUrl}/?error=El enlace de verificación ha expirado`);
     }
 
     const updatedTenant = await prisma.tenant.update({
@@ -412,10 +414,11 @@ app.get('/api/tenants/verify', async (req, res) => {
       }
     }
 
-    return res.json({ success: true });
+    // Redirect to login with success message
+    return res.redirect(`${baseUrl}/?verified=true`);
   } catch (err) {
     console.error('TENANT_VERIFY_ERROR', err);
-    return res.status(500).json({ error: 'Error al verificar la cuenta' });
+    return res.redirect(`${baseUrl}/?error=Error al verificar la cuenta`);
   }
 });
 
