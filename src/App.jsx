@@ -657,6 +657,8 @@ function App() {
                 expenses={expenses}
                 showToast={showToast}
                 onNavigate={setActiveTab}
+                subscriptionInfo={{ plan: auth?.subscription?.plan || 'FREE' }}
+                tenantInfo={{ createdAt: auth?.tenantCreatedAt }}
               />
             )}
             {activeTab === 'cuadre' && (

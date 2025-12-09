@@ -3,7 +3,7 @@ import Card from '../components/Card';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import {
     TrendingUp, TrendingDown, Users, Wallet, Calendar, AlertTriangle,
-    CheckCircle, Clock, DollarSign, Bell, Filter, ChevronRight
+    CheckCircle, Clock, DollarSign, Bell, Filter, ChevronRight, Crown
 } from 'lucide-react';
 
 export default function DashboardView({
@@ -12,7 +12,9 @@ export default function DashboardView({
     receipts = [],
     expenses = [],
     showToast,
-    onNavigate
+    onNavigate,
+    subscriptionInfo,
+    tenantInfo
 }) {
     const [filter, setFilter] = useState('today'); // today, week, month, all
 
@@ -112,8 +114,56 @@ export default function DashboardView({
         all: 'Todo'
     };
 
+    // Calculate days remaining for free plan
+    const daysRemaining = useMemo(() => {
+        if (!tenantInfo?.createdAt) return null;
+        if (subscriptionInfo?.plan && subscriptionInfo.plan !== 'FREE') return null;
+
+        const createdAt = new Date(tenantInfo.createdAt);
+        const expiryDate = new Date(createdAt);
+        expiryDate.setDate(expiryDate.getDate() + 30);
+
+        const now = new Date();
+        const diffTime = expiryDate - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays > 0 ? diffDays : 0;
+    }, [tenantInfo, subscriptionInfo]);
+
     return (
         <div className="space-y-6 animate-fade-in">
+            {/* Subscription Warning Banner */}
+            {daysRemaining !== null && daysRemaining <= 30 && (
+                <div className={`rounded-xl p-4 flex items-center gap-4 ${daysRemaining <= 7
+                        ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white'
+                        : daysRemaining <= 15
+                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+                            : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
+                    }`}>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                        <Crown size={24} />
+                    </div>
+                    <div className="flex-1">
+                        <p className="font-bold">
+                            {daysRemaining === 0
+                                ? '¡Tu cuenta expira hoy!'
+                                : daysRemaining === 1
+                                    ? '¡Tu cuenta expira mañana!'
+                                    : `Tu cuenta expira en ${daysRemaining} días`}
+                        </p>
+                        <p className="text-sm opacity-90">
+                            Elige un plan para mantener acceso a todas las funciones
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => onNavigate?.('plans')}
+                        className="px-4 py-2 bg-white text-slate-900 rounded-lg font-semibold hover:bg-slate-100 transition-colors flex items-center gap-2"
+                    >
+                        Ver Planes <ChevronRight size={16} />
+                    </button>
+                </div>
+            )}
+
             {/* Header with filter */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
