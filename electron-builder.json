@@ -7,7 +7,7 @@
   "cscKeyPassword": "123456",
   "win": {
     "target": "nsis",
-    "icon": "public/logo.png",
+    "icon": "favicon.ico",
     "verifyUpdateCodeSignature": false,
     "forceCodeSigning": false
   },
@@ -16,9 +16,9 @@
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
     "shortcutName": "PrestaPro",
-    "installerIcon": "public/logo.png",
-    "uninstallerIcon": "public/logo.png",
-    "installerHeaderIcon": "public/logo.png"
+    "installerIcon": "favicon.ico",
+    "uninstallerIcon": "favicon.ico",
+    "installerHeaderIcon": "favicon.ico"
   },
   "files": [
     "dist/**/*",
