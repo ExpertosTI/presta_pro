@@ -163,50 +163,7 @@ app.get('/health', (req, res) => {
 });
 
 // --- Auth middleware ---
-async function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token requerido' });
-  }
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-
-    const tenant = await prisma.tenant.findUnique({ where: { id: payload.tenantId } });
-    if (!tenant) {
-      return res.status(401).json({ error: 'Tenant no encontrado' });
-    }
-
-    if (!tenant.isVerified) {
-      const expiresAt = tenant.verificationExpiresAt;
-      if (expiresAt && expiresAt < new Date()) {
-        if (!IS_PRODUCTION) {
-          console.log('⛔ Account expired:', {
-            isVerified: tenant.isVerified,
-            expiresAt,
-            now: new Date(),
-            diffOrPast: expiresAt < new Date()
-          });
-        }
-        return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
-      }
-      // Si aún no ha verificado pero no ha expirado, se permite acceso temporal
-    }
-
-    req.user = {
-      id: payload.userId,
-      tenantId: payload.tenantId,
-      role: payload.role,
-    };
-    req.tenant = { id: tenant.id, isVerified: tenant.isVerified };
-    next();
-  } catch (err) {
-    console.error('JWT error', err);
-    return res.status(401).json({ error: 'Token inválido o expirado' });
-  }
-}
+// --- Auth middleware imported at line 42 ---
 
 app.post('/api/tenants/register', async (req, res) => {
   const { tenantName, tenantSlug, adminEmail, adminPassword } = req.body;

@@ -166,12 +166,12 @@ export function LoginView({ onLogin }) {
             </div>
 
             <div className="relative z-10 w-full max-w-sm md:max-w-md">
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-5 md:p-8 transform transition-all duration-500 hover:shadow-indigo-500/20">
-                    <div className="flex flex-col items-center mb-4 md:mb-8">
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-4 md:p-8 transform transition-all duration-500 hover:shadow-indigo-500/20">
+                    <div className="flex flex-col items-center mb-4 md:mb-6">
                         {/* Logo: Responsive sizes */}
-                        <img src={logo} alt="Presta Pro" className="w-28 h-28 sm:w-40 sm:h-40 md:w-52 md:h-52 object-contain drop-shadow-2xl mb-2 md:mb-4 hover:scale-105 transition-transform" />
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">Presta Pro</h1>
-                        <p className="text-blue-200 text-sm md:text-lg mt-1 font-light">Gestión Inteligente de Préstamos</p>
+                        <img src={logo} alt="Presta Pro" className="w-20 h-20 md:w-32 md:h-32 object-contain drop-shadow-2xl mb-2 md:mb-4 hover:scale-105 transition-transform" />
+                        <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight">Presta Pro</h1>
+                        <p className="text-blue-200 text-xs md:text-base mt-0.5 md:mt-1 font-light">Gestión Inteligente de Préstamos</p>
                     </div>
 
                     {successMsg && (
@@ -325,7 +325,7 @@ export function LoginView({ onLogin }) {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    className="w-full py-2.5 md:py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
                                         <span className="flex items-center justify-center gap-2">
