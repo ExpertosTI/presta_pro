@@ -714,13 +714,17 @@ function App() {
         {/* Header - HIDDEN ON PRINT */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10 print:hidden">
           <div className="md:hidden flex items-center gap-3">
-            <button onClick={() => setMobileMenuOpen(true)}><Menu /></button>
-            <img
-              src={systemSettings.companyLogo || logoSmall}
-              alt={systemSettings.companyName || 'Presta Pro'}
-              className="w-7 h-7 rounded-lg object-contain"
-            />
-            <span className="font-bold text-slate-800">{systemSettings.companyName || 'Presta Pro'}</span>
+            <button onClick={() => setMobileMenuOpen(true)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <Menu className="text-slate-600 dark:text-slate-300" />
+            </button>
+            <div className="flex items-center gap-2">
+              <img
+                src={systemSettings.companyLogo || logoSmall}
+                alt={systemSettings.companyName || 'Presta Pro'}
+                className="w-7 h-7 rounded-lg object-contain"
+              />
+              <span className="font-bold text-slate-800 dark:text-slate-200 text-sm truncate max-w-[150px]">{systemSettings.companyName || 'Presta Pro'}</span>
+            </div>
           </div>
           <h1 className="hidden md:block text-xl font-bold text-slate-800">{TAB_TITLES[activeTab] || 'Presta Pro'}</h1>
           <div className="flex items-center gap-4">
@@ -833,6 +837,19 @@ function App() {
                 includeFutureInstallments={includeFutureInstallments}
                 setIncludeFutureInstallments={setIncludeFutureInstallments}
               />
+            )}
+
+            {/* Floating AI Assistant Button */}
+            {activeTab !== 'ai' && (
+              <button
+                onClick={() => setActiveTab('ai')}
+                className="fixed bottom-6 right-6 p-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-full shadow-2xl hover:shadow-indigo-500/50 transition-all transform hover:scale-110 active:scale-95 z-40 group flex items-center gap-2 print:hidden"
+              >
+                <Zap size={24} className="fill-current" />
+                <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out font-bold whitespace-nowrap">
+                  Asistente IA
+                </span>
+              </button>
             )}
 
             {activeTab === 'documents' && (
