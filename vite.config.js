@@ -31,4 +31,17 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    sourcemap: false, // Disable source maps in production for security
+    minify: 'esbuild', // Use esbuild for faster minification
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          charts: ['recharts'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // Increase limit for larger chunks
+  },
 })

@@ -120,7 +120,7 @@ export function useAuth(collectors, systemSettings, addCollector) {
                 // Ideally, useAuth should receive 'updateCollector' or we just accept that 
                 // the state won't persist the hash until we have an update method.
                 // For now, we'll log it. In a real app, we'd call updateCollector({ ...user, password: result.newHash }).
-                console.log("Migrating password to hash for user:", result.user.username);
+                // Hash migration handled in authLogic.js
             }
 
             return { success: true, user: result.user };

@@ -3,3 +3,8 @@ node_modules
 .env
 
 /generated/prisma
+
+# Debug files
+debug_out.txt
+debug_out_2.txt
+*.log

@@ -67,12 +67,27 @@ export function LoginView({ onLogin }) {
         setSuccessMsg('');
 
         try {
+            // Generate slug from company name (lowercase, replace spaces with hyphens)
+            const tenantSlug = registerForm.companyName
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+
+            // Map frontend fields to backend expected fields
+            const registrationData = {
+                tenantName: registerForm.companyName,
+                tenantSlug: tenantSlug,
+                adminEmail: registerForm.email,
+                adminPassword: registerForm.password
+            };
+
             // Use the actual backend registration endpoint
             const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
             const response = await fetch(`${API_BASE_URL}/api/tenants/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(registerForm)
+                body: JSON.stringify(registrationData)
             });
 
             const data = await response.json();
@@ -95,33 +110,52 @@ export function LoginView({ onLogin }) {
         }
     };
 
-    const handleGoogleSuccess = (credentialResponse) => {
+    const handleGoogleSuccess = async (credentialResponse) => {
         try {
-            const decoded = jwtDecode(credentialResponse.credential);
-            console.log('Google Decoded:', decoded);
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 
             if (isRegistering) {
-                // Pre-fill registration form with Google data
+                // For registration, decode to pre-fill form
+                const decoded = jwtDecode(credentialResponse.credential);
                 setRegisterForm(prev => ({
                     ...prev,
                     name: decoded.name,
                     email: decoded.email,
                     companyName: prev.companyName || `${decoded.given_name || 'My'} Company`
                 }));
-                setSuccessMsg('Datos de Google cargados. Por favor ingresa una contraseña para terminar.');
+                setSuccessMsg('Datos de Google cargados. Por favor ingresa el nombre de tu empresa y una contraseña.');
             } else {
-                // Regular login
-                onLogin({
-                    name: decoded.name,
-                    email: decoded.email,
-                    token: credentialResponse.credential,
-                    role: 'user', // Default role for Google users
-                    picture: decoded.picture
+                // For login, send token to backend
+                setLoading(true);
+                setError('');
+
+                const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: credentialResponse.credential })
                 });
+
+                const data = await response.json();
+
+                if (response.ok && data.token) {
+                    // Login exitoso
+                    onLogin({
+                        name: data.user.name,
+                        email: data.user.email,
+                        token: data.token,
+                        role: data.user.role,
+                        tenantId: data.tenant.id,
+                        photoUrl: data.user.photoUrl
+                    });
+                } else {
+                    setError(data.error || 'Error al autenticar con Google');
+                    setLoading(false);
+                }
             }
         } catch (err) {
-            console.error("Google Decode Error", err);
-            setError('Error al procesar datos de Google');
+            console.error("Google Auth Error", err);
+            setError('Error al procesar autenticación de Google');
+            setLoading(false);
         }
     };
 

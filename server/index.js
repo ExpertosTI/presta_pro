@@ -130,12 +130,14 @@ async function authMiddleware(req, res, next) {
     if (!tenant.isVerified) {
       const expiresAt = tenant.verificationExpiresAt;
       if (expiresAt && expiresAt < new Date()) {
-        console.log('⛔ Account expired:', {
-          isVerified: tenant.isVerified,
-          expiresAt,
-          now: new Date(),
-          diffOrPast: expiresAt < new Date()
-        });
+        if (!IS_PRODUCTION) {
+          console.log('⛔ Account expired:', {
+            isVerified: tenant.isVerified,
+            expiresAt,
+            now: new Date(),
+            diffOrPast: expiresAt < new Date()
+          });
+        }
         return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
       }
       // Si aún no ha verificado pero no ha expirado, se permite acceso temporal
@@ -202,8 +204,9 @@ app.post('/api/tenants/register', async (req, res) => {
       const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
       const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
 
-      console.log('📧 Enviando correo de verificación a:', adminEmail);
-      console.log('🔗 URL de verificación:', verifyUrl);
+      if (!IS_PRODUCTION) {
+        console.log('📧 Enviando correo de verificación a:', adminEmail);
+      }
 
       // IMPORTANTE: Enviar correo de verificación al USUARIO que se registró
       try {
@@ -214,9 +217,11 @@ app.post('/api/tenants/register', async (req, res) => {
           text: `Hola,\n\nHemos creado tu cuenta para ${tenantName}. Para activarla definitivamente haz clic en el siguiente enlace antes de 3 horas:\n\n${verifyUrl}\n\nSi no reconoces este registro, ignora este correo.`,
           html: getVerificationEmail(tenantName, verifyUrl),
         });
-        console.log('✅ Correo de verificación enviado exitosamente a:', adminEmail);
+        if (!IS_PRODUCTION) {
+          console.log('✅ Correo de verificación enviado exitosamente');
+        }
       } catch (err) {
-        console.error('❌ MAIL_VERIFY_ERROR - No se pudo enviar a', adminEmail, err);
+        console.error('❌ MAIL_VERIFY_ERROR', err.message);
       }
 
       // Notificar al administrador del sistema (correo separado)
@@ -229,7 +234,7 @@ app.post('/api/tenants/register', async (req, res) => {
             text: `Se ha registrado una nueva cuenta en ${BRAND_NAME}.\n\nNombre: ${tenantName}\nSlug: ${tenantSlug}\nAdmin: ${adminEmail}\n\nEnlace de verificación:\n${verifyUrl}`,
             html: getAdminNotificationEmail(tenantName, tenantSlug, adminEmail, verifyUrl),
           });
-          console.log('✅ Notificación enviada al admin:', ADMIN_NOTIFY_EMAIL);
+          if (!IS_PRODUCTION) console.log('✅ Notificación enviada al admin');
         } catch (err) {
           console.error('❌ MAIL_ADMIN_REGISTER_ERROR', err);
         }
@@ -254,10 +259,16 @@ app.post('/api/tenants/register', async (req, res) => {
     });
   } catch (err) {
     console.error('TENANT_REGISTER_ERROR', err);
+    console.error('Error details:', {
+      message: err.message,
+      code: err.code,
+      meta: err.meta,
+      stack: err.stack
+    });
     return res.status(500).json({
       error: 'Error interno al registrar el tenant',
       code: err.code || null,
-      message: err.message || null,
+      message: !IS_PRODUCTION ? err.message : null,
     });
   }
 });
@@ -304,8 +315,9 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
     const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
     const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
 
-    console.log('📧 Reenviando correo de verificación a:', adminEmail);
-    console.log('🔗 URL de verificación:', verifyUrl);
+    if (!IS_PRODUCTION) {
+      console.log('📧 Reenviando correo de verificación');
+    }
 
     // IMPORTANTE: Enviar correo de reenvío al USUARIO
     try {
@@ -316,9 +328,11 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
         text: `Hola,\n\nTe enviamos de nuevo el enlace para activar la cuenta de ${updatedTenant.name}.\n\nEnlace:\n${verifyUrl}\n\nSi ya activaste la cuenta, puedes ignorar este correo.`,
         html: getResendVerificationEmail(updatedTenant.name, verifyUrl),
       });
-      console.log('✅ Correo de reenvío enviado exitosamente a:', adminEmail);
+      if (!IS_PRODUCTION) {
+        console.log('✅ Correo de reenvío enviado exitosamente');
+      }
     } catch (err) {
-      console.error('❌ MAIL_RESEND_VERIFY_ERROR - No se pudo enviar a', adminEmail, err);
+      console.error('❌ MAIL_RESEND_VERIFY_ERROR', err.message);
       return res.status(500).json({ error: 'No se pudo enviar el correo de verificación' });
     }
 
@@ -332,7 +346,7 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
           text: `Se ha reenviado el correo de verificación para:\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
           html: getAdminNotificationEmail(updatedTenant.name, updatedTenant.slug, adminEmail, verifyUrl),
         });
-        console.log('✅ Notificación de reenvío enviada al admin:', ADMIN_NOTIFY_EMAIL);
+        if (!IS_PRODUCTION) console.log('✅ Notificación de reenvío enviada');
       } catch (err) {
         console.error('❌ MAIL_ADMIN_RESEND_VERIFY_ERROR', err);
       }
@@ -358,11 +372,9 @@ app.get('/api/tenants/verify', async (req, res) => {
     }
 
     if (tenant.verificationExpiresAt && tenant.verificationExpiresAt < new Date()) {
-      console.log('⛔ Verification link expired:', {
-        tenantId: tenant.id,
-        expiresAt: tenant.verificationExpiresAt,
-        now: new Date()
-      });
+      if (!IS_PRODUCTION) {
+        console.log('⛔ Verification link expired');
+      }
       return res.status(400).json({ error: 'El enlace de verificación ha expirado' });
     }
 
@@ -1041,7 +1053,9 @@ app.post('/api/auth/google', async (req, res) => {
   }
 
   try {
-    console.log('🔐 Verificando token de Google...');
+    if (!IS_PRODUCTION) {
+      console.log('🔐 Verificando token de Google...');
+    }
 
     const ticket = await googleClient.verifyIdToken({
       idToken: googleToken,
@@ -1054,8 +1068,9 @@ app.post('/api/auth/google', async (req, res) => {
     const googlePicture = payload.picture || null;
     const googleId = payload.sub;
 
-    console.log('✅ Token de Google verificado para:', email);
-    console.log('👤 Datos de Google:', { name: googleName, email, picture: googlePicture ? 'Sí' : 'No' });
+    if (!IS_PRODUCTION) {
+      console.log('✅ Token de Google verificado para:', email);
+    }
 
     // Buscar usuario existente
     let user = await prisma.user.findUnique({
@@ -1065,7 +1080,7 @@ app.post('/api/auth/google', async (req, res) => {
 
     if (user) {
       // Usuario existe - actualizar con datos de Google si no tiene
-      console.log('👤 Usuario encontrado, actualizando datos de Google...');
+      if (!IS_PRODUCTION) console.log('👤 Usuario encontrado, actualizando datos de Google...');
 
       user = await prisma.user.update({
         where: { id: user.id },
@@ -1091,7 +1106,7 @@ app.post('/api/auth/google', async (req, res) => {
         { expiresIn: '12h' }
       );
 
-      console.log('✅ Login con Google exitoso para:', email);
+      if (!IS_PRODUCTION) console.log('✅ Login con Google exitoso');
 
       return res.json({
         token: jwtToken,
@@ -1112,7 +1127,7 @@ app.post('/api/auth/google', async (req, res) => {
       });
     } else {
       // Usuario no existe - requiere registro
-      console.log('⚠️ Usuario no encontrado:', email);
+      if (!IS_PRODUCTION) console.log('⚠️ Usuario no encontrado');
       return res.status(401).json({
         error: 'Usuario no encontrado. Por favor regístrate primero.',
         requiresRegistration: true,

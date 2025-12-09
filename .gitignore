@@ -1,5 +1,7 @@
 node_modules
 .env
+.env.local
+.env.server
 
 # Build Artifacts
 dist/
@@ -14,6 +16,11 @@ ios/
 BKApp.jsx
 MODDIR.md
 estructure.txt
+
+# Debug and logs
+*.log
+debug_out*.txt
+server/debug_out*.txt
 
 # OS
 .DS_Store
