@@ -266,24 +266,65 @@ function App() {
 
   const registerPayment = (loanId, installmentId, options = {}) => {
     const loan = loans.find(l => l.id === loanId);
-    const installment = loan?.schedule.find(i => i.id === installmentId);
+    const startInstallment = loan?.schedule.find(i => i.id === installmentId);
     const client = clients.find(c => c.id === loan?.clientId);
-    if (!loan || !installment || !client) return;
+    if (!loan || !startInstallment || !client) return;
 
-    // Determine amount to register
+    // Determine total amount to distribute
     const paymentAmount = options.customAmount !== undefined
       ? options.customAmount
-      : installment.payment;
+      : startInstallment.payment;
 
     const penaltyRate = systemSettings.defaultPenaltyRate || 5;
     const penaltyAmount = options.withPenalty ? (options.penaltyAmountOverride || 0) : 0;
     const totalReceiptAmount = paymentAmount + penaltyAmount;
 
-    // Calcular saldo pendiente del préstamo
+    // Get pending installments starting from the selected one, sorted by number
+    const pendingInstallments = loan.schedule
+      .filter(i => i.status !== 'PAID' && i.number >= startInstallment.number)
+      .sort((a, b) => a.number - b.number);
+
+    // Distribute payment across installments
+    let remainingPayment = paymentAmount;
+    const paidInstallments = [];
+    const installmentUpdates = {};
+
+    for (const inst of pendingInstallments) {
+      if (remainingPayment <= 0) break;
+
+      const existingPaid = inst.paidAmount || 0;
+      const pendingAmount = inst.payment - existingPaid;
+
+      if (pendingAmount <= 0) continue;
+
+      const amountForThis = Math.min(remainingPayment, pendingAmount);
+      remainingPayment -= amountForThis;
+
+      const newPaidAmount = existingPaid + amountForThis;
+      const isFullyPaid = newPaidAmount >= inst.payment;
+
+      paidInstallments.push({
+        id: inst.id,
+        number: inst.number,
+        amount: amountForThis,
+        pendingBefore: pendingAmount,
+        pendingAfter: pendingAmount - amountForThis,
+        fullyPaid: isFullyPaid
+      });
+
+      installmentUpdates[inst.id] = {
+        paidAmount: newPaidAmount,
+        status: isFullyPaid ? 'PAID' : 'PARTIAL',
+        paidDate: new Date().toISOString()
+      };
+    }
+
+    // Calculate remaining balance for the loan
     const totalLoanAmount = loan.schedule.reduce((acc, i) => acc + i.payment, 0);
     const totalPaidBefore = loan.totalPaid || 0;
     const remainingBalance = totalLoanAmount - totalPaidBefore - paymentAmount;
 
+    // Create receipt with detailed breakdown
     const newReceipt = {
       id: generateId(),
       date: new Date().toISOString(),
@@ -294,32 +335,41 @@ function App() {
       penalty: penaltyAmount,
       penaltyRate: penaltyRate,
       total: totalReceiptAmount,
-      installmentNumber: installment.number,
+      installmentNumber: startInstallment.number,
       isCustomAmount: options.customAmount !== undefined,
       collectorName: user?.name || 'Admin',
-      remainingBalance: remainingBalance > 0 ? remainingBalance : 0
+      remainingBalance: remainingBalance > 0 ? remainingBalance : 0,
+      // Detailed breakdown of payments applied
+      paidInstallments: paidInstallments,
+      paymentBreakdown: paidInstallments.map(p => ({
+        number: p.number,
+        amount: p.amount,
+        pendingAfter: p.pendingAfter
+      }))
     };
 
     setReceipts([newReceipt, ...receipts]);
 
+    // Update loan with all installment changes
     setLoans(loans.map(l => {
       if (l.id !== loanId) return l;
-      const updatedSchedule = l.schedule.map(inst =>
-        inst.id === installmentId
-          ? {
+
+      const updatedSchedule = l.schedule.map(inst => {
+        if (installmentUpdates[inst.id]) {
+          return {
             ...inst,
-            status: 'PAID',
-            paidAmount: paymentAmount,
-            penaltyPaid: penaltyAmount,
-            paidDate: new Date().toISOString()
-          }
-          : inst
-      );
+            ...installmentUpdates[inst.id],
+            penaltyPaid: inst.id === startInstallment.id ? penaltyAmount : (inst.penaltyPaid || 0)
+          };
+        }
+        return inst;
+      });
+
       const allPaid = updatedSchedule.every(i => i.status === 'PAID');
       return {
         ...l,
         schedule: updatedSchedule,
-        totalPaid: l.totalPaid + paymentAmount,
+        totalPaid: (l.totalPaid || 0) + paymentAmount,
         status: allPaid ? 'PAID' : 'ACTIVE',
       };
     }));
@@ -330,7 +380,10 @@ function App() {
       setTimeout(() => setPrintReceipt(null), 1000);
     }, 100);
 
-    showToast(`Pago de ${formatCurrency(totalReceiptAmount)} registrado`);
+    const cuotasMsg = paidInstallments.length > 1
+      ? ` (${paidInstallments.length} cuotas)`
+      : '';
+    showToast(`Pago de ${formatCurrency(totalReceiptAmount)} registrado${cuotasMsg}`);
     return newReceipt;
   };
 
