@@ -113,8 +113,23 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotification, setShowNotification] = useState(null);
+  const [notifications, setNotifications] = useState([]); // New Notifications State
+  const [showNotifications, setShowNotifications] = useState(false); // Toggle Dropdown
   const [searchQuery, setSearchQuery] = useState('');
   const [printReceipt, setPrintReceipt] = useState(null);
+
+
+  const addNotification = (message, type = 'info') => {
+    const newNotif = {
+      id: Date.now(),
+      message,
+      type,
+      date: new Date().toISOString(),
+      read: false
+    };
+    setNotifications(prev => [...prev, newNotif]);
+  };
+
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [clientCreationCallback, setClientCreationCallback] = useState(null);
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
@@ -234,7 +249,8 @@ function App() {
 
     } catch (error) {
       console.error('Error loading data from server:', error);
-      // Fail silently to local storage for now if error, or show toast
+      // Add persistent error notification
+      addNotification('Error de sincronización con la nube. Revise su conexión.', 'error');
     }
   }, [isAuthenticated, user]);
 
@@ -708,19 +724,63 @@ function App() {
           </div>
           <h1 className="hidden md:block text-xl font-bold text-slate-800">{TAB_TITLES[activeTab] || 'Presta Pro'}</h1>
           <div className="flex items-center gap-4">
-            <button className="bg-slate-100 p-2 rounded-full relative hover:bg-slate-200 transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="bg-slate-100 dark:bg-slate-800 p-2 rounded-full relative hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Bell size={20} className="text-slate-600 dark:text-slate-300" />
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden animate-fade-in-down">
+                  <div className="p-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Notificaciones</h3>
+                    <button
+                      onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                      className="text-xs text-blue-600 hover:text-blue-500 font-medium"
+                    >
+                      Marcar leídas
+                    </button>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-slate-500 text-sm">
+                        No hay notificaciones
+                      </div>
+                    ) : (
+                      notifications.slice().reverse().map(notification => (
+                        <div key={notification.id} className={`p-3 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${!notification.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                          <div className="flex gap-3">
+                            <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${notification.type === 'error' ? 'bg-red-500' :
+                              notification.type === 'success' ? 'bg-emerald-500' : 'bg-blue-500'
+                              }`} />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-tight">{notification.message}</p>
+                              <p className="text-[10px] text-slate-400 mt-1">{formatDateTime(notification.date)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold overflow-hidden bg-indigo-600">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold overflow-hidden bg-indigo-600 ring-2 ring-white dark:ring-slate-800 shadow-sm">
                 {user?.photoUrl ? (
                   <img src={user.photoUrl} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
                   (user?.name || 'A').charAt(0).toUpperCase()
                 )}
               </div>
-              <span className="text-sm font-bold hidden md:block">{user?.name || 'Admin'}</span>
+              <span className="text-sm font-bold hidden md:block text-slate-700 dark:text-slate-200">{user?.name || 'Admin'}</span>
             </div>
           </div>
         </header>

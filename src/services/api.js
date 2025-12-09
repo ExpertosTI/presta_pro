@@ -18,6 +18,22 @@ api.interceptors.request.use((config) => {
     return config;
 }, (error) => Promise.reject(error));
 
+// Interceptor para errores (401 -> Logout)
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            // Token inválido o expirado
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('rt_session');
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/?error=session_expired';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 // Auth Services
 export const authService = {
     login: (credentials) => api.post('/auth/login', credentials),

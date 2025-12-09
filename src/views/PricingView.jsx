@@ -409,19 +409,19 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                         <p className="font-bold">Adderly Marte</p>
                                         <p className="text-xs text-amber-600 dark:text-amber-300 mb-2">Cédula: 224-0056380-9</p>
                                         <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-                                            <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded">
+                                            <div onClick={() => { navigator.clipboard.writeText('804637114'); showToast?.('Cuenta Popular copiada', 'success'); }} className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors active:scale-95">
                                                 <p className="font-semibold text-amber-900 dark:text-amber-100">Banco Popular</p>
                                                 <p className="font-mono">804637114</p>
                                             </div>
-                                            <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded">
+                                            <div onClick={() => { navigator.clipboard.writeText('10499770022'); showToast?.('Cuenta BHD copiada', 'success'); }} className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors active:scale-95">
                                                 <p className="font-semibold text-amber-900 dark:text-amber-100">Banco BHD</p>
                                                 <p className="font-mono">10499770022</p>
                                             </div>
-                                            <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded">
+                                            <div onClick={() => { navigator.clipboard.writeText('9606451004'); showToast?.('Cuenta BanReservas copiada', 'success'); }} className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors active:scale-95">
                                                 <p className="font-semibold text-amber-900 dark:text-amber-100">BanReservas</p>
                                                 <p className="font-mono">9606451004</p>
                                             </div>
-                                            <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded">
+                                            <div onClick={() => { navigator.clipboard.writeText('1001256657'); showToast?.('Cuenta QIK copiada', 'success'); }} className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors active:scale-95">
                                                 <p className="font-semibold text-amber-900 dark:text-amber-100">QIK Banco Digital</p>
                                                 <p className="font-mono">1001256657</p>
                                             </div>
