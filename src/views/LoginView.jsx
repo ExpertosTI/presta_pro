@@ -167,11 +167,11 @@ export function LoginView({ onLogin }) {
 
             <div className="relative z-10 w-full max-w-sm md:max-w-md flex flex-col justify-center">
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-4 md:p-8 transform transition-all duration-500 hover:shadow-indigo-500/20">
-                    <div className="flex flex-col items-center mb-2 md:mb-6 text-center">
-                        {/* Logo: Responsive sizes - Larger but compact spacing */}
-                        <img src={logo} alt="Presta Pro" className="w-24 h-24 md:w-32 md:h-32 object-contain drop-shadow-2xl mb-1 md:mb-2 hover:scale-105 transition-transform" />
-                        <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight leading-none">Presta Pro</h1>
-                        <p className="text-blue-200 text-xs md:text-base mt-2 md:mt-1 font-light leading-tight">Gestión Inteligente de Préstamos</p>
+                    <div className="flex flex-col items-center mb-0 md:mb-6 text-center">
+                        {/* Logo: Responsive sizes - Much Larger and stuck to title */}
+                        <img src={logo} alt="Presta Pro" className="w-32 h-32 md:w-52 md:h-52 object-contain drop-shadow-2xl mb-0 hover:scale-105 transition-transform" />
+                        <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight leading-none -mt-4 relative z-10">Presta Pro</h1>
+                        <p className="text-blue-200 text-[10px] md:text-base mt-1 md:mt-1 font-light leading-tight">Gestión Inteligente de Préstamos</p>
                     </div>
 
                     {successMsg && (
@@ -252,7 +252,7 @@ export function LoginView({ onLogin }) {
                                         placeholder="Contraseña"
                                         required
                                         minLength={6}
-                                        className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        className="w-full pl-10 pr-4 py-2 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
                                         value={registerForm.password}
                                         onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
                                     />
@@ -294,7 +294,7 @@ export function LoginView({ onLogin }) {
                                         <input
                                             type="text"
                                             placeholder="Usuario o Email"
-                                            className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                            className="w-full pl-10 pr-4 py-2 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                                             value={credentials.username}
                                             onChange={e => setCredentials({ ...credentials, username: e.target.value })}
                                         />
@@ -309,7 +309,7 @@ export function LoginView({ onLogin }) {
                                         <input
                                             type="password"
                                             placeholder="Contraseña"
-                                            className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                            className="w-full pl-10 pr-4 py-2 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                                             value={credentials.password}
                                             onChange={e => setCredentials({ ...credentials, password: e.target.value })}
                                         />
