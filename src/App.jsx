@@ -49,7 +49,7 @@ import MenuItem from './components/ui/MenuItem';
 import MenuSection from './components/ui/MenuSection';
 
 // Utils
-import { generateId } from './utils/ids';
+import { generateId, generateSecurityToken } from './utils/ids';
 import { formatCurrency, formatDate, formatDateTime } from './utils/formatters';
 import { calculateSchedule } from './utils/amortization';
 import { safeLoad } from './utils/storage';
