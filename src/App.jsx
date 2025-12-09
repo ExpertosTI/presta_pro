@@ -407,10 +407,8 @@ function App() {
     }));
 
     setPrintReceipt(newReceipt);
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => setPrintReceipt(null), 1000);
-    }, 100);
+    // Don't auto-print on mobile - show modal instead
+    // User can choose to print or share
 
     const cuotasMsg = paidInstallments.length > 1
       ? ` (${paidInstallments.length} cuotas)`
@@ -534,8 +532,8 @@ function App() {
           onClose={() => setEmployeeModalOpen(false)}
         />
       )}
-      {/* TICKET PRINTER OVERLAY */}
-      {printReceipt && <PaymentTicket receipt={printReceipt} systemSettings={systemSettings} />}
+      {/* TICKET MODAL */}
+      {printReceipt && <PaymentTicket receipt={printReceipt} systemSettings={systemSettings} onClose={() => setPrintReceipt(null)} />}
 
       {/* Sidebar - HIDDEN ON PRINT */}
       <aside className={`hidden md:flex flex-col w-72 ${sidebarColor} text-white shadow-2xl z-20 print:hidden transition-colors duration-300`}>

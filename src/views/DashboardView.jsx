@@ -135,10 +135,10 @@ export default function DashboardView({
             {/* Subscription Warning Banner */}
             {daysRemaining !== null && daysRemaining <= 30 && (
                 <div className={`rounded-xl p-4 flex items-center gap-4 ${daysRemaining <= 7
-                        ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white'
-                        : daysRemaining <= 15
-                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
-                            : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
+                    ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white'
+                    : daysRemaining <= 15
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+                        : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
                     }`}>
                     <div className="p-2 bg-white/20 rounded-lg">
                         <Crown size={24} />
@@ -194,13 +194,13 @@ export default function DashboardView({
                 >
                     <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-xs font-medium text-blue-100 uppercase tracking-wide">Cartera Total</p>
-                                <p className="text-2xl font-bold mt-1">{formatCurrency(totalLent)}</p>
-                                <p className="text-xs text-blue-200 mt-1">{loans.length} préstamos</p>
+                            <div className="min-w-0">
+                                <p className="text-[10px] md:text-xs font-medium text-blue-100 uppercase tracking-wide">Cartera</p>
+                                <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1 truncate">{formatCurrency(totalLent)}</p>
+                                <p className="text-[10px] md:text-xs text-blue-200 mt-0.5 md:mt-1">{loans.length} préstamos</p>
                             </div>
-                            <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
-                                <Wallet size={20} />
+                            <div className="p-1.5 md:p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors flex-shrink-0">
+                                <Wallet size={16} className="md:w-5 md:h-5" />
                             </div>
                         </div>
                         <div className="flex items-center gap-1 mt-2 text-xs text-blue-200">
@@ -216,13 +216,13 @@ export default function DashboardView({
                 >
                     <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-xs font-medium text-emerald-100 uppercase tracking-wide">Recaudado</p>
-                                <p className="text-2xl font-bold mt-1">{formatCurrency(totalCollected)}</p>
-                                <p className="text-xs text-emerald-200 mt-1">{paidLoans} préstamos pagados</p>
+                            <div className="min-w-0">
+                                <p className="text-[10px] md:text-xs font-medium text-emerald-100 uppercase tracking-wide">Recaudado</p>
+                                <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1 truncate">{formatCurrency(totalCollected)}</p>
+                                <p className="text-[10px] md:text-xs text-emerald-200 mt-0.5 md:mt-1 truncate">{paidLoans} pagados</p>
                             </div>
-                            <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
-                                <TrendingUp size={20} />
+                            <div className="p-1.5 md:p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors flex-shrink-0">
+                                <TrendingUp size={16} className="md:w-5 md:h-5" />
                             </div>
                         </div>
                         <div className="flex items-center gap-1 mt-2 text-xs text-emerald-200">
@@ -238,13 +238,13 @@ export default function DashboardView({
                 >
                     <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-xs font-medium text-amber-100 uppercase tracking-wide">Por Cobrar</p>
-                                <p className="text-2xl font-bold mt-1">{formatCurrency(pendingAmount)}</p>
-                                <p className="text-xs text-amber-200 mt-1">{activeLoans} préstamos activos</p>
+                            <div className="min-w-0">
+                                <p className="text-[10px] md:text-xs font-medium text-amber-100 uppercase tracking-wide">Por Cobrar</p>
+                                <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1 truncate">{formatCurrency(pendingAmount)}</p>
+                                <p className="text-[10px] md:text-xs text-amber-200 mt-0.5 md:mt-1">{activeLoans} activos</p>
                             </div>
-                            <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
-                                <Clock size={20} />
+                            <div className="p-1.5 md:p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors flex-shrink-0">
+                                <Clock size={16} className="md:w-5 md:h-5" />
                             </div>
                         </div>
                         <div className="flex items-center gap-1 mt-2 text-xs text-amber-200">
@@ -260,13 +260,13 @@ export default function DashboardView({
                 >
                     <Card className="bg-gradient-to-br from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-xs font-medium text-violet-100 uppercase tracking-wide">Clientes</p>
-                                <p className="text-2xl font-bold mt-1">{clients.length}</p>
-                                <p className="text-xs text-violet-200 mt-1">Registrados</p>
+                            <div className="min-w-0">
+                                <p className="text-[10px] md:text-xs font-medium text-violet-100 uppercase tracking-wide">Clientes</p>
+                                <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1">{clients.length}</p>
+                                <p className="text-[10px] md:text-xs text-violet-200 mt-0.5 md:mt-1">Registrados</p>
                             </div>
-                            <div className="p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
-                                <Users size={20} />
+                            <div className="p-1.5 md:p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors flex-shrink-0">
+                                <Users size={16} className="md:w-5 md:h-5" />
                             </div>
                         </div>
                         <div className="flex items-center gap-1 mt-2 text-xs text-violet-200">
