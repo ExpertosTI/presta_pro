@@ -8,14 +8,15 @@ api.interceptors.response.use(
     (error) => {
         if (error.response && error.response.status === 401) {
             // Token inválido o expirado
-            console.error('Sesión expirada o token inválido (401). Cerrando sesión...');
+            console.error('Sesión expirada o token inválido (401).', error.response.data);
 
-            // Only redirect if NOT already on login page to avoid loops
-            if (!window.location.pathname.includes('/login') && !window.location.search.includes('error=session_expired')) {
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('rt_session');
-                window.location.href = '/?error=session_expired';
-            }
+            // DISABLED AUTO-REDIRECT TO DEBUG LOOP
+            // We will let the specific request handle the error (e.g. show a toast)
+            // localStorage.removeItem('authToken');
+            // localStorage.removeItem('rt_session');
+            // if (!window.location.pathname.includes('/login') && !window.location.search.includes('error=session_expired')) {
+            //     window.location.href = '/?error=session_expired';
+            // }
         }
         return Promise.reject(error);
     }
