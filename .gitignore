@@ -3,6 +3,7 @@ node_modules
 
 # Build Artifacts
 dist/
+dist_installer/
 release/
 release_portable/
 build/
@@ -10,10 +11,8 @@ build/
 # Desktop/Mobile Builds (NOT needed for server)
 android/
 ios/
-electron/
-electron-builder.json
 capacitor.config.json
-*.pfx
+
 
 # Landing pages (separate deployment)
 landing-delivery/

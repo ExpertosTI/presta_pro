@@ -12,7 +12,7 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "vite build && electron-packager . PrestaPro --platform=win32 --arch=x64 --out=release_portable --overwrite --icon=public/logo.png --ignore=\"^/src|/android|/ios|/.git|/server\"",
+    "electron:build": "vite build && electron-packager . PrestaPro --platform=win32 --arch=x64 --out=release_portable_v2 --overwrite --icon=public/logo.png",
     "electron:installer": "vite build && electron-builder -c electron-builder.json"
   },
   "dependencies": {

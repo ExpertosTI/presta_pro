@@ -103,7 +103,10 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                 </select>
                 <button
                   type="button"
-                  onClick={onNewClient}
+                  onClick={() => onNewClient((newClientId) => {
+                    // Auto-select the newly created client
+                    setForm({ ...form, clientId: newClientId });
+                  })}
                   className="bg-blue-600/20 text-blue-400 border border-blue-500/30 p-2 rounded-lg hover:bg-blue-600/30 transition-colors"
                 >
                   +

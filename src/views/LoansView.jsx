@@ -13,6 +13,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
   const [showPenaltyInput, setShowPenaltyInput] = useState(false);
   const [penaltyAmount, setPenaltyAmount] = useState(0);
   const [penaltyAmountInput, setPenaltyAmountInput] = useState('');
+  const [customPaymentAmount, setCustomPaymentAmount] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({ amount: '', rate: '', term: '', frequency: 'Mensual', startDate: '' });
   const [editError, setEditError] = useState('');
@@ -351,9 +352,19 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                     <p className="text-sm text-slate-700 dark:text-slate-300 mb-1">
                       <span className="font-semibold">Fecha programada:</span> {formatDate(paymentToConfirm.date)}
                     </p>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
-                      <span className="font-semibold">Monto de la cuota:</span> {formatCurrency(paymentToConfirm.amount)}
-                    </p>
+                    <div className="mb-3">
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">💵 Monto a pagar</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={customPaymentAmount || paymentToConfirm.amount}
+                        onChange={(e) => setCustomPaymentAmount(e.target.value)}
+                        className="w-full px-4 py-3 rounded-lg border-2 border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-slate-900 dark:text-slate-100 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-600"
+                        placeholder={`Sugerido: ${formatCurrency(paymentToConfirm.amount)}`}
+                      />
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Cuota sugerida: {formatCurrency(paymentToConfirm.amount)}</p>
+                    </div>
                     {showPenaltyInput && (
                       <div className="mb-3">
                         <label className="block text-sm font-bold text-amber-700 dark:text-amber-400 mb-2">💰 Monto de mora</label>
@@ -386,16 +397,25 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                       <button
                         onClick={() => {
                           let options = {};
+
+                          // Custom payment amount
+                          const customAmount = parseFloat(customPaymentAmount) || 0;
+                          if (customAmount > 0 && customAmount !== paymentToConfirm.amount) {
+                            options.customAmount = customAmount;
+                          }
+
+                          // Penalty
                           if (showPenaltyInput) {
                             const penaltyVal = parseFloat(penaltyAmountInput) || 0;
                             if (penaltyVal > 0) {
-                              options = { withPenalty: true, penaltyAmountOverride: penaltyVal };
+                              options = { ...options, withPenalty: true, penaltyAmountOverride: penaltyVal };
                             }
                           }
 
                           registerPayment(paymentToConfirm.loanId, paymentToConfirm.installmentId, options);
                           setPaymentToConfirm(null);
                           setPenaltyAmountInput('');
+                          setCustomPaymentAmount('');
                           setShowPenaltyInput(false);
                         }}
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 rounded-lg"

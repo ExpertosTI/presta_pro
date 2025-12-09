@@ -103,6 +103,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [printReceipt, setPrintReceipt] = useState(null);
   const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [clientCreationCallback, setClientCreationCallback] = useState(null);
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
   const [securityToken, setSecurityToken] = useState('');
 
@@ -335,8 +336,16 @@ function App() {
       {clientModalOpen && (
         <ClientModal
           open={clientModalOpen}
-          onClose={() => setClientModalOpen(false)}
-          onSave={(data) => { addClient(data); setClientModalOpen(false); }}
+          onClose={() => { setClientModalOpen(false); setClientCreationCallback(null); }}
+          onSave={(data) => {
+            const newClient = addClient(data);
+            setClientModalOpen(false);
+            // If there's a callback (from RequestsView), call it with the new client ID
+            if (clientCreationCallback) {
+              clientCreationCallback(newClient.id);
+              setClientCreationCallback(null);
+            }
+          }}
         />
       )}
       {/* EMPLOYEE MODAL */}
@@ -434,7 +443,7 @@ function App() {
             {activeTab === 'dashboard' && <DashboardView loans={loans} clients={clients} activeTab={activeTab} />}
             {activeTab === 'cuadre' && <CuadreView />}
             {activeTab === 'expenses' && <GastosView expenses={expenses} addExpense={addExpense} />}
-            {activeTab === 'requests' && <SolicitudesView requests={requests} clients={clients} addRequest={addRequest} approveRequest={approveRequest} rejectRequest={rejectRequest} onNewClient={() => setClientModalOpen(true)} />}
+            {activeTab === 'requests' && <SolicitudesView requests={requests} clients={clients} addRequest={addRequest} approveRequest={approveRequest} rejectRequest={rejectRequest} onNewClient={(callback) => { setClientCreationCallback(() => callback); setClientModalOpen(true); }} />}
             {activeTab === 'routes' && (
               <RutaView
                 loans={loans}
