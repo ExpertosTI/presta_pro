@@ -12,6 +12,9 @@ const { PrismaPg } = require('@prisma/adapter-pg');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { OAuth2Client } = require('google-auth-library');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 // Email Templates
 const {
@@ -97,6 +100,37 @@ const registerLimiter = rateLimit({
 
 app.use(cors());
 app.use(express.json());
+
+// Configurar multer para upload de comprobantes
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'proof-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.pdf', '.gif', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no permitido'), false);
+    }
+  }
+});
+
+// Servir archivos de uploads
+app.use('/uploads', express.static(uploadsDir));
 
 // Logging condicional (solo en desarrollo)
 if (!IS_PRODUCTION) {
@@ -1292,6 +1326,130 @@ app.post('/api/subscriptions/upgrade', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('SUBSCRIPTION_UPGRADE_ERROR', err);
     res.status(500).json({ error: 'Error al procesar upgrade' });
+  }
+});
+
+// Upload payment proof and send email to admin
+app.post('/api/subscriptions/upload-proof', authMiddleware, upload.single('proof'), async (req, res) => {
+  try {
+    const { paymentId, plan, amount, method } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: 'Comprobante requerido' });
+    }
+
+    // Get user and tenant info
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.user.tenantId } });
+
+    // Update payment with proof URL if paymentId provided
+    if (paymentId) {
+      await prisma.payment.update({
+        where: { id: paymentId },
+        data: {
+          proofUrl: `/uploads/${file.filename}`,
+          status: 'PENDING_REVIEW',
+        },
+      });
+    }
+
+    // Send email to admin
+    const adminEmail = 'adderlymarte@hotmail.com';
+    const approveUrl = `${process.env.APP_BASE_URL}/admin/verify-payment?paymentId=${paymentId}&action=approve`;
+    const rejectUrl = `${process.env.APP_BASE_URL}/admin/verify-payment?paymentId=${paymentId}&action=reject`;
+
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8fafc; margin: 0; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+          .header { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color: white; padding: 30px; text-align: center; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .content { padding: 30px; }
+          .info-card { background: #f1f5f9; border-radius: 8px; padding: 20px; margin: 20px 0; }
+          .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+          .info-row:last-child { border-bottom: none; }
+          .info-label { color: #64748b; }
+          .info-value { font-weight: 600; color: #1e293b; }
+          .buttons { margin-top: 30px; text-align: center; }
+          .btn { display: inline-block; padding: 14px 28px; margin: 8px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+          .btn-approve { background: #10b981; color: white; }
+          .btn-reject { background: #ef4444; color: white; }
+          .proof-img { max-width: 100%; border-radius: 8px; margin: 20px 0; }
+          .footer { background: #f8fafc; padding: 20px; text-align: center; color: #64748b; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💳 Nuevo Comprobante de Pago</h1>
+          </div>
+          <div class="content">
+            <p>Se ha recibido un nuevo comprobante de pago para verificar:</p>
+            
+            <div class="info-card">
+              <div class="info-row">
+                <span class="info-label">Empresa:</span>
+                <span class="info-value">${tenant?.name || 'N/A'}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Usuario:</span>
+                <span class="info-value">${user?.name || 'N/A'} (${user?.email || 'N/A'})</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Plan Solicitado:</span>
+                <span class="info-value">${plan || 'N/A'}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Monto:</span>
+                <span class="info-value">RD$${amount || 'N/A'}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Método:</span>
+                <span class="info-value">${method === 'BANK_TRANSFER' ? 'Transferencia Bancaria' : 'Efectivo/Depósito'}</span>
+              </div>
+            </div>
+            
+            <p><strong>Comprobante adjunto:</strong></p>
+            <p>Ver archivo: <a href="${process.env.APP_BASE_URL}/uploads/${file.filename}">${file.filename}</a></p>
+            
+            <div class="buttons">
+              <a href="${approveUrl}" class="btn btn-approve">✅ Aprobar y Activar</a>
+              <a href="${rejectUrl}" class="btn btn-reject">❌ Rechazar</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p>Presta Pro by Renace.Tech</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    if (mailTransporter) {
+      await mailTransporter.sendMail({
+        from: `"Presta Pro" <${SMTP_USER || 'noreply@renace.tech'}>`,
+        to: adminEmail,
+        subject: `💳 Comprobante de Pago - ${tenant?.name || 'Nuevo Cliente'} - Plan ${plan}`,
+        html: emailHtml,
+        attachments: [{
+          filename: file.originalname,
+          path: file.path,
+        }],
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Comprobante enviado. Recibirás confirmación por correo.',
+    });
+  } catch (err) {
+    console.error('UPLOAD_PROOF_ERROR', err);
+    res.status(500).json({ error: 'Error al procesar comprobante' });
   }
 });
 

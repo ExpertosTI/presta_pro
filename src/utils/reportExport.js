@@ -3,96 +3,125 @@
  * PDF and Excel export for accounting reports
  */
 
+import * as XLSX from 'xlsx';
 import { formatCurrency, formatDate, formatDateTime } from './formatters';
 
 /**
- * Generate and download Excel file
+ * Generate and download real Excel file (.xlsx)
  */
 export function exportToExcel(data, filename = 'reporte') {
-    const { receipts, expenses, loans, companyName = 'Presta Pro', dateRange } = data;
+  const { receipts, expenses, loans, companyName = 'Presta Pro', dateRange } = data;
 
-    // Create workbook content as CSV (Excel compatible)
-    let csvContent = '';
+  // Create workbook
+  const wb = XLSX.utils.book_new();
 
-    // Header
-    csvContent += `${companyName} - Reporte Financiero\n`;
-    csvContent += `Generado: ${formatDateTime(new Date())}\n`;
-    if (dateRange) {
-        csvContent += `Período: ${dateRange.from} - ${dateRange.to}\n`;
-    }
-    csvContent += '\n';
+  // Summary data
+  const totalCobrado = (receipts || []).reduce((acc, r) => acc + parseFloat(r.amount || 0), 0);
+  const totalGastos = (expenses || []).reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
+  const totalCapital = (loans || []).reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+  const utilidadNeta = totalCobrado - totalGastos;
 
-    // Summary section
-    const totalCobrado = (receipts || []).reduce((acc, r) => acc + parseFloat(r.amount || 0), 0);
-    const totalGastos = (expenses || []).reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
-    const totalCapital = (loans || []).reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+  // Summary Sheet
+  const summaryData = [
+    [companyName + ' - Reporte Financiero'],
+    ['Generado:', formatDateTime(new Date())],
+    dateRange ? ['Período:', `${dateRange.from} - ${dateRange.to}`] : [],
+    [],
+    ['RESUMEN'],
+    ['Capital Prestado', totalCapital],
+    ['Total Cobrado', totalCobrado],
+    ['Total Gastos', totalGastos],
+    ['Utilidad Neta', utilidadNeta],
+  ].filter(row => row.length > 0);
 
-    csvContent += 'RESUMEN\n';
-    csvContent += `Capital Prestado,${totalCapital.toFixed(2)}\n`;
-    csvContent += `Total Cobrado,${totalCobrado.toFixed(2)}\n`;
-    csvContent += `Total Gastos,${totalGastos.toFixed(2)}\n`;
-    csvContent += `Utilidad Neta,${(totalCobrado - totalGastos).toFixed(2)}\n`;
-    csvContent += '\n';
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
 
-    // Receipts section
-    if (receipts && receipts.length > 0) {
-        csvContent += 'COBROS\n';
-        csvContent += 'Fecha,Cliente,Préstamo ID,Cuota #,Monto,Mora,Total\n';
-        receipts.forEach(r => {
-            const base = parseFloat(r.amount || 0);
-            const penalty = parseFloat(r.penaltyAmount || r.penalty || 0);
-            csvContent += `${formatDateTime(r.date)},${r.clientName || ''},${(r.loanId || '').substring(0, 6)},${r.installmentNumber || ''},${base.toFixed(2)},${penalty.toFixed(2)},${(base + penalty).toFixed(2)}\n`;
-        });
-        csvContent += '\n';
-    }
+  // Set column widths
+  summarySheet['!cols'] = [{ wch: 20 }, { wch: 15 }];
 
-    // Expenses section
-    if (expenses && expenses.length > 0) {
-        csvContent += 'GASTOS\n';
-        csvContent += 'Fecha,Categoría,Descripción,Monto\n';
-        expenses.forEach(e => {
-            csvContent += `${formatDate(e.date)},${e.category || 'Gasto'},${e.notes || e.description || ''},${parseFloat(e.amount || 0).toFixed(2)}\n`;
-        });
-        csvContent += '\n';
-    }
+  XLSX.utils.book_append_sheet(wb, summarySheet, 'Resumen');
 
-    // Loans section
-    if (loans && loans.length > 0) {
-        csvContent += 'PRÉSTAMOS\n';
-        csvContent += 'ID,Cliente,Monto,Tasa,Plazo,Estado,Pagado\n';
-        loans.forEach(l => {
-            csvContent += `${(l.id || '').substring(0, 6)},${l.clientName || ''},${parseFloat(l.amount || 0).toFixed(2)},${l.rate}%,${l.term},${l.status || 'ACTIVE'},${parseFloat(l.totalPaid || 0).toFixed(2)}\n`;
-        });
-    }
+  // Receipts Sheet
+  if (receipts && receipts.length > 0) {
+    const receiptsData = [
+      ['COBROS'],
+      ['Fecha', 'Cliente', 'Préstamo ID', 'Cuota #', 'Monto', 'Mora', 'Total'],
+      ...receipts.map(r => {
+        const base = parseFloat(r.amount || 0);
+        const penalty = parseFloat(r.penaltyAmount || r.penalty || 0);
+        return [
+          formatDateTime(r.date),
+          r.clientName || '',
+          (r.loanId || '').substring(0, 6).toUpperCase(),
+          r.installmentNumber || '',
+          base,
+          penalty,
+          base + penalty
+        ];
+      })
+    ];
+    const receiptsSheet = XLSX.utils.aoa_to_sheet(receiptsData);
+    receiptsSheet['!cols'] = [{ wch: 18 }, { wch: 20 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, receiptsSheet, 'Cobros');
+  }
 
-    // Add BOM for Excel UTF-8 compatibility
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  // Expenses Sheet
+  if (expenses && expenses.length > 0) {
+    const expensesData = [
+      ['GASTOS'],
+      ['Fecha', 'Categoría', 'Descripción', 'Monto'],
+      ...expenses.map(e => [
+        formatDate(e.date),
+        e.category || 'Gasto',
+        e.notes || e.description || '',
+        parseFloat(e.amount || 0)
+      ])
+    ];
+    const expensesSheet = XLSX.utils.aoa_to_sheet(expensesData);
+    expensesSheet['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, expensesSheet, 'Gastos');
+  }
 
-    // Download
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  // Loans Sheet
+  if (loans && loans.length > 0) {
+    const loansData = [
+      ['PRÉSTAMOS'],
+      ['ID', 'Cliente', 'Monto', 'Tasa', 'Plazo', 'Estado', 'Pagado'],
+      ...loans.map(l => [
+        (l.id || '').substring(0, 6).toUpperCase(),
+        l.clientName || '',
+        parseFloat(l.amount || 0),
+        `${l.rate}%`,
+        l.term,
+        l.status || 'ACTIVE',
+        parseFloat(l.totalPaid || 0)
+      ])
+    ];
+    const loansSheet = XLSX.utils.aoa_to_sheet(loansData);
+    loansSheet['!cols'] = [{ wch: 10 }, { wch: 20 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, loansSheet, 'Préstamos');
+  }
+
+  // Download the file
+  const dateStr = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `${filename}_${dateStr}.xlsx`);
 }
 
 /**
  * Generate and download PDF report
  */
 export function exportToPDF(data, filename = 'reporte') {
-    const { receipts, expenses, loans, companyName = 'Presta Pro', companyLogo } = data;
+  const { receipts, expenses, loans, companyName = 'Presta Pro', companyLogo, dateRange } = data;
 
-    const totalCobrado = (receipts || []).reduce((acc, r) => acc + parseFloat(r.amount || 0), 0);
-    const totalGastos = (expenses || []).reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
-    const totalCapital = (loans || []).reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
-    const utilidadNeta = totalCobrado - totalGastos;
+  const totalCobrado = (receipts || []).reduce((acc, r) => acc + parseFloat(r.amount || 0), 0);
+  const totalGastos = (expenses || []).reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
+  const totalCapital = (loans || []).reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+  const utilidadNeta = totalCobrado - totalGastos;
 
-    // Create printable HTML content
-    const htmlContent = `
+  const dateRangeText = dateRange ? `<p>Período: ${dateRange.from} - ${dateRange.to}</p>` : '';
+
+  // Create printable HTML content
+  const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -130,6 +159,7 @@ export function exportToPDF(data, filename = 'reporte') {
         ${companyLogo ? `<img src="${companyLogo}" class="logo" alt="Logo">` : ''}
         <h1>${companyName}</h1>
         <p>Reporte Financiero - Generado: ${formatDateTime(new Date())}</p>
+        ${dateRangeText}
       </div>
       
       <div class="summary">
@@ -167,10 +197,10 @@ export function exportToPDF(data, filename = 'reporte') {
               </tr>
             </thead>
             <tbody>
-              ${receipts.slice(0, 20).map(r => {
-        const base = parseFloat(r.amount || 0);
-        const penalty = parseFloat(r.penaltyAmount || r.penalty || 0);
-        return `
+              ${receipts.slice(0, 30).map(r => {
+    const base = parseFloat(r.amount || 0);
+    const penalty = parseFloat(r.penaltyAmount || r.penalty || 0);
+    return `
                   <tr>
                     <td>${formatDate(r.date)}</td>
                     <td>${r.clientName || '-'}</td>
@@ -181,7 +211,7 @@ export function exportToPDF(data, filename = 'reporte') {
                     <td class="text-right positive">${formatCurrency(base + penalty)}</td>
                   </tr>
                 `;
-    }).join('')}
+  }).join('')}
             </tbody>
           </table>
         </div>
@@ -200,7 +230,7 @@ export function exportToPDF(data, filename = 'reporte') {
               </tr>
             </thead>
             <tbody>
-              ${expenses.slice(0, 20).map(e => `
+              ${expenses.slice(0, 30).map(e => `
                 <tr>
                   <td>${formatDate(e.date)}</td>
                   <td>${e.category || 'Gasto'}</td>
@@ -221,17 +251,17 @@ export function exportToPDF(data, filename = 'reporte') {
     </html>
   `;
 
-    // Open in new window for printing/saving as PDF
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
+  // Open in new window for printing/saving as PDF
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
 
-        // Wait for content to load then print
-        printWindow.onload = () => {
-            setTimeout(() => {
-                printWindow.print();
-            }, 250);
-        };
-    }
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    };
+  }
 }

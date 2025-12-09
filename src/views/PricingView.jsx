@@ -111,31 +111,47 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
         setProcessing(true);
         try {
             const token = localStorage.getItem('authToken');
+            const planInfo = plans.find(p => p.id === planId);
+            const price = billingInterval === 'yearly' ? planInfo?.yearlyPriceFormatted : planInfo?.monthlyPriceFormatted;
 
-            // Create form data if there's a proof file
-            let body;
-            let headers = { 'Authorization': `Bearer ${token}` };
-
+            // For manual payments with proof file, use upload-proof endpoint
             if (proofFile && (paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'CASH')) {
                 const formData = new FormData();
-                formData.append('plan', planId);
-                formData.append('interval', billingInterval);
-                formData.append('paymentMethod', paymentMethod);
                 formData.append('proof', proofFile);
-                body = formData;
-            } else {
-                headers['Content-Type'] = 'application/json';
-                body = JSON.stringify({
+                formData.append('plan', planId);
+                formData.append('amount', price);
+                formData.append('method', paymentMethod);
+
+                const res = await fetch(`${API_BASE_URL}/api/subscriptions/upload-proof`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData,
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showToast?.(data.error || 'Error al enviar comprobante', 'error');
+                    return;
+                }
+
+                showToast?.('Comprobante enviado. Recibirás confirmación por correo.', 'success');
+                setSelectedPlan(null);
+                setShowUploadModal(false);
+                setProofFile(null);
+                setProofPreview(null);
+                return;
+            }
+
+            // For card payments (Azul)
+            const res = await fetch(`${API_BASE_URL}/api/subscriptions/upgrade`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     plan: planId,
                     interval: billingInterval,
                     paymentMethod,
-                });
-            }
-
-            const res = await fetch(`${API_BASE_URL}/api/subscriptions/upgrade`, {
-                method: 'POST',
-                headers,
-                body,
+                }),
             });
 
             const data = await res.json();
@@ -277,10 +293,10 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                         onClick={() => setSelectedPlan(plan.id)}
                                         disabled={isCurrentPlan || processing}
                                         className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${isCurrentPlan
-                                                ? 'bg-emerald-100 text-emerald-700 cursor-not-allowed'
-                                                : plan.id === 'PRO'
-                                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
-                                                    : 'bg-gradient-to-r from-slate-800 to-slate-700 text-white hover:from-slate-900 hover:to-slate-800 shadow-lg shadow-slate-500/25'
+                                            ? 'bg-emerald-100 text-emerald-700 cursor-not-allowed'
+                                            : plan.id === 'PRO'
+                                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
+                                                : 'bg-gradient-to-r from-slate-800 to-slate-700 text-white hover:from-slate-900 hover:to-slate-800 shadow-lg shadow-slate-500/25'
                                             }`}
                                     >
                                         {isCurrentPlan ? 'Plan Actual' : 'Seleccionar'}
@@ -389,11 +405,28 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                 <div className="flex gap-2">
                                     <AlertCircle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
                                     <div className="text-sm text-amber-800 dark:text-amber-200">
-                                        <p className="font-semibold">Datos para {paymentMethod === 'BANK_TRANSFER' ? 'transferencia' : 'depósito'}:</p>
-                                        <p className="mt-1">Banco Popular Dominicano</p>
-                                        <p>Cuenta: 123-456789-0</p>
-                                        <p>A nombre de: RENACE TECH SRL</p>
-                                        <p>RNC: 123456789</p>
+                                        <p className="font-semibold mb-2">Datos para {paymentMethod === 'BANK_TRANSFER' ? 'transferencia' : 'depósito'}:</p>
+                                        <p className="font-bold">Adderly Marte</p>
+                                        <p className="text-xs text-amber-600 dark:text-amber-300 mb-2">Cédula: 224-0056380-9</p>
+                                        <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                                            <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded">
+                                                <p className="font-semibold text-amber-900 dark:text-amber-100">Banco Popular</p>
+                                                <p className="font-mono">804637114</p>
+                                            </div>
+                                            <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded">
+                                                <p className="font-semibold text-amber-900 dark:text-amber-100">Banco BHD</p>
+                                                <p className="font-mono">10499770022</p>
+                                            </div>
+                                            <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded">
+                                                <p className="font-semibold text-amber-900 dark:text-amber-100">BanReservas</p>
+                                                <p className="font-mono">9606451004</p>
+                                            </div>
+                                            <div className="bg-amber-100 dark:bg-amber-800/30 p-2 rounded">
+                                                <p className="font-semibold text-amber-900 dark:text-amber-100">QIK Banco Digital</p>
+                                                <p className="font-mono">1001256657</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs mt-2 text-amber-600 dark:text-amber-400">📧 adderlymarte@hotmail.com</p>
                                     </div>
                                 </div>
                             </div>

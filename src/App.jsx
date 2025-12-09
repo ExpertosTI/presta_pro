@@ -34,13 +34,26 @@ import {
 } from 'lucide-react';
 import logoSmall from '../logo-small.svg';
 
-// Theme Colors Mapping
+// Theme Colors Mapping - Colores oscuros empresariales
 const THEME_COLORS = {
   indigo: 'bg-indigo-900',
   blue: 'bg-blue-900',
   emerald: 'bg-emerald-800',
   violet: 'bg-violet-900',
-  slate: 'bg-slate-900'
+  slate: 'bg-slate-900',
+  zinc: 'bg-zinc-900',
+  neutral: 'bg-neutral-900',
+  stone: 'bg-stone-900',
+  gray: 'bg-gray-900',
+  teal: 'bg-teal-900',
+  cyan: 'bg-cyan-900',
+  sky: 'bg-sky-900',
+  rose: 'bg-rose-900',
+  amber: 'bg-amber-900',
+  orange: 'bg-orange-900',
+  fuchsia: 'bg-fuchsia-900',
+  purple: 'bg-purple-900',
+  green: 'bg-green-900',
 };
 
 import PaymentTicket from './components/ui/PaymentTicket';
