@@ -3,6 +3,8 @@ services:
     build:
       context: ./server
     container_name: presta_pro_api
+    ports:
+      - "4000:4000"  # Exponer API al host
     environment:
       - DATABASE_URL=postgresql://prestapro:prestapro@prestapro_db:5432/prestapro?schema=public
       - JWT_SECRET=${JWT_SECRET:-pon_un_secreto_largo_aqui}
@@ -12,7 +14,7 @@ services:
       - SMTP_PASS=${SMTP_PASS:-}
       - SMTP_FROM=${SMTP_FROM:-noreply@renace.tech}
       - ADMIN_NOTIFY_EMAIL=${ADMIN_NOTIFY_EMAIL:-adderlymarte@hotmail.com}
-      - APP_BASE_URL=https://prestanace.renace.tech/api
+      - APP_BASE_URL=https://prestanace.renace.tech
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
 
