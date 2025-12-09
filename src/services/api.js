@@ -2,37 +2,26 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
-const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
-
-// Interceptor para agregar token
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-}, (error) => Promise.reject(error));
-
 // Interceptor para errores (401 -> Logout)
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
             // Token inválido o expirado
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('rt_session');
-            if (!window.location.pathname.includes('/login')) {
+            console.error('Sesión expirada o token inválido (401). Cerrando sesión...');
+
+            // Only redirect if NOT already on login page to avoid loops
+            if (!window.location.pathname.includes('/login') && !window.location.search.includes('error=session_expired')) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('rt_session');
                 window.location.href = '/?error=session_expired';
             }
         }
         return Promise.reject(error);
     }
 );
+
+
 
 // Auth Services
 export const authService = {

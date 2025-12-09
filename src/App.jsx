@@ -113,7 +113,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotification, setShowNotification] = useState(null);
-  const [notifications, setNotifications] = useState([]); // New Notifications State
+  const [notifications, setNotifications] = useState(() => safeLoad('rt_notifications', [])); // Persist notifications
   const [showNotifications, setShowNotifications] = useState(false); // Toggle Dropdown
   const [searchQuery, setSearchQuery] = useState('');
   const [printReceipt, setPrintReceipt] = useState(null);
@@ -127,8 +127,17 @@ function App() {
       date: new Date().toISOString(),
       read: false
     };
-    setNotifications(prev => [...prev, newNotif]);
+    setNotifications(prev => {
+      const updated = [...prev, newNotif];
+      localStorage.setItem('rt_notifications', JSON.stringify(updated));
+      return updated;
+    });
   };
+
+  // Persist notifications on change (secondary safety)
+  useEffect(() => {
+    localStorage.setItem('rt_notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [clientCreationCallback, setClientCreationCallback] = useState(null);
