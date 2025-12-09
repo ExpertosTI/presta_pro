@@ -120,7 +120,7 @@ function App() {
   const [expenses, setExpenses] = useState(() => safeLoad('rt_expenses', []));
   const [requests, setRequests] = useState(() => safeLoad('rt_requests', []));
   const [notes, setNotes] = useState(() => safeLoad('rt_notes', []));
-
+  const [employees, setEmployees] = useState(() => safeLoad('rt_employees', []));
   const [receipts, setReceipts] = useState(() => safeLoad('rt_receipts', []));
   const [routeClosings, setRouteClosings] = useState(() => safeLoad('rt_closings', []));
 
@@ -152,6 +152,7 @@ function App() {
 
   useEffect(() => localStorage.setItem('rt_receipts', JSON.stringify(receipts)), [receipts]);
   useEffect(() => localStorage.setItem('rt_closings', JSON.stringify(routeClosings)), [routeClosings]);
+  useEffect(() => localStorage.setItem('rt_employees', JSON.stringify(employees)), [employees]);
 
   // --- ACCIONES GLOBALES ---
   const showToast = (msg, type = 'success') => {
@@ -165,14 +166,23 @@ function App() {
   };
 
   const addClient = (data) => {
-    setClients([...clients, { ...data, id: generateId(), score: 70 }]);
+    const newClient = { ...data, id: generateId(), score: 70 };
+    setClients([...clients, newClient]);
     showToast('Cliente registrado correctamente');
-    setActiveTab('clients');
+    // Don't force tab change - let the caller decide
+    return newClient;
   };
 
   const addExpense = (data) => {
     setExpenses([...expenses, { ...data, id: generateId(), date: new Date().toISOString() }]);
     showToast('Gasto registrado');
+  };
+
+  const addEmployee = (data) => {
+    const newEmployee = { ...data, id: generateId() };
+    setEmployees([...employees, newEmployee]);
+    showToast('Empleado agregado correctamente');
+    return newEmployee;
   };
 
   const addRequest = (data) => {
@@ -352,6 +362,7 @@ function App() {
       {employeeModalOpen && (
         <EmployeeModal
           open={employeeModalOpen}
+          onSave={(data) => { addEmployee(data); setEmployeeModalOpen(false); }}
           onClose={() => setEmployeeModalOpen(false)}
         />
       )}
@@ -467,7 +478,7 @@ function App() {
             )}
             {activeTab === 'notes' && <NotasView notes={notes} setNotes={setNotes} />}
             {activeTab === 'reports' && <ReportesView loans={loans} expenses={expenses} />}
-            {activeTab === 'hr' && <RRHHView />}
+            {activeTab === 'hr' && <RRHHView employees={employees} onNewEmployee={() => setEmployeeModalOpen(true)} />}
             {activeTab === 'accounting' && <ContabilidadView />}
             {activeTab === 'ai' && (
               <AIHelper chatHistory={chatHistory} setChatHistory={setChatHistory} dbData={dbData} showToast={showToast} />
