@@ -1,93 +1,89 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   LayoutDashboard,
   Users,
+  Calculator,
   Wallet,
-  Settings,
-  LogOut,
-  Menu,
-  X,
   Bell,
   Search,
-  CheckCircle,
-  AlertCircle,
-  TrendingUp,
+  Plus,
   FileText,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
+  X,
+  ChevronRight,
+  Menu,
   DollarSign,
   Calendar,
-  ChevronRight,
-  Shield,
-  Loader2,
-  Banknote,
   Printer,
-  MapPin,
-  Car,
-  ClipboardList,
-  Zap,
-  Calculator,
+  Trash2,
+  MoreVertical,
+  Download,
+  PieChart,
+  Settings,
+  HelpCircle,
+  LogOut,
   Briefcase,
-  UserCheck,
+  MapPin,
+  ClipboardList,
+  Banknote,
   BookOpen,
+  Shield,
   Video,
-  List,
-  Crown
+  UserCheck,
+  Zap,
+  Send,
+  Loader2,
+  List
 } from 'lucide-react';
+import { LineChart, Line, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import logoSmall from '../logo-small.svg';
 
-const THEME_COLORS = {
-  indigo: 'bg-[#0f172a] border-indigo-900', // Very dark slate/blue
-  blue: 'bg-[#0f172a] border-blue-900',
-  emerald: 'bg-[#064e3b] border-emerald-900',
-  violet: 'bg-[#2e1065] border-violet-900',
-  slate: 'bg-[#020617] border-slate-800', // Almost black
-  zinc: 'bg-[#18181b] border-zinc-900',
-  neutral: 'bg-[#171717] border-neutral-900',
-  stone: 'bg-[#1c1917] border-stone-900',
-  gray: 'bg-[#111827] border-gray-900',
-  teal: 'bg-[#134e4a] border-teal-900',
-  cyan: 'bg-[#164e63] border-cyan-900',
-  sky: 'bg-[#0c4a6e] border-sky-900',
-  rose: 'bg-[#881337] border-rose-900',
-  amber: 'bg-[#78350f] border-amber-900',
-  orange: 'bg-[#7c2d12] border-orange-900',
-  fuchsia: 'bg-[#701a75] border-fuchsia-900',
-  purple: 'bg-[#581c87] border-purple-900',
-  green: 'bg-[#14532d] border-green-900',
+// --- UTILS & HELPERS ---
+
+const generateId = () => Math.random().toString(36).substr(2, 9);
+
+const generateSecurityToken = () => {
+  if (window.crypto && window.crypto.getRandomValues) {
+    const array = new Uint32Array(2);
+    window.crypto.getRandomValues(array);
+    return Array.from(array)
+      .map(v => v.toString(16).padStart(8, '0'))
+      .join('')
+      .slice(0, 12)
+      .toUpperCase();
+  }
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-import PaymentTicket from './components/ui/PaymentTicket';
-import ClientModal from './components/modals/ClientModal';
-import EmployeeModal from './components/modals/EmployeeModal';
-import MenuItem from './components/ui/MenuItem';
-import MenuSection from './components/ui/MenuSection';
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(amount);
+};
 
-// API Services
-import { clientService, loanService, paymentService, syncService } from './services/api';
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  return new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
+};
 
-// Utils
-import { generateId, generateSecurityToken } from './utils/ids';
-import { formatCurrency, formatDate, formatDateTime } from './utils/formatters';
-import { calculateSchedule } from './utils/amortization';
-import { safeLoad } from './utils/storage';
+const formatDateTime = (dateString) => {
+  if (!dateString) return '';
+  return new Date(dateString).toLocaleString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
 
-// Views
-const DashboardView = React.lazy(() => import('./views/DashboardView'));
-const CuadreView = React.lazy(() => import('./views/CuadreView'));
-const ClientsView = React.lazy(() => import('./views/ClientsView'));
-const LoansView = React.lazy(() => import('./views/LoansView'));
-const GastosView = React.lazy(() => import('./views/ExpensesView'));
-const SolicitudesView = React.lazy(() => import('./views/RequestsView'));
-const RutaView = React.lazy(() => import('./views/RoutesView'));
-const NotasView = React.lazy(() => import('./views/NotesView'));
-const ReportesView = React.lazy(() => import('./views/ReportsView'));
-const RRHHView = React.lazy(() => import('./views/HRView'));
-const ContabilidadView = React.lazy(() => import('./views/AccountingView'));
-const AIHelper = React.lazy(() => import('./views/AIView'));
-const CalculatorView = React.lazy(() => import('./views/CalculatorView'));
-const SettingsView = React.lazy(() => import('./views/SettingsView'));
-const DocumentsView = React.lazy(() => import('./views/DocumentsView'));
-const PricingView = React.lazy(() => import('./views/PricingView'));
-import LoginView from './views/LoginView';
+const safeLoad = (key, defaultValue) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return defaultValue;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(defaultValue) && !Array.isArray(parsed)) return defaultValue;
+    return parsed ?? defaultValue;
+  } catch (e) {
+    console.error('Error loading data from localStorage key', key, e);
+    try { localStorage.removeItem(key); } catch {}
+    return defaultValue;
+  }
+};
 
 const TAB_TITLES = {
   dashboard: 'Inicio',
@@ -97,7 +93,6 @@ const TAB_TITLES = {
   expenses: 'Gastos',
   requests: 'Solicitudes',
   routes: 'Rutas & GPS',
-  documents: 'Documentos',
   notes: 'Notas',
   reports: 'Reportes',
   hr: 'Recursos Humanos',
@@ -105,598 +100,817 @@ const TAB_TITLES = {
   ai: 'Asistente IA',
   calculator: 'Simulador',
   settings: 'Ajustes',
-  pricing: 'Planes y Precios',
 };
 
-function App() {
-  // --- STATE PRINCIPAL ---
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showNotification, setShowNotification] = useState(null);
-  const [notifications, setNotifications] = useState([]); // Persistent notifications
-  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [printReceipt, setPrintReceipt] = useState(null);
-  const [clientModalOpen, setClientModalOpen] = useState(false);
-  const [clientCreationCallback, setClientCreationCallback] = useState(null);
-  const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
-  const [securityToken, setSecurityToken] = useState('');
-
-  // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !!safeLoad('rt_session', null));
-  const [user, setUser] = useState(() => safeLoad('rt_session', null));
-
-  // Estado del chat AI
-  const [chatHistory, setChatHistory] = useState([]);
-
-  // Datos persistentes
-  const [clients, setClients] = useState(() => safeLoad('rt_clients', []));
-  const [loans, setLoans] = useState(() => safeLoad('rt_loans', []));
-  const [expenses, setExpenses] = useState(() => safeLoad('rt_expenses', []));
-  const [requests, setRequests] = useState(() => safeLoad('rt_requests', []));
-  const [notes, setNotes] = useState(() => safeLoad('rt_notes', []));
-  const [employees, setEmployees] = useState(() => safeLoad('rt_employees', []));
-  const [receipts, setReceipts] = useState(() => safeLoad('rt_receipts', []));
-  const [routeClosings, setRouteClosings] = useState(() => safeLoad('rt_closings', []));
-  const [clientDocuments, setClientDocuments] = useState(() => safeLoad('rt_client_documents', {}));
-
-  // Estado de Navegación y Selección
-  const [selectedClientId, setSelectedClientId] = useState(null);
-  const [selectedLoanId, setSelectedLoanId] = useState(null);
-
-  // Estado para Rutas y Cobradores
-  const [collectors, setCollectors] = useState([
-    { id: '1', name: 'Cobrador Principal', active: true },
-    { id: '2', name: 'Cobrador Auxiliar', active: true }
-  ]);
-  const [currentRouteLoanIds, setCurrentRouteLoanIds] = useState([]);
-  const [routeActive, setRouteActive] = useState(false);
-  const [systemSettings, setSystemSettings] = useState(() => safeLoad('rt_settings', {
-    companyName: 'Presta Pro',
-    companyLogo: logoSmall
-  }));
-  const [includeFutureInstallments, setIncludeFutureInstallments] = useState(
-    () => systemSettings.includeFutureInstallmentsInRoutes ?? true
-  );
-
-  // Use this in sidebar
-  const sidebarColor = THEME_COLORS[systemSettings.themeColor] || 'bg-slate-900';
-
-  // Bundle para el asistente AI
-  const dbData = { clients, loans, expenses, requests, notes, receipts };
-
-  // --- EFECTOS DE PERSISTENCIA ---
-  useEffect(() => localStorage.setItem('rt_client_documents', JSON.stringify(clientDocuments)), [clientDocuments]);
-
-  // --- EFECTOS DE PERSISTENCIA ---
-  useEffect(() => localStorage.setItem('rt_clients', JSON.stringify(clients)), [clients]);
-  useEffect(() => localStorage.setItem('rt_loans', JSON.stringify(loans)), [loans]);
-  useEffect(() => localStorage.setItem('rt_expenses', JSON.stringify(expenses)), [expenses]);
-  useEffect(() => localStorage.setItem('rt_requests', JSON.stringify(requests)), [requests]);
-  useEffect(() => localStorage.setItem('rt_notes', JSON.stringify(notes)), [notes]);
-
-  useEffect(() => localStorage.setItem('rt_receipts', JSON.stringify(receipts)), [receipts]);
-  useEffect(() => localStorage.setItem('rt_closings', JSON.stringify(routeClosings)), [routeClosings]);
-  useEffect(() => localStorage.setItem('rt_employees', JSON.stringify(employees)), [employees]);
-  useEffect(() => localStorage.setItem('rt_settings', JSON.stringify(systemSettings)), [systemSettings]);
-
-  // Sync includeFutureInstallments with systemSettings
-  useEffect(() => {
-    if (systemSettings.includeFutureInstallmentsInRoutes !== undefined) {
-      setIncludeFutureInstallments(systemSettings.includeFutureInstallmentsInRoutes);
-    }
-  }, [systemSettings.includeFutureInstallmentsInRoutes]);
-
-  // Listen for navigate-to-tab events from child components
-  useEffect(() => {
-    const handleNavigate = (e) => setActiveTab(e.detail);
-    window.addEventListener('navigate-to-tab', handleNavigate);
-    return () => window.removeEventListener('navigate-to-tab', handleNavigate);
-  }, []);
-
-  // --- DATA SYNC & LOADING ---
-  const loadServerData = useCallback(async () => {
-    if (!isAuthenticated || !user) return;
-
-    try {
-      // 1. Cargar clientes primero para verificar estado de cuenta
-      const itemsRes = await clientService.getAll().catch(err => ({ data: [] }));
-      const serverClients = itemsRes.data || [];
-
-      // 2. Verificar si necesitamos sincronizar (Local tiene datos, Servidor está vacío)
-      const localClients = safeLoad('rt_clients', []);
-
-      if (serverClients.length === 0 && localClients.length > 0) {
-        showToast('☁️ Sincronizando tus datos con la nube...', 'info');
-
-        const syncPayload = {
-          clients: localClients,
-          loans: safeLoad('rt_loans', []),
-          receipts: safeLoad('rt_receipts', []),
-          expenses: safeLoad('rt_expenses', [])
-        };
-
-        await syncService.syncData(syncPayload);
-        showToast('✅ Datos sincronizados correctamente', 'success');
-
-        // Limpiar temporizadores para forzar recarga limpia si se desea
-        // localStorage.removeItem('rt_clients');
-      }
-
-      // 3. Cargar todos los datos frescos del servidor
-      const [clientsRes, loansRes, paymentsRes] = await Promise.all([
-        clientService.getAll().catch(() => ({ data: [] })),
-        loanService.getAll().catch(() => ({ data: [] })),
-        paymentService.getAll().catch(() => ({ data: [] }))
-      ]);
-
-      if (clientsRes.data?.length > 0) setClients(clientsRes.data);
-      if (loansRes.data?.length > 0) setLoans(loansRes.data);
-      if (paymentsRes.data?.length > 0) setReceipts(paymentsRes.data);
-
-    } catch (error) {
-      console.error('Error loading data from server:', error);
-      // Fail silently but add to notifications
-      setNotifications(prev => [{
-        id: Date.now(),
-        msg: 'Error de sincronización con la nube. Verifique su conexión.',
-        type: 'error',
-        date: new Date()
-      }, ...prev]);
-    }
-  }, [isAuthenticated, user]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadServerData();
-    }
-  }, [isAuthenticated, loadServerData]);
-
-  // --- ACCIONES GLOBALES ---
-  const showToast = (msg, type = 'success') => {
-    setShowNotification({ msg, type });
-    setTimeout(() => setShowNotification(null), 3000);
-  };
-
-  const handlePrint = () => {
-    window.print();
-    setTimeout(() => setPrintReceipt(null), 1000);
-  };
-
-  const addClient = async (data) => {
-    try {
-      const res = await clientService.create(data);
-      if (res.data) {
-        setClients(prev => [res.data, ...prev]);
-        showToast('Cliente guardado en base de datos');
-        return res.data;
-      }
-    } catch (error) {
-      console.error('Error creating client:', error);
-      showToast('Error al guardar cliente', 'error');
-    }
-    return null;
-  };
-
-  const addExpense = (data) => {
-    setExpenses([...expenses, { ...data, id: generateId(), date: new Date().toISOString() }]);
-    showToast('Gasto registrado');
-  };
-
-  const addEmployee = (data) => {
-    const newEmployee = { ...data, id: generateId() };
-    setEmployees([...employees, newEmployee]);
-
-    // Sync with Collectors if role is Cobrador
-    if (data.role === 'Cobrador') {
-      const newCollector = {
-        id: generateId(),
-        name: data.name,
-        active: true,
-        employeeId: newEmployee.id // Link to employee
-      };
-      setCollectors(prev => [...prev, newCollector]);
-      showToast('Empleado agregado y registrado como cobrador');
-    } else {
-      showToast('Empleado agregado correctamente');
-    }
-
-    return newEmployee;
-  };
-
-  const updateEmployee = (updatedEmployee) => {
-    setEmployees(employees.map(e => e.id === updatedEmployee.id ? updatedEmployee : e));
-
-    // Update Collector if associated
-    if (updatedEmployee.role === 'Cobrador') {
-      setCollectors(prev => {
-        const exists = prev.find(c => c.employeeId === updatedEmployee.id);
-        if (exists) {
-          return prev.map(c => c.employeeId === updatedEmployee.id ? { ...c, name: updatedEmployee.name } : c);
-        } else {
-          return [...prev, { id: generateId(), name: updatedEmployee.name, active: true, employeeId: updatedEmployee.id }];
-        }
-      });
-    }
-    showToast('Empleado actualizado');
-  };
-
-  const addClientDocument = (clientId, documentData) => {
-    setClientDocuments(prev => {
-      const existing = prev[clientId] || [];
-      return {
-        ...prev,
-        [clientId]: [...existing, { ...documentData, id: generateId(), createdAt: new Date().toISOString() }]
-      };
-    });
-    showToast('Documento guardado correctamente');
-  };
-
-  const addRequest = (data) => {
-    setRequests([...requests, { ...data, id: generateId(), status: 'REVIEW', date: new Date().toISOString() }]);
-    showToast('Solicitud enviada a revisión');
-  };
-
-  const approveRequest = (req) => {
-    createLoan(req);
-    setRequests(requests.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r));
-  };
-
-  const rejectRequest = (req) => {
-    setRequests(requests.map(r => r.id === req.id ? { ...r, status: 'REJECTED' } : r));
-    showToast('Solicitud rechazada', 'success');
-  };
-
-  const createLoan = async (loanData) => {
-    const schedule = calculateSchedule(
-      loanData.amount, loanData.rate, loanData.term, loanData.frequency, loanData.startDate
-    );
-
-    try {
-      const payload = { ...loanData, schedule };
-      const res = await loanService.create(payload);
-
-      if (res.data) {
-        setLoans([res.data, ...loans]);
-        showToast('Préstamo creado en base de datos');
-        setActiveTab('loans');
-      }
-    } catch (error) {
-      console.error('Error creating loan:', error);
-      showToast('Error al crear préstamo', 'error');
-    }
-  };
-
-  const registerPayment = async (loanId, installmentId, options = {}) => {
-    const loan = loans.find(l => l.id === loanId);
-    const startInstallment = loan?.schedule.find(i => i.id === installmentId);
-    const client = clients.find(c => c.id === loan?.clientId);
-    if (!loan || !startInstallment || !client) return;
-
-    // Determine total amount to distribute
-    const paymentAmount = options.customAmount !== undefined
-      ? options.customAmount
-      : startInstallment.payment;
-
-    const penaltyRate = systemSettings.defaultPenaltyRate || 5;
-    const penaltyAmount = options.withPenalty ? (options.penaltyAmountOverride || 0) : 0;
-    const totalReceiptAmount = paymentAmount + penaltyAmount;
-
-    // Get pending installments starting from the selected one, sorted by number
-    const pendingInstallments = loan.schedule
-      .filter(i => i.status !== 'PAID' && i.number >= startInstallment.number)
-      .sort((a, b) => a.number - b.number);
-
-    // Distribute payment across installments
-    let remainingPayment = paymentAmount;
-    const paidInstallments = [];
-    const installmentUpdates = {};
-
-    for (const inst of pendingInstallments) {
-      if (remainingPayment <= 0) break;
-
-      const existingPaid = inst.paidAmount || 0;
-      const pendingAmount = inst.payment - existingPaid;
-
-      if (pendingAmount <= 0) continue;
-
-      const amountForThis = Math.min(remainingPayment, pendingAmount);
-      remainingPayment -= amountForThis;
-
-      const newPaidAmount = existingPaid + amountForThis;
-      const isFullyPaid = newPaidAmount >= inst.payment;
-
-      paidInstallments.push({
-        id: inst.id,
-        number: inst.number,
-        amount: amountForThis,
-        pendingBefore: pendingAmount,
-        pendingAfter: pendingAmount - amountForThis,
-        fullyPaid: isFullyPaid
-      });
-
-      installmentUpdates[inst.id] = {
-        paidAmount: newPaidAmount,
-        status: isFullyPaid ? 'PAID' : 'PARTIAL',
-        paidDate: new Date().toISOString()
-      };
-    }
-
-    // Calculate remaining balance for the loan
-    const totalLoanAmount = loan.schedule.reduce((acc, i) => acc + i.payment, 0);
-    const totalPaidBefore = loan.totalPaid || 0;
-    const remainingBalance = totalLoanAmount - totalPaidBefore - paymentAmount;
-
-    // Create receipt with detailed breakdown
-    const newReceipt = {
-      // id: generateId(), // Let backend generate ID or use temp
-      loanId: loan.id,
-      clientId: client.id,
-      clientName: client.name,
-      amount: paymentAmount,
-      penalty: penaltyAmount,
-      penaltyRate: penaltyRate,
-      total: totalReceiptAmount,
-      installmentNumber: startInstallment.number,
-      isCustomAmount: options.customAmount !== undefined,
-      collectorName: user?.name || 'Admin',
-      remainingBalance: remainingBalance > 0 ? remainingBalance : 0,
-      paidInstallments: paidInstallments,
-      paymentBreakdown: paidInstallments.map(p => ({
-        number: p.number,
-        amount: p.amount,
-        pendingAfter: p.pendingAfter
-      }))
-    };
-
-    try {
-      // 1. Save Receipt to DB
-      const receiptRes = await paymentService.create(newReceipt);
-      const savedReceipt = receiptRes.data || { ...newReceipt, id: generateId() };
-
-      // Calculate updated loan state locally first
-      let updatedSchedule = loan.schedule.map(inst => {
-        if (installmentUpdates[inst.id]) {
-          return {
-            ...inst,
-            ...installmentUpdates[inst.id],
-            penaltyPaid: inst.id === startInstallment.id ? penaltyAmount : (inst.penaltyPaid || 0)
-          };
-        }
-        return inst;
-      });
-
-      const allPaid = updatedSchedule.every(i => i.status === 'PAID');
-      const newTotalPaid = (loan.totalPaid || 0) + paymentAmount;
-      const newStatus = allPaid ? 'PAID' : 'ACTIVE';
-
-      // 2. Update Loan in DB
-      await loanService.update(loan.id, {
-        status: newStatus,
-        totalPaid: newTotalPaid,
-        schedule: updatedSchedule // Sending full schedule to update installments
-      });
-
-      // 3. Update State
-      setReceipts([savedReceipt, ...receipts]);
-
-      setLoans(loans.map(l => {
-        if (l.id !== loanId) return l;
-        return {
-          ...l,
-          schedule: updatedSchedule,
-          totalPaid: newTotalPaid,
-          status: newStatus,
-        };
-      }));
-
-      setPrintReceipt(savedReceipt);
-
-      const cuotasMsg = paidInstallments.length > 1
-        ? ` (${paidInstallments.length} cuotas)`
-        : '';
-      showToast(`Pago de ${formatCurrency(totalReceiptAmount)} registrado${cuotasMsg}`);
-
-      return savedReceipt;
-
-    } catch (error) {
-      console.error('Error registering payment:', error);
-      showToast('Error al registrar pago. Intente nuevamente.', 'error');
-      return null;
-    }
-  };
-
-  const handleLogin = (userData) => {
-    setIsAuthenticated(true);
-    setUser(userData);
-    localStorage.setItem('rt_session', JSON.stringify(userData));
-    showToast(`Bienvenido, ${userData.name}`);
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    localStorage.removeItem('rt_session');
-    // window.location.reload(); // No need to reload, React state handles it
-  };
-
-  // --- HANDLERS ADICIONALES ---
-  const onSelectClient = (id) => {
-    setSelectedClientId(id);
-    setActiveTab('clients');
-  };
-
-  const onSelectLoan = (id) => {
-    setSelectedLoanId(id);
-    setActiveTab('loans');
-  };
-
-  const onUpdateLoan = (updatedLoan) => {
-    setLoans(loans.map(l => l.id === updatedLoan.id ? updatedLoan : l));
-    showToast('Préstamo actualizado');
-  };
-
-  // Rutas
-  const toggleLoanInRoute = (loanId, installmentId) => {
-    const key = `${loanId}:${installmentId}`;
-    setCurrentRouteLoanIds(prev =>
-      prev.includes(key) ? prev.filter(id => id !== key) : [...prev, key]
-    );
-  };
-
-  const clearCurrentRoute = () => {
-    setCurrentRouteLoanIds([]);
-    setRouteActive(false);
-  };
-
-  const startRoute = () => setRouteActive(true);
-  const finishRoute = () => {
-    setRouteActive(false);
-    setCurrentRouteLoanIds([]);
-  };
-
-  const addRouteClosing = (closingData) => {
-    setRouteClosings([...routeClosings, { ...closingData, id: generateId() }]);
-  };
-
-  // --- HANDLERS para SETTINGS (Cobradores y Asignaciones) ---
-  const addCollector = (collectorData) => {
-    setCollectors([...collectors, { ...collectorData, id: generateId(), active: true }]);
-    showToast('Cobrador agregado');
-  };
-
-  const updateCollector = (updatedCollector) => {
-    setCollectors(collectors.map(c => c.id === updatedCollector.id ? { ...c, ...updatedCollector } : c));
-    showToast('Cobrador actualizado');
-  };
-
-  const removeCollector = (id) => {
-    setCollectors(collectors.filter(c => c.id !== id));
-    showToast('Cobrador eliminado');
-  };
-
-  const assignCollectorToClient = (clientId, collectorId) => {
-    setClients(clients.map(c => c.id === clientId ? { ...c, collectorId } : c));
-    showToast('Cliente asignado a cobrador');
-  };
-
-
-
-  if (!isAuthenticated) {
-    return <LoginView onLogin={handleLogin} />;
+// Algoritmo de Amortización (Sistema Francés)
+const calculateSchedule = (amount, rate, term, frequency, startDate) => {
+  const schedule = [];
+  const principalAmount = parseFloat(amount) || 0;
+  let balance = principalAmount;
+  const annualRate = (parseFloat(rate) || 0) / 100;
+  const totalTerms = parseInt(term, 10) || 0;
+  
+  let periodsPerYear = 12;
+  let daysPerPeriod = 30;
+  
+  switch(frequency) {
+    case 'Diario': periodsPerYear = 365; daysPerPeriod = 1; break;
+    case 'Semanal': periodsPerYear = 52; daysPerPeriod = 7; break;
+    case 'Quincenal': periodsPerYear = 24; daysPerPeriod = 15; break;
+    case 'Mensual': periodsPerYear = 12; daysPerPeriod = 30; break;
+    default: periodsPerYear = 12;
   }
 
-  return (
-    <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
-      {/* CLIENT MODAL */}
-      {clientModalOpen && (
-        <ClientModal
-          open={clientModalOpen}
-          onClose={() => { setClientModalOpen(false); setClientCreationCallback(null); }}
-          onSave={(data) => {
-            const newClient = addClient(data);
-            setClientModalOpen(false);
-            // If there's a callback (from RequestsView), call it with the new client ID
-            if (clientCreationCallback) {
-              clientCreationCallback(newClient.id);
-              setClientCreationCallback(null);
-            }
-          }}
-        />
-      )}
-      {/* EMPLOYEE MODAL (Create/Edit) */}
-      {employeeModalOpen && (
-        <EmployeeModal
-          open={employeeModalOpen}
-          // If we are passing an object, it's edit mode; if true (boolean), it's creation mode (no initial data)
-          initialEmployee={typeof employeeModalOpen === 'object' ? employeeModalOpen : null}
-          onSave={(data) => {
-            if (data.id) {
-              updateEmployee(data);
-            } else {
-              addEmployee(data);
-            }
-            setEmployeeModalOpen(false);
-          }}
-          onClose={() => setEmployeeModalOpen(false)}
-        />
-      )}
-      {/* TICKET MODAL */}
-      {printReceipt && <PaymentTicket receipt={printReceipt} systemSettings={systemSettings} onClose={() => setPrintReceipt(null)} />}
+  if (!principalAmount || !totalTerms) return [];
 
-      {/* Sidebar - HIDDEN ON PRINT */}
-      <aside className={`hidden md:flex flex-col w-72 ${sidebarColor} text-white shadow-2xl z-20 print:hidden transition-colors duration-300`}>
-        <div className="p-6 flex items-center gap-3 border-b border-white/10">
-          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden">
-            <img
-              src={systemSettings.companyLogo || logoSmall}
-              alt={systemSettings.companyName || 'Presta Pro'}
-              className="w-8 h-8 object-contain"
-            />
-          </div>
-          <div>
-            <span className="text-xl font-extrabold tracking-tight block leading-none">
-              {systemSettings.companyName || 'Presta Pro'}
-            </span>
-            <span className="text-xs text-white/60 font-medium tracking-wider uppercase">Gestión de Préstamos</span>
+  const ratePerPeriod = annualRate / periodsPerYear;
+  let pmt = 0;
+
+  if (ratePerPeriod === 0) {
+    // Préstamo sin interés: cuota fija capital / cuotas
+    pmt = principalAmount / totalTerms;
+  } else {
+    pmt = (principalAmount * ratePerPeriod) / (1 - Math.pow(1 + ratePerPeriod, -totalTerms));
+  }
+
+  pmt = parseFloat(pmt.toFixed(2));
+
+  let currentDate = new Date(startDate);
+
+  for (let i = 1; i <= totalTerms; i++) {
+    const rawInterest = balance * ratePerPeriod;
+    const interest = parseFloat(rawInterest.toFixed(2));
+    const principal = parseFloat((pmt - interest).toFixed(2));
+    balance = parseFloat((balance - principal).toFixed(2));
+    if (balance < 0) balance = 0;
+
+    currentDate.setDate(currentDate.getDate() + daysPerPeriod);
+
+    schedule.push({
+      id: generateId(),
+      number: i,
+      date: currentDate.toISOString().split('T')[0],
+      payment: pmt,
+      interest,
+      principal,
+      balance,
+      status: 'PENDING',
+      paidAmount: 0,
+      paidDate: null
+    });
+  }
+  return schedule;
+};
+
+// --- COMPONENTS ---
+
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className} print:border-none print:shadow-none`}>
+    {children}
+  </div>
+);
+
+const Badge = ({ status }) => {
+  const styles = {
+    ACTIVE: 'bg-blue-100 text-blue-800',
+    PAID: 'bg-green-100 text-green-800',
+    LATE: 'bg-red-100 text-red-800',
+    PENDING: 'bg-slate-100 text-slate-800',
+    APPROVED: 'bg-teal-100 text-teal-800',
+    REJECTED: 'bg-red-50 text-red-600',
+    REVIEW: 'bg-yellow-100 text-yellow-800'
+  };
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[status] || styles.PENDING}`}>
+      {status}
+    </span>
+  );
+};
+
+// --- TICKET DE PAGO (IMPRESIÓN TÉRMICA) ---
+const PaymentTicket = ({ receipt, companyName = "Renace.tech" }) => {
+  if (!receipt) return null;
+  return (
+    <div className="hidden print:block fixed inset-0 bg-white z-[100] p-4 font-mono text-black text-xs leading-tight">
+      <div className="max-w-[80mm] mx-auto text-center">
+        <h1 className="text-xl font-bold mb-1">{companyName}</h1>
+        <p className="mb-2">RNC: 101-00000-1</p>
+        <p className="mb-4 border-b border-black pb-2">RECIBO DE INGRESO</p>
+        
+        <div className="text-left mb-2">
+          <p><strong>Recibo #:</strong> {receipt.id.substr(0,8).toUpperCase()}</p>
+          <p><strong>Fecha:</strong> {formatDateTime(receipt.date)}</p>
+          <p><strong>Cliente:</strong> {receipt.clientName}</p>
+          <p><strong>Préstamo ID:</strong> {receipt.loanId.substr(0,6).toUpperCase()}</p>
+        </div>
+
+        <div className="border-y border-black py-2 my-2 text-left">
+          <div className="flex justify-between font-bold text-sm">
+            <span>MONTO PAGADO:</span>
+            <span>{formatCurrency(receipt.amount)}</span>
           </div>
         </div>
 
+        <div className="text-left mb-4">
+          <p><strong>Cuota #:</strong> {receipt.installmentNumber}</p>
+          <p><strong>Concepto:</strong> Pago de Cuota</p>
+          <p><strong>Cobrador:</strong> Admin</p>
+        </div>
+
+        <div className="text-center mt-6">
+          <p className="text-[10px]">¡Gracias por su pago puntual!</p>
+          <p className="text-[10px]">Conserve este recibo como constancia.</p>
+          <p className="mt-4">__________________________</p>
+          <p>Firma Autorizada</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// --- ASISTENTE AI COMPONENT ---
+
+const AIHelper = ({ chatHistory, setChatHistory, dbData, showToast }) => {
+  const [loading, setLoading] = useState(false);
+  const [input, setInput] = useState('');
+  const chatEndRef = useRef(null);
+
+  // Scroll to bottom on message update
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory]);
+  
+  // Usar un resumen estructurado y legible de los datos de la aplicación para dar contexto al asesor financiero
+  const getContextualData = () => {
+    const clientsCount = dbData.clients.length;
+    const activeLoans = dbData.loans.filter(l => l.status === 'ACTIVE').length;
+    const totalLent = dbData.loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+    const totalExpenses = dbData.expenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
+    const totalReceipts = dbData.receipts.length;
+    const employeesCount = dbData.employees ? dbData.employees.length : 0;
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const pendingCollections = dbData.loans.flatMap(loan => 
+      loan.schedule
+        .filter(s => s.status !== 'PAID' && new Date(s.date) <= today)
+        .map(s => ({
+          loanId: loan.id,
+          date: s.date,
+          payment: s.payment
+        }))
+    ).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+    const pendingSummary = pendingCollections.slice(0, 5).map(p => ({
+      loanId: p.loanId.substr(0, 6),
+      date: formatDate(p.date),
+      amount: formatCurrency(p.payment)
+    }));
+
+    const pendingLines = pendingSummary.length
+      ? pendingSummary.map(p => `- ${p.date}: ${p.amount} (Préstamo ${p.loanId})`).join('\n')
+      : '- Ninguno (no hay cobros vencidos o de hoy).';
+
+    return `Indicadores financieros actuales (uso interno del asistente):\n\n` +
+      `- Total de clientes: ${clientsCount}\n` +
+      `- Préstamos activos: ${activeLoans}\n` +
+      `- Monto total prestado (capital): ${formatCurrency(totalLent)}\n` +
+      `- Gastos totales acumulados: ${formatCurrency(totalExpenses)}\n` +
+      `- Recibos de pago registrados: ${totalReceipts}\n` +
+      `- Empleados registrados: ${employeesCount}\n` +
+      `- Próximos 5 cobros pendientes:\n${pendingLines}`;
+  };
+
+  const systemInstruction = `Eres un asesor financiero virtual para Renace.tech, una financiera de préstamos y cobranza.
+Tu objetivo es ayudar al usuario a:
+- Analizar el estado de la cartera de préstamos y la caja.
+- Detectar clientes o préstamos de riesgo (mora, alta exposición, concentración).
+- Sugerir acciones prácticas de cobranza, control de gastos y crecimiento sano del portafolio.
+- Explicar conceptos financieros de forma sencilla cuando el usuario lo pida.
+
+Tienes acceso a un resumen estructurado de los datos actuales del sistema:
+${getContextualData()}
+
+Instrucciones de comportamiento:
+- Responde SIEMPRE en español, con un tono profesional, claro y directo.
+- Cuando presentes un resumen de datos, usa una lista de puntos clara y fácil de leer, evita tablas Markdown y evita mostrar JSON directamente.
+- Basa tus respuestas únicamente en los datos del sistema y en el mensaje del usuario.
+- Cuando no haya datos suficientes para una conclusión, dilo explícitamente y propone qué información adicional haría falta.
+- Cuando des recomendaciones financieras, indica que no reemplazan la asesoría legal, contable o regulatoria profesional.
+- Nunca inventes números ni clientes; si algo no aparece en los datos, dilo.
+- No intentes llamar funciones ni herramientas externas fuera de este contexto.`;
+  
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
+
+    const userMessage = input.trim();
+    setChatHistory(prev => [...prev, { role: 'user', text: userMessage }]);
+    setInput('');
+    setLoading(true);
+
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      showToast('El Asistente AI no está configurado en esta instalación.', 'error');
+      setLoading(false);
+      return;
+    }
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+    const contents = [
+      ...chatHistory.map(msg => ({ 
+        role: msg.role === 'user' ? 'user' : 'model', 
+        parts: [{ text: msg.text }] 
+      })),
+      { role: 'user', parts: [{ text: userMessage }] }
+    ];
+
+    const payload = {
+      contents: contents,
+      systemInstruction: {
+        parts: [{ text: systemInstruction }]
+      },
+      // Habilitar Google Search grounding para información externa, aunque la instrucción del sistema enfatiza los datos locales.
+      tools: [{ "google_search": {} }], 
+    };
+
+    let responseData = null;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                if (response.status === 429) { // Too Many Requests
+                    // Exponential backoff
+                    const delay = Math.pow(2, attempts) * 1000;
+                    console.warn(`Rate limit hit. Retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    attempts++;
+                    continue; // Go to next attempt
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            responseData = await response.json();
+            break; // Success, exit loop
+
+        } catch (error) {
+            console.error("Error fetching AI response:", error);
+            showToast('Error al conectar con el Asistente AI.', 'error');
+            setLoading(false);
+            return;
+        }
+    }
+    
+    setLoading(false);
+
+    const candidate = responseData?.candidates?.[0];
+    const text = candidate?.content?.parts?.[0]?.text || 'Lo siento, no pude obtener una respuesta del modelo.';
+
+    setChatHistory(prev => [...prev, { role: 'model', text }]);
+  };
+
+  return (
+    <Card className="flex flex-col h-full">
+      <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Zap size={20} className="text-blue-500"/> Asistente IA</h2>
+      
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+        {/* Mensaje inicial */}
+        {chatHistory.length === 0 && (
+          <div className="bg-blue-50 p-4 rounded-xl text-sm border border-blue-200">
+            <p className="font-semibold text-blue-800 mb-1">Hola, soy el Asistente IA de Renace.tech.</p>
+            <p className="text-blue-700">Puedes preguntarme cosas como: "¿Cuál es el balance total prestado?" o "¿Cuántos clientes tenemos?"</p>
+          </div>
+        )}
+
+        {/* Mensajes del chat */}
+        {chatHistory.map((message, index) => (
+          <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-3/4 p-3 rounded-xl ${
+              message.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-tl-none'
+            }`}>
+              <p className="whitespace-pre-wrap">{message.text}</p>
+            </div>
+          </div>
+        ))}
+
+        {/* Indicador de carga */}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="p-3 bg-slate-100 text-slate-800 rounded-xl rounded-tl-none">
+              <Loader2 size={20} className="animate-spin text-blue-500"/>
+            </div>
+          </div>
+        )}
+
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* Input */}
+      <form onSubmit={handleSendMessage} className="mt-4 flex gap-2 pt-4 border-t border-slate-100">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Escribe tu consulta..."
+          className="flex-1 p-3 border rounded-xl bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          disabled={loading}
+        />
+        <button
+          type="submit"
+          className={`bg-blue-600 text-white p-3 rounded-xl transition-colors ${loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+          disabled={loading}
+        >
+          <Send size={20} />
+        </button>
+      </form>
+    </Card>
+  );
+};
+
+  const CalculatorView = () => {
+    const [simData, setSimData] = useState({ amount: 10000, rate: 10, term: 12, frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
+    const [schedule, setSchedule] = useState([]);
+
+    useEffect(() => {
+      if(simData.amount && simData.rate && simData.term) {
+         setSchedule(calculateSchedule(simData.amount, simData.rate, simData.term, simData.frequency, simData.startDate));
+      }
+    }, [simData]);
+
+    return (
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
+          <div className="lg:col-span-1">
+             <Card>
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Calculator size={20}/> Simulador</h3>
+                <div className="space-y-4">
+                   <div>
+                      <label className="block text-sm font-bold text-slate-600 mb-1">Monto a Prestar</label>
+                      <input type="number" className="w-full p-2 border rounded-lg" value={simData.amount} onChange={e => setSimData({...simData, amount: e.target.value})} />
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                      <div>
+                         <label className="block text-sm font-bold text-slate-600 mb-1">Tasa Interés %</label>
+                         <input type="number" className="w-full p-2 border rounded-lg" value={simData.rate} onChange={e => setSimData({...simData, rate: e.target.value})} />
+                      </div>
+                      <div>
+                         <label className="block text-sm font-bold text-slate-600 mb-1">Frecuencia</label>
+                         <select className="w-full p-2 border rounded-lg bg-white" value={simData.frequency} onChange={e => setSimData({...simData, frequency: e.target.value})}>
+                            <option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option>
+                         </select>
+                      </div>
+                   </div>
+                   <div>
+                      <label className="block text-sm font-bold text-slate-600 mb-1">Plazo (Cuotas)</label>
+                      <input type="number" className="w-full p-2 border rounded-lg" value={simData.term} onChange={e => setSimData({...simData, term: e.target.value})} />
+                   </div>
+                   <div className="mt-6 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                      <div className="flex justify-between mb-2 text-sm">
+                         <span className="text-blue-800">Cuota Estimada:</span>
+                         <span className="font-bold text-blue-800">{schedule.length > 0 ? formatCurrency(schedule[0].payment) : '$0.00'}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                         <span className="text-blue-800">Total Interés:</span>
+                         <span className="font-bold text-blue-800">{schedule.length > 0 ? formatCurrency(schedule.reduce((a,b)=>a+b.interest,0)) : '$0.00'}</span>
+                      </div>
+                   </div>
+                </div>
+             </Card>
+          </div>
+          
+          <div className="lg:col-span-2">
+             <Card className="h-full overflow-hidden flex flex-col">
+                <h3 className="font-bold text-lg mb-4">Tabla de Amortización Proyectada</h3>
+                <div className="flex-1 overflow-y-auto">
+                   <table className="w-full text-sm text-left">
+                      <thead className="bg-slate-50 text-slate-600 sticky top-0">
+                         <tr>
+                            <th className="p-2">#</th>
+                            <th className="p-2">Fecha</th>
+                            <th className="p-2 text-right">Cuota</th>
+                            <th className="p-2 text-right">Interés</th>
+                            <th className="p-2 text-right">Capital</th>
+                            <th className="p-2 text-right">Saldo</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                         {schedule.map(item => (
+                            <tr key={item.number}>
+                               <td className="p-2 font-bold text-slate-500">{item.number}</td>
+                               <td className="p-2">{formatDate(item.date)}</td>
+                               <td className="p-2 text-right font-bold">{formatCurrency(item.payment)}</td>
+                               <td className="p-2 text-right text-red-500">{formatCurrency(item.interest)}</td>
+                               <td className="p-2 text-right text-green-600">{formatCurrency(item.principal)}</td>
+                               <td className="p-2 text-right text-slate-500">{formatCurrency(item.balance)}</td>
+                            </tr>
+                         ))}
+                      </tbody>
+                   </table>
+                </div>
+             </Card>
+          </div>
+       </div>
+    );
+  };
+
+  const SolicitudesView = () => {
+    // Reutilizamos formulario de creación de préstamos pero con otra acción
+    const [form, setForm] = useState({ clientId: '', amount: '', rate: '', term: '', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
+
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-slate-800">Solicitudes de Crédito</h2>
+          <button onClick={() => document.getElementById('reqForm').scrollIntoView()} className="bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+            <Plus size={18}/> Nueva Solicitud
+          </button>
+        </div>
+
+        {/* Kanban Board Simple */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+             <h3 className="font-bold text-slate-600 uppercase text-sm tracking-wider flex items-center gap-2"><AlertCircle size={16}/> En Revisión</h3>
+             {requests.filter(r => r.status === 'REVIEW').map(req => {
+               const client = clients.find(c => c.id === req.clientId);
+               return (
+                 <div key={req.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="flex justify-between mb-2">
+                       <span className="font-bold text-slate-800">{client?.name}</span>
+                       <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Revisión</span>
+                    </div>
+                    <div className="text-sm text-slate-600 grid grid-cols-2 gap-2 mb-3">
+                       <div>Monto: <span className="font-semibold">{formatCurrency(req.amount)}</span></div>
+                       <div>Tasa: {req.rate}%</div>
+                       <div>Plazo: {req.term} {req.frequency}</div>
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={() => approveRequest(req)} className="flex-1 bg-teal-600 text-white py-1.5 rounded-lg text-sm font-semibold hover:bg-teal-700">Aprobar</button>
+                       <button onClick={() => rejectRequest(req)} className="flex-1 bg-red-100 text-red-700 py-1.5 rounded-lg text-sm font-semibold hover:bg-red-200">Rechazar</button>
+                    </div>
+                 </div>
+               );
+             })}
+             {requests.filter(r => r.status === 'REVIEW').length === 0 && <p className="text-center text-slate-400 py-4 text-sm">No hay solicitudes pendientes</p>}
+          </div>
+
+          <div id="reqForm">
+             <Card>
+                <h3 className="font-bold text-lg mb-4">Crear Nueva Solicitud</h3>
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <select className="flex-1 p-2 border rounded-lg bg-white" value={form.clientId} onChange={e => setForm({...form, clientId: e.target.value})}>
+                      <option value="">Seleccionar Cliente</option>
+                      {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <button onClick={() => setClientModalOpen(true)} className="bg-blue-100 text-blue-700 p-2 rounded-lg hover:bg-blue-200"><Plus/></button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="number" placeholder="Monto" className="p-2 border rounded-lg" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})}/>
+                    <input type="number" placeholder="Tasa %" className="p-2 border rounded-lg" value={form.rate} onChange={e => setForm({...form, rate: e.target.value})}/>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="number" placeholder="Plazo" className="p-2 border rounded-lg" value={form.term} onChange={e => setForm({...form, term: e.target.value})}/>
+                    <select className="p-2 border rounded-lg" value={form.frequency} onChange={e => setForm({...form, frequency: e.target.value})}>
+                       <option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option>
+                    </select>
+                  </div>
+                  <button onClick={() => { if(form.clientId) addRequest(form); }} className="w-full bg-slate-800 text-white py-3 rounded-lg font-bold">Guardar Solicitud</button>
+                </div>
+             </Card>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const RutaView = () => {
+    // Lógica de Ruta: Buscar clientes con cuotas PENDING que tengan fecha <= hoy
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const pendingCollections = loans.flatMap(loan => {
+       const client = clients.find(c => c.id === loan.clientId);
+       const pendingInstallment = loan.schedule.find(s => s.status !== 'PAID');
+       
+       if (!pendingInstallment) return [];
+       
+       const dueDate = new Date(pendingInstallment.date);
+       // Incluir si ya venció o vence hoy
+       if (dueDate <= new Date()) {
+          return [{
+             ...pendingInstallment,
+             loanId: loan.id,
+             clientName: client?.name,
+             clientAddress: client?.address,
+             clientPhone: client?.phone,
+             totalDue: pendingInstallment.payment + (dueDate < today ? 100 : 0) // Simulación de mora
+          }];
+       }
+       return [];
+    });
+
+    // Agrupar por dirección (Simulación de optimización de ruta)
+    const sortedRoute = pendingCollections.sort((a, b) => a.clientAddress?.localeCompare(b.clientAddress));
+
+    return (
+      <div className="space-y-6 animate-fade-in">
+         <div className="flex justify-between items-center bg-indigo-600 text-white p-6 rounded-2xl shadow-lg">
+            <div>
+               <h2 className="text-2xl font-bold flex items-center gap-2"><MapPin/> Ruta Inteligente</h2>
+               <p className="opacity-80">Optimización de cobros por zona</p>
+            </div>
+            <div className="text-right">
+               <p className="text-3xl font-bold">{pendingCollections.length}</p>
+               <p className="text-xs uppercase tracking-wider">Paradas Hoy</p>
+            </div>
+         </div>
+
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+               {sortedRoute.map((stop, index) => (
+                  <div key={stop.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:border-indigo-500 transition-colors">
+                     <div className="flex items-center gap-4 w-full">
+                        <div className="bg-indigo-100 text-indigo-700 w-10 h-10 rounded-full flex items-center justify-center font-bold">{index + 1}</div>
+                        <div>
+                           <h4 className="font-bold text-slate-800">{stop.clientName}</h4>
+                           <p className="text-sm text-slate-500 flex items-center gap-1"><MapPin size={14}/> {stop.clientAddress}</p>
+                           <p className="text-xs text-slate-400 mt-1">Cuota #{stop.number} • Vence: {formatDate(stop.date)}</p>
+                        </div>
+                     </div>
+                     <div className="text-right w-full md:w-auto">
+                        <p className="font-bold text-lg text-slate-800">{formatCurrency(stop.payment)}</p>
+                        <button onClick={() => registerPayment(stop.loanId, stop.id)} className="mt-2 w-full bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-green-600 flex items-center justify-center gap-2">
+                           <CheckCircle size={16}/> Cobrar
+                        </button>
+                     </div>
+                  </div>
+               ))}
+               {sortedRoute.length === 0 && (
+                  <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+                     <CheckCircle size={48} className="text-green-400 mx-auto mb-4"/>
+                     <h3 className="text-lg font-bold text-slate-700">¡Ruta Completada!</h3>
+                     <p className="text-slate-500">No hay cobros pendientes para hoy.</p>
+                  </div>
+               )}
+            </div>
+            
+            <div className="lg:col-span-1">
+               <Card className="bg-slate-50 border-slate-200">
+                  <h3 className="font-bold text-slate-800 mb-4">Resumen de Ruta</h3>
+                  <div className="space-y-4">
+                     <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Total a Recaudar</span>
+                        <span className="font-bold text-slate-800">{formatCurrency(sortedRoute.reduce((acc, i) => acc + i.payment, 0))}</span>
+                     </div>
+                     <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Clientes Visitados</span>
+                        <span className="font-bold text-slate-800">0 / {sortedRoute.length}</span>
+                     </div>
+                     <hr className="border-slate-200"/>
+                     <div className="bg-white p-3 rounded-lg border border-slate-200">
+                        <p className="text-xs font-bold text-slate-500 uppercase mb-2">Mapa Visual</p>
+                        <div className="h-40 bg-slate-100 rounded flex items-center justify-center text-slate-400 text-xs">
+                           [Mapa Google Maps Integrado]
+                        </div>
+                     </div>
+                     <button onClick={() => window.print()} className="w-full bg-slate-800 text-white py-2 rounded-lg font-bold text-sm">Imprimir Hoja de Ruta</button>
+                  </div>
+               </Card>
+            </div>
+         </div>
+      </div>
+    );
+  };
+
+  const NotasView = () => {
+    const [note, setNote] = useState('');
+    const addNote = () => {
+       if(!note) return;
+       setNotes([...notes, { id: generateId(), text: note, date: new Date().toISOString() }]);
+       setNote('');
+    };
+
+    return (
+      <div className="max-w-4xl mx-auto animate-fade-in">
+        <Card>
+           <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><ClipboardList/> Bloc de Notas</h2>
+           <div className="flex gap-2 mb-6">
+              <input className="flex-1 p-3 border rounded-xl" placeholder="Escribe una nota rápida..." value={note} onChange={e => setNote(e.target.value)} />
+              <button onClick={addNote} className="bg-blue-600 text-white px-6 rounded-xl font-bold">Agregar</button>
+           </div>
+           <div className="space-y-3">
+              {notes.map(n => (
+                 <div key={n.id} className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl relative group">
+                    <p className="text-slate-800">{n.text}</p>
+                    <p className="text-xs text-slate-400 mt-2">{formatDateTime(n.date)}</p>
+                    <button onClick={() => setNotes(notes.filter(x => x.id !== n.id))} className="absolute top-2 right-2 text-red-400 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
+                 </div>
+              ))}
+              {notes.length === 0 && <p className="text-center text-slate-400">No hay notas guardadas.</p>}
+           </div>
+        </Card>
+      </div>
+    );
+  };
+
+  // Modal de empleados (implementación mínima por ahora)
+  const EmployeeModal = () => null;
+
+  function App() {
+    // --- STATE PRINCIPAL ---
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [showNotification, setShowNotification] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [printReceipt, setPrintReceipt] = useState(null);
+    const [clientModalOpen, setClientModalOpen] = useState(false);
+    const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
+    const [securityToken, setSecurityToken] = useState('');
+
+    // Estado del chat AI
+    const [chatHistory, setChatHistory] = useState([]);
+
+    // Datos persistentes
+    const [clients, setClients] = useState(() => safeLoad('rt_clients', []));
+    const [loans, setLoans] = useState(() => safeLoad('rt_loans', []));
+    const [expenses, setExpenses] = useState(() => safeLoad('rt_expenses', []));
+    const [requests, setRequests] = useState(() => safeLoad('rt_requests', []));
+    const [notes, setNotes] = useState(() => safeLoad('rt_notes', []));
+    const [receipts, setReceipts] = useState(() => safeLoad('rt_receipts', []));
+
+    // Bundle para el asistente AI
+    const dbData = { clients, loans, expenses, requests, notes, receipts };
+
+    // --- EFECTOS DE PERSISTENCIA ---
+    useEffect(() => localStorage.setItem('rt_clients', JSON.stringify(clients)), [clients]);
+    useEffect(() => localStorage.setItem('rt_loans', JSON.stringify(loans)), [loans]);
+    useEffect(() => localStorage.setItem('rt_expenses', JSON.stringify(expenses)), [expenses]);
+    useEffect(() => localStorage.setItem('rt_requests', JSON.stringify(requests)), [requests]);
+    useEffect(() => localStorage.setItem('rt_notes', JSON.stringify(notes)), [notes]);
+    useEffect(() => localStorage.setItem('rt_receipts', JSON.stringify(receipts)), [receipts]);
+
+    // --- ACCIONES GLOBALES ---
+    const showToast = (msg, type = 'success') => {
+      setShowNotification({ msg, type });
+      setTimeout(() => setShowNotification(null), 3000);
+    };
+
+    const handlePrint = () => {
+      window.print();
+      setTimeout(() => setPrintReceipt(null), 1000);
+    };
+
+    const addClient = (data) => {
+      setClients([...clients, { ...data, id: generateId(), score: 70 }]);
+      showToast('Cliente registrado correctamente');
+      setActiveTab('clients');
+    };
+
+    const addExpense = (data) => {
+      setExpenses([...expenses, { ...data, id: generateId(), date: new Date().toISOString() }]);
+      showToast('Gasto registrado');
+    };
+
+    const addRequest = (data) => {
+      setRequests([...requests, { ...data, id: generateId(), status: 'REVIEW', date: new Date().toISOString() }]);
+      showToast('Solicitud enviada a revisión');
+    };
+
+    const approveRequest = (req) => {
+      createLoan(req);
+      setRequests(requests.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r));
+    };
+
+    const rejectRequest = (req) => {
+      setRequests(requests.map(r => r.id === req.id ? { ...r, status: 'REJECTED' } : r));
+      showToast('Solicitud rechazada', 'success');
+    };
+
+    const createLoan = (loanData) => {
+      const schedule = calculateSchedule(
+        loanData.amount, loanData.rate, loanData.term, loanData.frequency, loanData.startDate
+      );
+      const newLoan = {
+        ...loanData,
+        id: generateId(),
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString(),
+        schedule,
+        totalInterest: schedule.reduce((acc, item) => acc + item.interest, 0),
+        totalPaid: 0,
+      };
+      setLoans([newLoan, ...loans]);
+      showToast('Préstamo creado exitosamente');
+      setActiveTab('loans');
+    };
+
+    const registerPayment = (loanId, installmentId) => {
+      const loan = loans.find(l => l.id === loanId);
+      const installment = loan?.schedule.find(i => i.id === installmentId);
+      const client = clients.find(c => c.id === loan?.clientId);
+      if (!loan || !installment || !client) return;
+
+      const newReceipt = {
+        id: generateId(),
+        date: new Date().toISOString(),
+        loanId: loan.id,
+        clientId: client.id,
+        clientName: client.name,
+        amount: installment.payment,
+        installmentNumber: installment.number,
+      };
+
+      setReceipts([newReceipt, ...receipts]);
+
+      setLoans(loans.map(l => {
+        if (l.id !== loanId) return l;
+        const updatedSchedule = l.schedule.map(inst =>
+          inst.id === installmentId
+            ? { ...inst, status: 'PAID', paidAmount: inst.payment, paidDate: new Date().toISOString() }
+            : inst
+        );
+        const allPaid = updatedSchedule.every(i => i.status === 'PAID');
+        return {
+          ...l,
+          schedule: updatedSchedule,
+          totalPaid: l.totalPaid + installment.payment,
+          status: allPaid ? 'PAID' : 'ACTIVE',
+        };
+      }));
+
+      setPrintReceipt(newReceipt);
+      setTimeout(handlePrint, 100);
+      showToast('Pago cobrado y recibo generado');
+    };
+
+    return (
+      <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
+        {/* CLIENT MODAL */}
+        {clientModalOpen && <ClientModal />}
+        {/* EMPLOYEE MODAL */}
+        {employeeModalOpen && <EmployeeModal />}
+        {/* TICKET PRINTER OVERLAY */}
+        {printReceipt && <PaymentTicket receipt={printReceipt} />}
+      {/* TICKET PRINTER OVERLAY */}
+      {printReceipt && <PaymentTicket receipt={printReceipt} />}
+
+      {/* Sidebar - HIDDEN ON PRINT */}
+      <aside className="hidden md:flex flex-col w-72 bg-slate-900 text-white shadow-2xl z-20 print:hidden">
+        <div className="p-6 flex items-center gap-3 border-b border-slate-800">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden">
+            <img src={logoSmall} alt="Presta Pro" className="w-8 h-8 object-contain" />
+          </div>
+          <div>
+            <span className="text-xl font-extrabold tracking-tight block leading-none">Presta Pro</span>
+            <span className="text-xs text-slate-400 font-medium tracking-wider uppercase">Gestión de Préstamos</span>
+          </div>
+        </div>
+        
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
           <MenuSection title="Tablero de Control">
-            <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-            <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab === 'cuadre'} onClick={() => setActiveTab('cuadre')} />
+             <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab==='dashboard'} onClick={()=>setActiveTab('dashboard')}/>
+             <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab==='cuadre'} onClick={()=>setActiveTab('cuadre')}/>
           </MenuSection>
-
+          
           <MenuSection title="Operaciones">
-            <MenuItem icon={Users} label="Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
-            <MenuItem icon={Wallet} label="Cobros y Préstamos" active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} />
-            <MenuItem icon={FileText} label="Solicitudes" active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} />
-            <MenuItem icon={TrendingUp} label="Gastos" active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} />
+             <MenuItem icon={Users} label="Clientes" active={activeTab==='clients'} onClick={()=>setActiveTab('clients')}/>
+             <MenuItem icon={Wallet} label="Cobros" active={activeTab==='loans'} onClick={()=>setActiveTab('loans')}/>
+             <MenuItem icon={FileText} label="Solicitudes" active={activeTab==='requests'} onClick={()=>setActiveTab('requests')}/>
+             <MenuItem icon={Briefcase} label="Préstamos" active={activeTab==='loans'} onClick={()=>setActiveTab('loans')}/>
+             <MenuItem icon={TrendingUp} label="Gastos" active={activeTab==='expenses'} onClick={()=>setActiveTab('expenses')}/>
           </MenuSection>
 
           <MenuSection title="Herramientas">
-            <MenuItem icon={Zap} label="Asistente IA" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
-            <MenuItem icon={MapPin} label="Rutas & GPS" active={activeTab === 'routes'} onClick={() => setActiveTab('routes')} />
-            <MenuItem icon={FileText} label="Documentos" active={activeTab === 'documents'} onClick={() => setActiveTab('documents')} />
-            <MenuItem icon={ClipboardList} label="Notas" active={activeTab === 'notes'} onClick={() => setActiveTab('notes')} />
-            <MenuItem icon={Printer} label="Reportes" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} />
-            <MenuItem icon={Calculator} label="Simulador" active={activeTab === 'calculator'} onClick={() => setActiveTab('calculator')} />
+             <MenuItem icon={Zap} label="Asistente IA" active={activeTab==='ai'} onClick={()=>setActiveTab('ai')}/>
+             <MenuItem icon={MapPin} label="Rutas & GPS" active={activeTab==='routes'} onClick={()=>setActiveTab('routes')}/>
+             <MenuItem icon={ClipboardList} label="Notas" active={activeTab==='notes'} onClick={()=>setActiveTab('notes')}/>
+             <MenuItem icon={Printer} label="Reportes" active={activeTab==='reports'} onClick={()=>setActiveTab('reports')}/>
+             <MenuItem icon={Calculator} label="Simulador" active={activeTab==='calculator'} onClick={()=>setActiveTab('calculator')}/>
           </MenuSection>
 
           <MenuSection title="Administración">
-            <MenuItem icon={Shield} label="Token Seguridad" onClick={() => {
-              const token = generateSecurityToken();
-              setSecurityToken(token);
-              showToast('Token de seguridad actualizado: ' + token);
-            }} />
-            <MenuItem
-              icon={CheckCircle}
-              label="Verificar Correo"
-              onClick={() => {
-                if (!user?.tenantId) {
-                  showToast('No hay cuenta SaaS conectada', 'error');
-                  return;
-                }
-                setActiveTab('settings');
-                setTimeout(() => {
-                  const verifyBtn = document.querySelector('[data-verify-email]');
-                  if (verifyBtn) verifyBtn.click();
-                }, 100);
-              }}
-            />
-            <MenuItem icon={BookOpen} label="Contabilidad" active={activeTab === 'accounting'} onClick={() => setActiveTab('accounting')} />
-            <MenuItem icon={UserCheck} label="RRHH" active={activeTab === 'hr'} onClick={() => setActiveTab('hr')} />
-            <MenuItem icon={Crown} label="Planes" active={activeTab === 'pricing'} onClick={() => setActiveTab('pricing')} />
-            <MenuItem icon={Settings} label="Ajustes" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-
-            <MenuItem icon={Video} label="Tutoriales" onClick={() => window.open('https://youtube.com', '_blank')} />
-            <MenuItem icon={LogOut} label="Cerrar Sesión" onClick={handleLogout} className="text-red-400 hover:text-red-300 hover:bg-red-900/20" />
+             <MenuItem icon={Shield} label="Token Seguridad" onClick={() => {
+               const token = generateSecurityToken();
+               setSecurityToken(token);
+               showToast('Token de seguridad actualizado: ' + token);
+             }}/>
+             <MenuItem icon={BookOpen} label="Contabilidad" active={activeTab==='accounting'} onClick={()=>setActiveTab('accounting')}/>
+             <MenuItem icon={UserCheck} label="RRHH" active={activeTab==='hr'} onClick={()=>setActiveTab('hr')}/>
+             <MenuItem icon={Settings} label="Ajustes" active={activeTab==='settings'} onClick={()=>setActiveTab('settings')}/>
+             <MenuItem icon={Video} label="Tutoriales" onClick={()=>window.open('https://youtube.com', '_blank')}/>
           </MenuSection>
 
           <div className="mt-auto pt-6 border-t border-slate-800 text-center pb-4">
-            <p className="text-[10px] text-slate-500">Powered by</p>
-            <p className="font-bold text-slate-400 text-sm tracking-widest">RENACE.TECH</p>
+             <p className="text-[10px] text-slate-500">Powered by</p>
+             <p className="font-bold text-slate-400 text-sm tracking-widest">RENACE.TECH</p>
           </div>
         </nav>
       </aside>
@@ -706,242 +920,77 @@ function App() {
         {/* Header - HIDDEN ON PRINT */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10 print:hidden">
           <div className="md:hidden flex items-center gap-3">
-            <button onClick={() => setMobileMenuOpen(true)}><Menu /></button>
-            <img
-              src={systemSettings.companyLogo || logoSmall}
-              alt={systemSettings.companyName || 'Presta Pro'}
-              className="w-7 h-7 rounded-lg object-contain"
-            />
-            <span className="font-bold text-slate-800">{systemSettings.companyName || 'Presta Pro'}</span>
+             <button onClick={() => setMobileMenuOpen(true)}><Menu/></button>
+             <img src={logoSmall} alt="Presta Pro" className="w-7 h-7 rounded-lg object-contain" />
+             <span className="font-bold text-slate-800">Presta Pro</span>
           </div>
           <h1 className="hidden md:block text-xl font-bold text-slate-800">{TAB_TITLES[activeTab] || 'Presta Pro'}</h1>
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
-              className="bg-slate-100 p-2 rounded-full relative hover:bg-slate-200 transition-colors"
-            >
-              <Bell size={20} />
-              {notifications.length > 0 && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>}
+            <button className="bg-slate-100 p-2 rounded-full relative">
+               <Bell size={20}/>
+               <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
-            {/* Notification Dropdown */}
-            {showNotificationsDropdown && (
-              <div className="absolute top-16 right-20 w-80 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in">
-                <div className="p-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                  <h3 className="font-bold text-sm text-slate-800">Notificaciones</h3>
-                  <button onClick={() => setNotifications([])} className="text-xs text-blue-600 hover:text-blue-800">Limpiar</button>
-                </div>
-                <ul className="max-h-64 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <li className="p-4 text-center text-sm text-slate-500">No tienes notificaciones</li>
-                  ) : (
-                    notifications.map(n => (
-                      <li key={n.id} className={`p-3 border-b border-slate-50 text-sm ${n.type === 'error' ? 'bg-red-50 text-red-700' : 'text-slate-700'}`}>
-                        <p className="font-semibold">{n.msg}</p>
-                        <p className="text-[10px] opacity-70 mt-1">{n.date.toLocaleTimeString()}</p>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </div>
-            )}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold overflow-hidden bg-indigo-600">
-                {user?.photoUrl ? (
-                  <img src={user.photoUrl} alt={user.name} className="w-full h-full object-cover" />
-                ) : (
-                  (user?.name || 'A').charAt(0).toUpperCase()
-                )}
-              </div>
-              <span className="text-sm font-bold hidden md:block">{user?.name || 'Admin'}</span>
+               <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">A</div>
+               <span className="text-sm font-bold hidden md:block">Admin</span>
             </div>
           </div>
         </header>
 
         {/* Dynamic View Content */}
         <div className="flex-1 overflow-y-auto p-4 pb-20 md:p-8 md:pb-8 relative print:p-0 print:overflow-visible">
-          <React.Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-blue-600" size={48} /></div>}>
-            {activeTab === 'dashboard' && (
-              <DashboardView
-                loans={loans}
-                clients={clients}
-                receipts={receipts}
-                expenses={expenses}
-                showToast={showToast}
-                onNavigate={setActiveTab}
-                subscriptionInfo={{ plan: user?.subscription?.plan || 'FREE' }}
-                tenantInfo={{ createdAt: user?.tenantCreatedAt }}
-              />
-            )}
-            {activeTab === 'cuadre' && (
-              <CuadreView
-                receipts={receipts}
-                expenses={expenses}
-                clients={clients}
-                collectors={collectors}
-                routeClosings={routeClosings}
-              />
-            )}
-            {activeTab === 'expenses' && <GastosView expenses={expenses} addExpense={addExpense} />}
-            {activeTab === 'requests' && <SolicitudesView requests={requests} clients={clients} addRequest={addRequest} approveRequest={approveRequest} rejectRequest={rejectRequest} onNewClient={(callback) => { setClientCreationCallback(() => callback); setClientModalOpen(true); }} />}
-            {activeTab === 'routes' && (
-              <RutaView
-                loans={loans}
-                clients={clients}
-                registerPayment={registerPayment}
-                collectors={collectors}
-                currentRouteLoanIds={currentRouteLoanIds}
-                routeActive={routeActive}
-                toggleLoanInRoute={toggleLoanInRoute}
-                clearCurrentRoute={clearCurrentRoute}
-                startRoute={startRoute}
-                finishRoute={finishRoute}
-                addRouteClosing={addRouteClosing}
-                routeClosings={routeClosings}
-                receipts={receipts}
-                showToast={showToast}
-                handlePrint={handlePrint}
-                setPrintReceipt={setPrintReceipt}
-                systemSettings={systemSettings}
-                includeFutureInstallments={includeFutureInstallments}
-                setIncludeFutureInstallments={setIncludeFutureInstallments}
-              />
-            )}
-
-            {activeTab === 'documents' && (
-              <DocumentsView
-                clients={clients}
-                loans={loans}
-                companyName={systemSettings.companyName}
-                selectedClientId={selectedClientId}
-                onSelectClient={onSelectClient}
-                clientDocuments={clientDocuments}
-                addClientDocument={addClientDocument}
-              />
-            )}
-
-            {activeTab === 'notes' && <NotasView notes={notes} setNotes={setNotes} />}
-
-            {activeTab === 'ai' && (
-              <AIHelper
-                chatHistory={chatHistory}
-                setChatHistory={setChatHistory}
-                dbData={{
-                  clients,
-                  loans,
-                  expenses,
-                  receipts,
-                  employees,
-                  collectors,
-                  systemSettings,
-                }}
-                showToast={showToast}
-                ownerName={user?.name}
-                companyName={systemSettings.companyName}
-              />
-            )}
-
-            {activeTab === 'reports' && <ReportesView loans={loans} expenses={expenses} clients={clients} routeClosings={routeClosings} />}
-
-            {activeTab === 'hr' && (
-              <RRHHView
-                employees={employees}
-                onNewEmployee={() => setEmployeeModalOpen(true)}
-                onEditEmployee={(emp) => setEmployeeModalOpen(emp)}
-              />
-            )}
-
-            {activeTab === 'accounting' && <ContabilidadView loans={loans} expenses={expenses} routeClosings={routeClosings} receipts={receipts} systemSettings={systemSettings} />}
-
-            {activeTab === 'clients' && (
-              <ClientsView
-                clients={clients}
-                loans={loans}
-                onNewClient={() => setClientModalOpen(true)}
-                selectedClientId={selectedClientId}
-                onSelectClient={onSelectClient}
-                onSelectLoan={onSelectLoan}
-              />
-            )}
-            {activeTab === 'loans' && (
-              <LoansView
-                loans={loans}
-                clients={clients}
-                registerPayment={registerPayment}
-                selectedLoanId={selectedLoanId}
-                onSelectLoan={onSelectLoan}
-                onUpdateLoan={onUpdateLoan}
-              />
-            )}
-            {activeTab === 'calculator' && <CalculatorView />}
-            {activeTab === 'settings' && (
-              <SettingsView
-                systemSettings={systemSettings}
-                setSystemSettings={setSystemSettings}
-                collectors={collectors}
-                addCollector={addCollector}
-                updateCollector={updateCollector}
-                removeCollector={removeCollector}
-                clients={clients}
-                assignCollectorToClient={assignCollectorToClient}
-                auth={{ user: user || { name: 'Admin', role: 'admin' } }}
-                showToast={showToast}
-              />
-            )}
-            {activeTab === 'pricing' && (
-              <PricingView showToast={showToast} />
-            )}
-          </React.Suspense>
+           {activeTab === 'dashboard' && <DashboardView />}
+           {activeTab === 'cuadre' && <CuadreView />}
+           {activeTab === 'expenses' && <GastosView />}
+           {activeTab === 'requests' && <SolicitudesView />}
+           {activeTab === 'routes' && <RutaView />}
+           {activeTab === 'notes' && <NotasView />}
+           {activeTab === 'reports' && <ReportesView />}
+           {activeTab === 'hr' && <RRHHView />}
+           {activeTab === 'accounting' && <ContabilidadView />}
+           {activeTab === 'ai' && (
+             <AIHelper chatHistory={chatHistory} setChatHistory={setChatHistory} dbData={dbData} showToast={showToast} />
+           )}
+           
+           {activeTab === 'clients' && <ClientsView />}
+           {activeTab === 'loans' && <LoansView />}
+           {activeTab === 'calculator' && <CalculatorView />}
+           {activeTab === 'settings' && <SettingsView />}
         </div>
       </main>
 
       {/* Mobile Menu Overlay */}
-      {
-        mobileMenuOpen && (
-          <div className={`fixed inset-0 ${sidebarColor} z-50 flex flex-col p-6 text-white md:hidden animate-fade-in backdrop-blur-sm overflow-y-auto`}>
-            <div className="flex justify-between items-center mb-6">
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 text-white md:hidden animate-fade-in backdrop-blur-sm overflow-y-auto">
+           <div className="flex justify-between items-center mb-6">
               <span className="text-xl font-bold">Menú</span>
-              <button onClick={() => setMobileMenuOpen(false)}><X /></button>
-            </div>
-            {/* Replicate Sidebar Menu Items Here for Mobile */}
-            <div className="space-y-1">
-              <button onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><LayoutDashboard size={18} /> Dashboard</button>
-              <button onClick={() => { setActiveTab('cuadre'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><Banknote size={18} /> Cuadre de Caja</button>
+              <button onClick={() => setMobileMenuOpen(false)}><X/></button>
+           </div>
+           {/* Replicate Sidebar Menu Items Here for Mobile */}
+           <div className="space-y-1">
+             <button onClick={() => {setActiveTab('dashboard'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><LayoutDashboard size={18}/> Dashboard</button>
+             <button onClick={() => {setActiveTab('cuadre'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><Banknote size={18}/> Cuadre de Caja</button>
 
-              <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Operaciones</div>
-              <button onClick={() => { setActiveTab('clients'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Users size={18} /> Clientes</button>
-              <button onClick={() => { setActiveTab('loans'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Wallet size={18} /> Préstamos y Cobros</button>
-              <button onClick={() => { setActiveTab('requests'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><FileText size={18} /> Solicitudes</button>
-              <button onClick={() => { setActiveTab('expenses'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><TrendingUp size={18} /> Gastos</button>
+             <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Operaciones</div>
+             <button onClick={() => {setActiveTab('clients'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Users size={18}/> Clientes</button>
+             <button onClick={() => {setActiveTab('loans'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Wallet size={18}/> Préstamos y Cobros</button>
+             <button onClick={() => {setActiveTab('requests'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><FileText size={18}/> Solicitudes</button>
+             <button onClick={() => {setActiveTab('expenses'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><TrendingUp size={18}/> Gastos</button>
 
-              <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Herramientas</div>
-              <button onClick={() => { setActiveTab('ai'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Zap size={18} /> Asistente AI</button>
-              <button onClick={() => { setActiveTab('routes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><MapPin size={18} /> Rutas</button>
-              <button onClick={() => { setActiveTab('documents'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><FileText size={18} /> Documentos</button>
-              <button onClick={() => { setActiveTab('notes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><ClipboardList size={18} /> Notas</button>
-              <button onClick={() => { setActiveTab('reports'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Printer size={18} /> Reportes</button>
-              <button onClick={() => { setActiveTab('calculator'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Calculator size={18} /> Simulador</button>
+             <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Herramientas</div>
+             <button onClick={() => {setActiveTab('ai'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Zap size={18}/> Asistente AI</button>
+             <button onClick={() => {setActiveTab('routes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><MapPin size={18}/> Rutas</button>
+             <button onClick={() => {setActiveTab('notes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><ClipboardList size={18}/> Notas</button>
+             <button onClick={() => {setActiveTab('reports'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Printer size={18}/> Reportes</button>
+             <button onClick={() => {setActiveTab('calculator'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Calculator size={18}/> Simulador</button>
 
-              <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Admin</div>
-              <button onClick={() => {
-                if (!user?.tenantId) {
-                  showToast('No hay cuenta SaaS conectada', 'error');
-                  setMobileMenuOpen(false);
-                  return;
-                }
-                setActiveTab('settings');
-                setMobileMenuOpen(false);
-                setTimeout(() => {
-                  const verifyBtn = document.querySelector('[data-verify-email]');
-                  if (verifyBtn) verifyBtn.scrollIntoView({ behavior: 'smooth' });
-                }, 200);
-              }} className="w-full py-2 text-left flex items-center gap-3"><CheckCircle size={18} /> Verificar Correo</button>
-              <button onClick={() => { setActiveTab('accounting'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><BookOpen size={18} /> Contabilidad</button>
-              <button onClick={() => { setActiveTab('hr'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><UserCheck size={18} /> RRHH</button>
-              <button onClick={() => { setActiveTab('settings'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Settings size={18} /> Ajustes</button>
-            </div>
+             <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Admin</div>
+             <button onClick={() => { setActiveTab('accounting'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><BookOpen size={18} /> Contabilidad</button>
+             <button onClick={() => { setActiveTab('hr'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><UserCheck size={18} /> RRHH</button>
+             <button onClick={() => { setActiveTab('settings'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Settings size={18} /> Ajustes</button>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* Mobile Bottom Navigation */}
       <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-slate-200 flex justify-around py-2 px-1 md:hidden print:hidden z-40">
@@ -965,12 +1014,14 @@ function App() {
                   setMobileMenuOpen(false);
                 }
               }}
-              className={`flex flex-col items-center text-[10px] font-medium ${isActive ? 'text-blue-600' : 'text-slate-400'
-                }`}
+              className={`flex flex-col items-center text-[10px] font-medium ${
+                isActive ? 'text-blue-600' : 'text-slate-400'
+              }`}
             >
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center mb-1 ${isActive ? 'bg-blue-50' : 'bg-slate-100'
-                  }`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center mb-1 ${
+                  isActive ? 'bg-blue-50' : 'bg-slate-100'
+                }`}
               >
                 <Icon size={18} />
               </div>
@@ -981,18 +1032,33 @@ function App() {
       </nav>
 
       {/* Toast */}
-      {
-        showNotification && (
-          <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-slide-up z-50 ${showNotification.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
-            {showNotification.type === 'success' ? <CheckCircle size={24} className="text-white" /> : <AlertCircle size={24} className="text-white" />}
-            <p className="font-bold">{showNotification.msg}</p>
-          </div>
-        )
-      }
-    </div >
+      {showNotification && (
+        <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-slide-up z-50 ${showNotification.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
+          {showNotification.type === 'success' ? <CheckCircle size={24} className="text-white" /> : <AlertCircle size={24} className="text-white" />}
+          <p className="font-bold">{showNotification.msg}</p>
+        </div>
+      )}
+    </div>
   );
 }
 
+// Helper Components for Menu
+const MenuSection = ({ title, children }) => (
+  <div className="mb-2">
+    <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-3">{title}</p>
+    {children}
+  </div>
+);
 
+const MenuItem = ({ icon: Icon, label, active, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center px-3 py-2 rounded-lg transition-all text-sm font-medium ${
+      active ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+    }`}
+  >
+    <Icon size={18} className="mr-3" /> {label}
+  </button>
+);
 
 export default App;
