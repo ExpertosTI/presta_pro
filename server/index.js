@@ -37,6 +37,8 @@ const clientsRouter = require('./routes/clients');
 const loansRouter = require('./routes/loans');
 const paymentsRouter = require('./routes/payments');
 const syncRouter = require('./routes/sync');
+const subscriptionsRouter = require('./routes/subscriptions');
+
 
 // Importar middleware de autenticación
 const authMiddleware = require('./middleware/authMiddleware');
@@ -58,6 +60,7 @@ app.use('/api/clients', authMiddleware, clientsRouter);
 app.use('/api/loans', authMiddleware, loansRouter);
 app.use('/api/payments', authMiddleware, paymentsRouter);
 app.use('/api/sync', authMiddleware, syncRouter);
+app.use('/api/subscriptions', authMiddleware, subscriptionsRouter);
 
 let mailer = null;
 if (SMTP_HOST) {
@@ -1494,8 +1497,40 @@ app.post('/api/subscriptions/azul-callback', express.urlencoded({ extended: true
 });
 
 // Upload payment proof (for bank transfer)
-// Duplicate route removed - corrected logic is above at line 1307
+app.post('/api/subscriptions/upload-proof', authMiddleware, async (req, res) => {
+  const { paymentId, proofImageUrl, referenceNumber } = req.body;
 
+  if (!paymentId) {
+    return res.status(400).json({ error: 'paymentId es requerido' });
+  }
+
+  try {
+    const payment = await prisma.payment.findFirst({
+      where: {
+        id: paymentId,
+        subscription: { tenantId: req.user.tenantId },
+      },
+    });
+
+    if (!payment) {
+      return res.status(404).json({ error: 'Pago no encontrado' });
+    }
+
+    await prisma.payment.update({
+      where: { id: paymentId },
+      data: {
+        proofImageUrl,
+        referenceNumber: referenceNumber || payment.referenceNumber,
+        notes: 'Pendiente de verificación',
+      },
+    });
+
+    res.json({ success: true, message: 'Comprobante subido. Pendiente de verificación.' });
+  } catch (err) {
+    console.error('UPLOAD_PROOF_ERROR', err);
+    res.status(500).json({ error: 'Error al subir comprobante' });
+  }
+});
 
 // Get payment history
 app.get('/api/subscriptions/payments', authMiddleware, async (req, res) => {

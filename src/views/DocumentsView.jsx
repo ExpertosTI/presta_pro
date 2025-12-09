@@ -190,24 +190,11 @@ Firma PRESTATARIO: ______________________`
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold overflow-hidden border border-indigo-200 dark:border-indigo-700/50">
-            {currentClient?.photoUrl ? (
-              <img src={currentClient.photoUrl} alt={currentClient.name} className="w-full h-full object-cover" />
-            ) : (
-              (currentClient?.name || 'D').charAt(0).toUpperCase()
-            )}
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Documentos</h2>
-            {currentClient && <p className="text-xs text-slate-500 dark:text-slate-400">{currentClient.name}</p>}
-          </div>
-        </div>
-
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Documentos</h2>
         {hasClients && (
           <select
-            className="p-2 pl-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px]"
+            className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={currentClient?.id || ''}
             onChange={handleChangeClient}
           >
