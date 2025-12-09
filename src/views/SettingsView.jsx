@@ -237,9 +237,10 @@ export function SettingsView({
               )}
               <button
                 type="button"
+                data-verify-email
                 onClick={handleResendVerificationEmail}
                 disabled={resendLoading}
-                className="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60"
+                className="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-60 hover:bg-emerald-700 transition-colors"
               >
                 {resendLoading ? 'Reenviando...' : 'Reenviar correo de confirmación'}
               </button>

@@ -472,6 +472,7 @@ function App() {
           <MenuSection title="Herramientas">
             <MenuItem icon={Zap} label="Asistente IA" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
             <MenuItem icon={MapPin} label="Rutas & GPS" active={activeTab === 'routes'} onClick={() => setActiveTab('routes')} />
+            <MenuItem icon={FileText} label="Documentos" active={activeTab === 'documents'} onClick={() => setActiveTab('documents')} />
             <MenuItem icon={ClipboardList} label="Notas" active={activeTab === 'notes'} onClick={() => setActiveTab('notes')} />
             <MenuItem icon={Printer} label="Reportes" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} />
             <MenuItem icon={Calculator} label="Simulador" active={activeTab === 'calculator'} onClick={() => setActiveTab('calculator')} />
@@ -483,6 +484,21 @@ function App() {
               setSecurityToken(token);
               showToast('Token de seguridad actualizado: ' + token);
             }} />
+            <MenuItem
+              icon={CheckCircle}
+              label="Verificar Correo"
+              onClick={() => {
+                if (!user?.tenantId) {
+                  showToast('No hay cuenta SaaS conectada', 'error');
+                  return;
+                }
+                setActiveTab('settings');
+                setTimeout(() => {
+                  const verifyBtn = document.querySelector('[data-verify-email]');
+                  if (verifyBtn) verifyBtn.click();
+                }, 100);
+              }}
+            />
             <MenuItem icon={BookOpen} label="Contabilidad" active={activeTab === 'accounting'} onClick={() => setActiveTab('accounting')} />
             <MenuItem icon={UserCheck} label="RRHH" active={activeTab === 'hr'} onClick={() => setActiveTab('hr')} />
             <MenuItem icon={Settings} label="Ajustes" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
@@ -644,6 +660,19 @@ function App() {
               <button onClick={() => { setActiveTab('calculator'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Calculator size={18} /> Simulador</button>
 
               <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Admin</div>
+              <button onClick={() => {
+                if (!user?.tenantId) {
+                  showToast('No hay cuenta SaaS conectada', 'error');
+                  setMobileMenuOpen(false);
+                  return;
+                }
+                setActiveTab('settings');
+                setMobileMenuOpen(false);
+                setTimeout(() => {
+                  const verifyBtn = document.querySelector('[data-verify-email]');
+                  if (verifyBtn) verifyBtn.scrollIntoView({ behavior: 'smooth' });
+                }, 200);
+              }} className="w-full py-2 text-left flex items-center gap-3"><CheckCircle size={18} /> Verificar Correo</button>
               <button onClick={() => { setActiveTab('accounting'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><BookOpen size={18} /> Contabilidad</button>
               <button onClick={() => { setActiveTab('hr'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><UserCheck size={18} /> RRHH</button>
               <button onClick={() => { setActiveTab('settings'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Settings size={18} /> Ajustes</button>
