@@ -32,31 +32,31 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
             return (
               <Card key={req.id}>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center overflow-hidden border border-indigo-500/30">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center overflow-hidden border border-indigo-200 dark:border-indigo-500/30">
                     {client?.photoUrl ? (
                       <img src={client.photoUrl} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-xs font-bold text-indigo-300">{client?.name?.charAt(0)}</span>
+                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-300">{client?.name?.charAt(0)}</span>
                     )}
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between">
-                      <span className="font-bold text-slate-100">{client?.name}</span>
-                      <span className="text-xs bg-yellow-500/20 text-yellow-200 border border-yellow-500/30 px-2 py-0.5 rounded">Revisión</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100">{client?.name}</span>
+                      <span className="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-200 border border-yellow-300 dark:border-yellow-500/30 px-2 py-0.5 rounded">Revisión</span>
                     </div>
-                    <p className="text-xs text-slate-400">Solicitud #{req.id.slice(0, 4)}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Solicitud #{req.id.slice(0, 4)}</p>
                   </div>
                 </div>
-                <div className="text-sm text-slate-600 dark:text-slate-300 grid grid-cols-2 gap-2 mb-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700/50">
+                <div className="text-sm text-slate-700 dark:text-slate-300 grid grid-cols-2 gap-2 mb-3 bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700/50">
                   <div>
-                    Monto: <span className="font-semibold text-emerald-400">{formatCurrency(req.amount)}</span>
+                    Monto: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(req.amount)}</span>
                   </div>
-                  <div>Tasa: {req.rate}%</div>
+                  <div>Tasa: <span className="font-semibold">{req.rate}%</span></div>
                   <div>
-                    Plazo: {req.term} {req.frequency}
+                    Plazo: <span className="font-semibold">{req.term} {req.frequency}</span>
                   </div>
                   <div>
-                    Cuota: <span className="font-semibold text-blue-400">
+                    Cuota: <span className="font-semibold text-blue-600 dark:text-blue-400">
                       {formatCurrency((parseFloat(req.amount) * (1 + parseFloat(req.rate) / 100)) / parseInt(req.term || 1))}
                     </span>
                   </div>
@@ -70,7 +70,7 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                   </button>
                   <button
                     onClick={() => rejectRequest(req)}
-                    className="flex-1 bg-rose-900/30 text-rose-300 border border-rose-800/50 py-1.5 rounded-lg text-sm font-bold hover:bg-rose-900/50"
+                    className="flex-1 bg-rose-600 text-white py-1.5 rounded-lg text-sm font-bold hover:bg-rose-500 transition-all"
                   >
                     Rechazar
                   </button>
@@ -87,7 +87,7 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
 
         <div id="reqForm">
           <Card>
-            <h3 className="font-bold text-lg mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Crear Nueva Solicitud</h3>
+            <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-slate-100">Crear Nueva Solicitud</h3>
             <form onSubmit={(e) => {
               e.preventDefault();
               if (form.clientId) addRequest(form);
@@ -129,7 +129,7 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                     onChange={e => setForm({ ...form, amount: e.target.value })}
                   />
                   {form.amount && (
-                    <span className="text-xs text-emerald-400 font-mono">
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-mono">
                       {formatCurrency(form.amount)}
                     </span>
                   )}
@@ -169,9 +169,9 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
 
               {/* Cuota estimada preview */}
               {form.amount && form.rate && form.term && (
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-center">
-                  <p className="text-xs text-emerald-400 mb-1">Cuota Estimada</p>
-                  <p className="text-xl font-bold text-emerald-400">
+                <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-1">Cuota Estimada</p>
+                  <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency((parseFloat(form.amount) * (1 + parseFloat(form.rate) / 100)) / parseInt(form.term))} / {form.frequency}
                   </p>
                 </div>
