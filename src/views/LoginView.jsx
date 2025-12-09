@@ -82,9 +82,8 @@ export function LoginView({ onLogin }) {
                 adminPassword: registerForm.password
             };
 
-            // Use the actual backend registration endpoint
-            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
-            const response = await fetch(`${API_BASE_URL}/api/tenants/register`, {
+            // Use relative URL so nginx can proxy to backend
+            const response = await fetch('/api/tenants/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(registrationData)
@@ -112,8 +111,6 @@ export function LoginView({ onLogin }) {
 
     const handleGoogleSuccess = async (credentialResponse) => {
         try {
-            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
-
             if (isRegistering) {
                 // For registration, decode to pre-fill form
                 const decoded = jwtDecode(credentialResponse.credential);
@@ -129,7 +126,7 @@ export function LoginView({ onLogin }) {
                 setLoading(true);
                 setError('');
 
-                const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
+                const response = await fetch('/api/auth/google', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: credentialResponse.credential })
