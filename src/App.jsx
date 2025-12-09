@@ -636,8 +636,24 @@ function App() {
         {/* Dynamic View Content */}
         <div className="flex-1 overflow-y-auto p-4 pb-20 md:p-8 md:pb-8 relative print:p-0 print:overflow-visible">
           <React.Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-blue-600" size={48} /></div>}>
-            {activeTab === 'dashboard' && <DashboardView loans={loans} clients={clients} activeTab={activeTab} />}
-            {activeTab === 'cuadre' && <CuadreView />}
+            {activeTab === 'dashboard' && (
+              <DashboardView
+                loans={loans}
+                clients={clients}
+                receipts={receipts}
+                expenses={expenses}
+                showToast={showToast}
+              />
+            )}
+            {activeTab === 'cuadre' && (
+              <CuadreView
+                receipts={receipts}
+                expenses={expenses}
+                clients={clients}
+                collectors={collectors}
+                routeClosings={routeClosings}
+              />
+            )}
             {activeTab === 'expenses' && <GastosView expenses={expenses} addExpense={addExpense} />}
             {activeTab === 'requests' && <SolicitudesView requests={requests} clients={clients} addRequest={addRequest} approveRequest={approveRequest} rejectRequest={rejectRequest} onNewClient={(callback) => { setClientCreationCallback(() => callback); setClientModalOpen(true); }} />}
             {activeTab === 'routes' && (

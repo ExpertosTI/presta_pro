@@ -122,13 +122,14 @@ const PLANS = {
         name: 'Plan Gratis',
         monthlyPrice: 0,
         yearlyPrice: 0,
+        expiresInDays: 30, // Trial expires in 30 days
         limits: {
             maxClients: 10,
             maxLoans: 5,
             maxUsers: 1,
-            aiQueries: 0,
+            aiQueries: 0, // No AI access in free plan
         },
-        features: ['10 clientes', '5 préstamos activos', '1 usuario'],
+        features: ['10 clientes', '5 préstamos activos', '1 usuario', 'Sin acceso a IA', 'Expira en 30 días'],
     },
     PRO: {
         id: 'PRO',

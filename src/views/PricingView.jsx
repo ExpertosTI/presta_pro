@@ -52,7 +52,7 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                     yearlyPrice: 0,
                     monthlyPriceFormatted: 'RD$0.00',
                     yearlyPriceFormatted: 'RD$0.00',
-                    features: ['10 clientes', '5 préstamos activos', '1 usuario'],
+                    features: ['10 clientes', '5 préstamos activos', '1 usuario', 'Sin acceso a IA', 'Expira en 30 días'],
                 },
                 {
                     id: 'PRO',
@@ -234,10 +234,10 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                         onClick={() => setSelectedPlan(plan.id)}
                                         disabled={isCurrentPlan || processing}
                                         className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${isCurrentPlan
-                                                ? 'bg-emerald-100 text-emerald-700 cursor-not-allowed'
-                                                : plan.id === 'PRO'
-                                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
-                                                    : 'bg-gradient-to-r from-slate-800 to-slate-700 text-white hover:from-slate-900 hover:to-slate-800 shadow-lg shadow-slate-500/25'
+                                            ? 'bg-emerald-100 text-emerald-700 cursor-not-allowed'
+                                            : plan.id === 'PRO'
+                                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
+                                                : 'bg-gradient-to-r from-slate-800 to-slate-700 text-white hover:from-slate-900 hover:to-slate-800 shadow-lg shadow-slate-500/25'
                                             }`}
                                     >
                                         {isCurrentPlan ? 'Plan Actual' : 'Seleccionar'}

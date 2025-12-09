@@ -1,35 +1,347 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import Card from '../components/Card';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatDate } from '../utils/formatters';
+import {
+    TrendingUp, TrendingDown, Users, Wallet, Calendar, AlertTriangle,
+    CheckCircle, Clock, DollarSign, Bell, Filter, ChevronRight
+} from 'lucide-react';
 
-export default function DashboardView({ loans, clients, activeTab }) {
-    // Recalcular stats
-    const totalLent = loans.reduce((acc, l) => acc + parseFloat(l.amount), 0);
-    const totalCollected = loans.reduce((acc, l) => acc + l.totalPaid, 0);
+export default function DashboardView({
+    loans = [],
+    clients = [],
+    receipts = [],
+    expenses = [],
+    showToast
+}) {
+    const [filter, setFilter] = useState('today'); // today, week, month, all
+
+    // Date ranges
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const getFilterDate = () => {
+        switch (filter) {
+            case 'today': return startOfToday;
+            case 'week': return startOfWeek;
+            case 'month': return startOfMonth;
+            default: return new Date(0);
+        }
+    };
+
+    // Core metrics
+    const totalLent = loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+    const totalCollected = loans.reduce((acc, l) => acc + (l.totalPaid || 0), 0);
+    const activeLoans = loans.filter(l => l.status === 'ACTIVE').length;
+    const paidLoans = loans.filter(l => l.status === 'PAID').length;
+
+    // Calculate expected interest
+    const totalExpectedInterest = loans.reduce((acc, l) => acc + (l.totalInterest || 0), 0);
+    const totalExpected = totalLent + totalExpectedInterest;
+    const pendingAmount = totalExpected - totalCollected;
+
+    // Filter-based metrics
+    const filterDate = getFilterDate();
+    const filteredReceipts = receipts.filter(r => new Date(r.date) >= filterDate);
+    const filteredExpenses = expenses.filter(e => e.date && new Date(e.date) >= filterDate);
+
+    const periodIncome = filteredReceipts.reduce((acc, r) => {
+        const base = parseFloat(r.amount || 0);
+        const penalty = parseFloat(r.penaltyAmount || 0);
+        return acc + base + penalty;
+    }, 0);
+
+    const periodExpenses = filteredExpenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
+    const periodProfit = periodIncome - periodExpenses;
+    const periodPenalties = filteredReceipts.reduce((acc, r) => acc + parseFloat(r.penaltyAmount || 0), 0);
+
+    // Overdue installments (notifications)
+    const overdueInstallments = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        return loans.flatMap(loan => {
+            const client = clients.find(c => c.id === loan.clientId);
+            return (loan.schedule || [])
+                .filter(inst => inst.status !== 'PAID' && new Date(inst.date) < today)
+                .map(inst => ({
+                    ...inst,
+                    loanId: loan.id,
+                    clientName: client?.name || 'Sin nombre',
+                    clientPhone: client?.phone,
+                    daysOverdue: Math.floor((today - new Date(inst.date)) / (1000 * 60 * 60 * 24)),
+                }));
+        }).sort((a, b) => b.daysOverdue - a.daysOverdue);
+    }, [loans, clients]);
+
+    // Upcoming due today
+    const dueToday = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        return loans.flatMap(loan => {
+            const client = clients.find(c => c.id === loan.clientId);
+            return (loan.schedule || [])
+                .filter(inst => {
+                    const d = new Date(inst.date);
+                    return inst.status !== 'PAID' && d >= today && d < tomorrow;
+                })
+                .map(inst => ({
+                    ...inst,
+                    loanId: loan.id,
+                    clientName: client?.name || 'Sin nombre',
+                }));
+        });
+    }, [loans, clients]);
+
+    // Recent payments
+    const recentPayments = receipts
+        .slice()
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5);
+
+    const filterLabels = {
+        today: 'Hoy',
+        week: 'Esta Semana',
+        month: 'Este Mes',
+        all: 'Todo'
+    };
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="border-l-4 border-l-blue-600">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Cartera Total</p>
-                    <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(totalLent)}</h3>
+            {/* Header with filter */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Panel de Control</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Resumen financiero de tu negocio</p>
+                </div>
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                    {Object.entries(filterLabels).map(([key, label]) => (
+                        <button
+                            key={key}
+                            onClick={() => setFilter(key)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === key
+                                    ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                                }`}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Main KPIs */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-blue-100 uppercase tracking-wide">Cartera Total</p>
+                            <p className="text-2xl font-bold mt-1">{formatCurrency(totalLent)}</p>
+                            <p className="text-xs text-blue-200 mt-1">{loans.length} préstamos</p>
+                        </div>
+                        <div className="p-2 bg-white/20 rounded-lg">
+                            <Wallet size={20} />
+                        </div>
+                    </div>
                 </Card>
-                <Card className="border-l-4 border-l-green-600">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Recaudado</p>
-                    <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(totalCollected)}</h3>
+
+                <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-emerald-100 uppercase tracking-wide">Recaudado</p>
+                            <p className="text-2xl font-bold mt-1">{formatCurrency(totalCollected)}</p>
+                            <p className="text-xs text-emerald-200 mt-1">{paidLoans} préstamos pagados</p>
+                        </div>
+                        <div className="p-2 bg-white/20 rounded-lg">
+                            <TrendingUp size={20} />
+                        </div>
+                    </div>
                 </Card>
-                <Card className="border-l-4 border-l-orange-600">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Por Cobrar</p>
-                    <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(totalLent * 1.2 - totalCollected)}</h3>
+
+                <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-amber-100 uppercase tracking-wide">Por Cobrar</p>
+                            <p className="text-2xl font-bold mt-1">{formatCurrency(pendingAmount)}</p>
+                            <p className="text-xs text-amber-200 mt-1">{activeLoans} préstamos activos</p>
+                        </div>
+                        <div className="p-2 bg-white/20 rounded-lg">
+                            <Clock size={20} />
+                        </div>
+                    </div>
                 </Card>
-                <Card className="border-l-4 border-l-purple-600">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Clientes Activos</p>
-                    <h3 className="text-2xl font-bold text-slate-800">{clients.length}</h3>
+
+                <Card className="bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-violet-100 uppercase tracking-wide">Clientes</p>
+                            <p className="text-2xl font-bold mt-1">{clients.length}</p>
+                            <p className="text-xs text-violet-200 mt-1">Registrados</p>
+                        </div>
+                        <div className="p-2 bg-white/20 rounded-lg">
+                            <Users size={20} />
+                        </div>
+                    </div>
                 </Card>
             </div>
-            {/* Gráfico Simple Placeholder */}
-            <Card className="h-64 flex items-center justify-center bg-slate-50 border-dashed">
-                <p className="text-slate-400 font-medium">Gráfico de Rendimiento Financiero (Visual)</p>
+
+            {/* Period Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <Card>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-bold text-slate-800 dark:text-slate-100">Ingresos ({filterLabels[filter]})</h3>
+                        <span className="text-2xl font-bold text-emerald-600">{formatCurrency(periodIncome)}</span>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">Cuotas cobradas</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(periodIncome - periodPenalties)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">Mora cobrada</span>
+                            <span className="font-semibold text-amber-600">{formatCurrency(periodPenalties)}</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
+                            <div
+                                className="h-full bg-emerald-500 transition-all"
+                                style={{ width: `${Math.min((periodIncome / (totalExpected || 1)) * 100, 100)}%` }}
+                            />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-bold text-slate-800 dark:text-slate-100">Gastos ({filterLabels[filter]})</h3>
+                        <span className="text-2xl font-bold text-rose-600">{formatCurrency(periodExpenses)}</span>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-slate-500 dark:text-slate-400">Movimientos</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredExpenses.length}</span>
+                        </div>
+                        <p className="text-xs text-slate-400">Control de gastos operativos</p>
+                    </div>
+                </Card>
+
+                <Card className={periodProfit >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-rose-50 dark:bg-rose-900/20'}>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-bold text-slate-800 dark:text-slate-100">Balance ({filterLabels[filter]})</h3>
+                        <span className={`text-2xl font-bold ${periodProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {formatCurrency(periodProfit)}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {periodProfit >= 0 ? (
+                            <TrendingUp size={16} className="text-emerald-500" />
+                        ) : (
+                            <TrendingDown size={16} className="text-rose-500" />
+                        )}
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                            {periodProfit >= 0 ? 'Ganancia neta' : 'Pérdida neta'}
+                        </span>
+                    </div>
+                </Card>
+            </div>
+
+            {/* Notifications & Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Overdue Notifications */}
+                <Card>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Bell size={18} className="text-amber-500" />
+                            <h3 className="font-bold text-slate-800 dark:text-slate-100">Alertas de Mora</h3>
+                        </div>
+                        {overdueInstallments.length > 0 && (
+                            <span className="px-2 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-600 text-xs font-bold rounded-full">
+                                {overdueInstallments.length}
+                            </span>
+                        )}
+                    </div>
+                    {overdueInstallments.length === 0 ? (
+                        <div className="flex flex-col items-center py-6 text-center">
+                            <CheckCircle size={32} className="text-emerald-500 mb-2" />
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Sin cuotas vencidas</p>
+                        </div>
+                    ) : (
+                        <ul className="space-y-2 max-h-48 overflow-y-auto">
+                            {overdueInstallments.slice(0, 5).map((inst, idx) => (
+                                <li key={`${inst.loanId}-${inst.id}-${idx}`} className="flex items-center justify-between p-2 bg-rose-50 dark:bg-rose-900/20 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle size={14} className="text-rose-500" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{inst.clientName}</p>
+                                            <p className="text-xs text-slate-500">Cuota #{inst.number} • {inst.daysOverdue} días vencida</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-sm font-bold text-rose-600">{formatCurrency(inst.payment)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Card>
+
+                {/* Due Today */}
+                <Card>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Calendar size={18} className="text-blue-500" />
+                            <h3 className="font-bold text-slate-800 dark:text-slate-100">Cobros de Hoy</h3>
+                        </div>
+                        {dueToday.length > 0 && (
+                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 text-xs font-bold rounded-full">
+                                {dueToday.length}
+                            </span>
+                        )}
+                    </div>
+                    {dueToday.length === 0 ? (
+                        <div className="flex flex-col items-center py-6 text-center">
+                            <Calendar size={32} className="text-slate-300 dark:text-slate-600 mb-2" />
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Sin cobros programados hoy</p>
+                        </div>
+                    ) : (
+                        <ul className="space-y-2 max-h-48 overflow-y-auto">
+                            {dueToday.map((inst, idx) => (
+                                <li key={`${inst.loanId}-${inst.id}-${idx}`} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{inst.clientName}</p>
+                                        <p className="text-xs text-slate-500">Cuota #{inst.number}</p>
+                                    </div>
+                                    <span className="text-sm font-bold text-blue-600">{formatCurrency(inst.payment)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Card>
+            </div>
+
+            {/* Recent Activity */}
+            <Card>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100">Últimos Cobros</h3>
+                    <span className="text-xs text-slate-500">{receipts.length} total</span>
+                </div>
+                {recentPayments.length === 0 ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No hay pagos registrados</p>
+                ) : (
+                    <ul className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {recentPayments.map(r => (
+                            <li key={r.id} className="py-3 flex justify-between items-center">
+                                <div>
+                                    <p className="font-semibold text-slate-800 dark:text-slate-200">{r.clientName}</p>
+                                    <p className="text-xs text-slate-500">{formatDate(r.date)} • Cuota #{r.installmentNumber || '?'}</p>
+                                </div>
+                                <span className="font-bold text-emerald-600">{formatCurrency(parseFloat(r.amount || 0) + parseFloat(r.penaltyAmount || 0))}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </Card>
         </div>
     );
