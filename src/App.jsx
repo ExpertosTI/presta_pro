@@ -1,48 +1,46 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   LayoutDashboard,
   Users,
-  Calculator,
   Wallet,
+  Settings,
+  LogOut,
+  Menu,
+  X,
   Bell,
   Search,
-  Plus,
-  FileText,
-  TrendingUp,
-  AlertCircle,
   CheckCircle,
-  X,
-  ChevronRight,
-  Menu,
+  AlertCircle,
+  TrendingUp,
+  FileText,
   DollarSign,
   Calendar,
-  Printer,
-  Trash2,
-  MoreVertical,
-  Download,
-  PieChart,
-  Settings,
-  HelpCircle,
-  LogOut,
-  Briefcase,
-  MapPin,
-  ClipboardList,
-  Banknote,
-  BookOpen,
+  ChevronRight,
   Shield,
-  Video,
-  UserCheck,
-  Zap,
-  Send,
   Loader2,
-  List
+  Banknote,
+  Printer,
+  MapPin,
+  Car,
+  ClipboardList,
+  Zap,
+  Calculator,
+  Briefcase,
+  UserCheck,
+  BookOpen,
+  Video
 } from 'lucide-react';
-import { LineChart, Line, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import logoSmall from '../logo-small.svg';
 
-// Components
-import Card from './components/Card';
-import Badge from './components/ui/Badge';
+// Theme Colors Mapping
+const THEME_COLORS = {
+  indigo: 'bg-indigo-900',
+  blue: 'bg-blue-900',
+  emerald: 'bg-emerald-800',
+  violet: 'bg-violet-900',
+  slate: 'bg-slate-900'
+};
+
 import PaymentTicket from './components/ui/PaymentTicket';
 import ClientModal from './components/modals/ClientModal';
 import EmployeeModal from './components/modals/EmployeeModal';
@@ -70,9 +68,8 @@ const ContabilidadView = React.lazy(() => import('./views/AccountingView'));
 const AIHelper = React.lazy(() => import('./views/AIView'));
 const CalculatorView = React.lazy(() => import('./views/CalculatorView'));
 const SettingsView = React.lazy(() => import('./views/SettingsView'));
+const DocumentsView = React.lazy(() => import('./views/DocumentsView'));
 import LoginView from './views/LoginView';
-
-
 
 const TAB_TITLES = {
   dashboard: 'Inicio',
@@ -82,6 +79,7 @@ const TAB_TITLES = {
   expenses: 'Gastos',
   requests: 'Solicitudes',
   routes: 'Rutas & GPS',
+  documents: 'Documentos',
   notes: 'Notas',
   reports: 'Reportes',
   hr: 'Recursos Humanos',
@@ -90,10 +88,6 @@ const TAB_TITLES = {
   calculator: 'Simulador',
   settings: 'Ajustes',
 };
-
-
-
-
 
 function App() {
   // --- STATE PRINCIPAL ---
@@ -123,6 +117,7 @@ function App() {
   const [employees, setEmployees] = useState(() => safeLoad('rt_employees', []));
   const [receipts, setReceipts] = useState(() => safeLoad('rt_receipts', []));
   const [routeClosings, setRouteClosings] = useState(() => safeLoad('rt_closings', []));
+  const [clientDocuments, setClientDocuments] = useState(() => safeLoad('rt_client_documents', {}));
 
   // Estado de Navegación y Selección
   const [selectedClientId, setSelectedClientId] = useState(null);
@@ -135,13 +130,20 @@ function App() {
   ]);
   const [currentRouteLoanIds, setCurrentRouteLoanIds] = useState([]);
   const [routeActive, setRouteActive] = useState(false);
-  const [systemSettings, setSystemSettings] = useState({
+  const [systemSettings, setSystemSettings] = useState(() => safeLoad('rt_settings', {
     companyName: 'Presta Pro',
     companyLogo: logoSmall
-  });
+  }));
+  const [includeFutureInstallments, setIncludeFutureInstallments] = useState(false);
+
+  // Use this in sidebar
+  const sidebarColor = THEME_COLORS[systemSettings.themeColor] || 'bg-slate-900';
 
   // Bundle para el asistente AI
   const dbData = { clients, loans, expenses, requests, notes, receipts };
+
+  // --- EFECTOS DE PERSISTENCIA ---
+  useEffect(() => localStorage.setItem('rt_client_documents', JSON.stringify(clientDocuments)), [clientDocuments]);
 
   // --- EFECTOS DE PERSISTENCIA ---
   useEffect(() => localStorage.setItem('rt_clients', JSON.stringify(clients)), [clients]);
@@ -200,6 +202,34 @@ function App() {
     return newEmployee;
   };
 
+  const updateEmployee = (updatedEmployee) => {
+    setEmployees(employees.map(e => e.id === updatedEmployee.id ? updatedEmployee : e));
+
+    // Update Collector if associated
+    if (updatedEmployee.role === 'Cobrador') {
+      setCollectors(prev => {
+        const exists = prev.find(c => c.employeeId === updatedEmployee.id);
+        if (exists) {
+          return prev.map(c => c.employeeId === updatedEmployee.id ? { ...c, name: updatedEmployee.name } : c);
+        } else {
+          return [...prev, { id: generateId(), name: updatedEmployee.name, active: true, employeeId: updatedEmployee.id }];
+        }
+      });
+    }
+    showToast('Empleado actualizado');
+  };
+
+  const addClientDocument = (clientId, documentData) => {
+    setClientDocuments(prev => {
+      const existing = prev[clientId] || [];
+      return {
+        ...prev,
+        [clientId]: [...existing, { ...documentData, id: generateId(), createdAt: new Date().toISOString() }]
+      };
+    });
+    showToast('Documento guardado correctamente');
+  };
+
   const addRequest = (data) => {
     setRequests([...requests, { ...data, id: generateId(), status: 'REVIEW', date: new Date().toISOString() }]);
     showToast('Solicitud enviada a revisión');
@@ -233,11 +263,19 @@ function App() {
     setActiveTab('loans');
   };
 
-  const registerPayment = (loanId, installmentId) => {
+  const registerPayment = (loanId, installmentId, options = {}) => {
     const loan = loans.find(l => l.id === loanId);
     const installment = loan?.schedule.find(i => i.id === installmentId);
     const client = clients.find(c => c.id === loan?.clientId);
     if (!loan || !installment || !client) return;
+
+    // Determine amount to register
+    const paymentAmount = options.customAmount !== undefined
+      ? options.customAmount
+      : installment.payment;
+
+    const penaltyAmount = options.withPenalty ? (options.penaltyAmountOverride || 0) : 0;
+    const totalReceiptAmount = paymentAmount + penaltyAmount;
 
     const newReceipt = {
       id: generateId(),
@@ -245,8 +283,11 @@ function App() {
       loanId: loan.id,
       clientId: client.id,
       clientName: client.name,
-      amount: installment.payment,
+      amount: paymentAmount,
+      penalty: penaltyAmount,
+      total: totalReceiptAmount,
       installmentNumber: installment.number,
+      isCustomAmount: options.customAmount !== undefined
     };
 
     setReceipts([newReceipt, ...receipts]);
@@ -255,22 +296,32 @@ function App() {
       if (l.id !== loanId) return l;
       const updatedSchedule = l.schedule.map(inst =>
         inst.id === installmentId
-          ? { ...inst, status: 'PAID', paidAmount: inst.payment, paidDate: new Date().toISOString() }
+          ? {
+            ...inst,
+            status: 'PAID',
+            paidAmount: paymentAmount,
+            penaltyPaid: penaltyAmount,
+            paidDate: new Date().toISOString()
+          }
           : inst
       );
       const allPaid = updatedSchedule.every(i => i.status === 'PAID');
       return {
         ...l,
         schedule: updatedSchedule,
-        totalPaid: l.totalPaid + installment.payment,
+        totalPaid: l.totalPaid + paymentAmount,
         status: allPaid ? 'PAID' : 'ACTIVE',
       };
     }));
 
     setPrintReceipt(newReceipt);
-    setTimeout(handlePrint, 100);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setPrintReceipt(null), 1000);
+    }, 100);
 
-    showToast('Pago cobrado y recibo generado');
+    showToast(`Pago de ${formatCurrency(totalReceiptAmount)} registrado`);
+    return newReceipt;
   };
 
   const handleLogin = (userData) => {
@@ -306,11 +357,9 @@ function App() {
   // Rutas
   const toggleLoanInRoute = (loanId, installmentId) => {
     const key = `${loanId}:${installmentId}`;
-    if (currentRouteLoanIds.includes(key)) {
-      setCurrentRouteLoanIds(currentRouteLoanIds.filter(id => id !== key));
-    } else {
-      setCurrentRouteLoanIds([...currentRouteLoanIds, key]);
-    }
+    setCurrentRouteLoanIds(prev =>
+      prev.includes(key) ? prev.filter(id => id !== key) : [...prev, key]
+    );
   };
 
   const clearCurrentRoute = () => {
@@ -373,11 +422,20 @@ function App() {
           }}
         />
       )}
-      {/* EMPLOYEE MODAL */}
+      {/* EMPLOYEE MODAL (Create/Edit) */}
       {employeeModalOpen && (
         <EmployeeModal
           open={employeeModalOpen}
-          onSave={(data) => { addEmployee(data); setEmployeeModalOpen(false); }}
+          // If we are passing an object, it's edit mode; if true (boolean), it's creation mode (no initial data)
+          initialEmployee={typeof employeeModalOpen === 'object' ? employeeModalOpen : null}
+          onSave={(data) => {
+            if (data.id) {
+              updateEmployee(data);
+            } else {
+              addEmployee(data);
+            }
+            setEmployeeModalOpen(false);
+          }}
           onClose={() => setEmployeeModalOpen(false)}
         />
       )}
@@ -406,9 +464,8 @@ function App() {
 
           <MenuSection title="Operaciones">
             <MenuItem icon={Users} label="Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
-            <MenuItem icon={Wallet} label="Cobros" active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} />
+            <MenuItem icon={Wallet} label="Cobros y Préstamos" active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} />
             <MenuItem icon={FileText} label="Solicitudes" active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} />
-            <MenuItem icon={Briefcase} label="Préstamos" active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} />
             <MenuItem icon={TrendingUp} label="Gastos" active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} />
           </MenuSection>
 
@@ -489,15 +546,36 @@ function App() {
                 handlePrint={handlePrint}
                 setPrintReceipt={setPrintReceipt}
                 systemSettings={systemSettings}
+                includeFutureInstallments={includeFutureInstallments}
+                setIncludeFutureInstallments={setIncludeFutureInstallments}
               />
             )}
-            {activeTab === 'notes' && <NotasView notes={notes} setNotes={setNotes} />}
-            {activeTab === 'reports' && <ReportesView loans={loans} expenses={expenses} />}
-            {activeTab === 'hr' && <RRHHView employees={employees} onNewEmployee={() => setEmployeeModalOpen(true)} />}
-            {activeTab === 'accounting' && <ContabilidadView receipts={receipts} expenses={expenses} loans={loans} />}
-            {activeTab === 'ai' && (
-              <AIHelper chatHistory={chatHistory} setChatHistory={setChatHistory} dbData={dbData} showToast={showToast} />
+
+            {activeTab === 'documents' && (
+              <DocumentsView
+                clients={clients}
+                loans={loans}
+                companyName={systemSettings.companyName}
+                selectedClientId={selectedClientId}
+                onSelectClient={onSelectClient}
+                clientDocuments={clientDocuments}
+                addClientDocument={addClientDocument}
+              />
             )}
+
+            {activeTab === 'notes' && <NotasView notes={notes} setNotes={setNotes} />}
+
+            {activeTab === 'reports' && <ReportesView loans={loans} expenses={expenses} clients={clients} routeClosings={routeClosings} />}
+
+            {activeTab === 'hr' && (
+              <RRHHView
+                employees={employees}
+                onNewEmployee={() => setEmployeeModalOpen(true)}
+                onEditEmployee={(emp) => setEmployeeModalOpen(emp)}
+              />
+            )}
+
+            {activeTab === 'accounting' && <ContabilidadView loans={loans} expenses={expenses} routeClosings={routeClosings} />}
 
             {activeTab === 'clients' && (
               <ClientsView
@@ -539,37 +617,40 @@ function App() {
       </main>
 
       {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 text-white md:hidden animate-fade-in backdrop-blur-sm overflow-y-auto">
-          <div className="flex justify-between items-center mb-6">
-            <span className="text-xl font-bold">Menú</span>
-            <button onClick={() => setMobileMenuOpen(false)}><X /></button>
+      {
+        mobileMenuOpen && (
+          <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 text-white md:hidden animate-fade-in backdrop-blur-sm overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-xl font-bold">Menú</span>
+              <button onClick={() => setMobileMenuOpen(false)}><X /></button>
+            </div>
+            {/* Replicate Sidebar Menu Items Here for Mobile */}
+            <div className="space-y-1">
+              <button onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><LayoutDashboard size={18} /> Dashboard</button>
+              <button onClick={() => { setActiveTab('cuadre'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><Banknote size={18} /> Cuadre de Caja</button>
+
+              <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Operaciones</div>
+              <button onClick={() => { setActiveTab('clients'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Users size={18} /> Clientes</button>
+              <button onClick={() => { setActiveTab('loans'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Wallet size={18} /> Préstamos y Cobros</button>
+              <button onClick={() => { setActiveTab('requests'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><FileText size={18} /> Solicitudes</button>
+              <button onClick={() => { setActiveTab('expenses'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><TrendingUp size={18} /> Gastos</button>
+
+              <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Herramientas</div>
+              <button onClick={() => { setActiveTab('ai'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Zap size={18} /> Asistente AI</button>
+              <button onClick={() => { setActiveTab('routes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><MapPin size={18} /> Rutas</button>
+              <button onClick={() => { setActiveTab('documents'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><FileText size={18} /> Documentos</button>
+              <button onClick={() => { setActiveTab('notes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><ClipboardList size={18} /> Notas</button>
+              <button onClick={() => { setActiveTab('reports'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Printer size={18} /> Reportes</button>
+              <button onClick={() => { setActiveTab('calculator'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Calculator size={18} /> Simulador</button>
+
+              <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Admin</div>
+              <button onClick={() => { setActiveTab('accounting'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><BookOpen size={18} /> Contabilidad</button>
+              <button onClick={() => { setActiveTab('hr'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><UserCheck size={18} /> RRHH</button>
+              <button onClick={() => { setActiveTab('settings'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Settings size={18} /> Ajustes</button>
+            </div>
           </div>
-          {/* Replicate Sidebar Menu Items Here for Mobile */}
-          <div className="space-y-1">
-            <button onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><LayoutDashboard size={18} /> Dashboard</button>
-            <button onClick={() => { setActiveTab('cuadre'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><Banknote size={18} /> Cuadre de Caja</button>
-
-            <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Operaciones</div>
-            <button onClick={() => { setActiveTab('clients'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Users size={18} /> Clientes</button>
-            <button onClick={() => { setActiveTab('loans'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Wallet size={18} /> Préstamos y Cobros</button>
-            <button onClick={() => { setActiveTab('requests'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><FileText size={18} /> Solicitudes</button>
-            <button onClick={() => { setActiveTab('expenses'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><TrendingUp size={18} /> Gastos</button>
-
-            <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Herramientas</div>
-            <button onClick={() => { setActiveTab('ai'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Zap size={18} /> Asistente AI</button>
-            <button onClick={() => { setActiveTab('routes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><MapPin size={18} /> Rutas</button>
-            <button onClick={() => { setActiveTab('notes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><ClipboardList size={18} /> Notas</button>
-            <button onClick={() => { setActiveTab('reports'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Printer size={18} /> Reportes</button>
-            <button onClick={() => { setActiveTab('calculator'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Calculator size={18} /> Simulador</button>
-
-            <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Admin</div>
-            <button onClick={() => { setActiveTab('accounting'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><BookOpen size={18} /> Contabilidad</button>
-            <button onClick={() => { setActiveTab('hr'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><UserCheck size={18} /> RRHH</button>
-            <button onClick={() => { setActiveTab('settings'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Settings size={18} /> Ajustes</button>
-          </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Mobile Bottom Navigation */}
       <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-slate-200 flex justify-around py-2 px-1 md:hidden print:hidden z-40">
@@ -609,13 +690,15 @@ function App() {
       </nav>
 
       {/* Toast */}
-      {showNotification && (
-        <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-slide-up z-50 ${showNotification.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
-          {showNotification.type === 'success' ? <CheckCircle size={24} className="text-white" /> : <AlertCircle size={24} className="text-white" />}
-          <p className="font-bold">{showNotification.msg}</p>
-        </div>
-      )}
-    </div>
+      {
+        showNotification && (
+          <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-slide-up z-50 ${showNotification.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
+            {showNotification.type === 'success' ? <CheckCircle size={24} className="text-white" /> : <AlertCircle size={24} className="text-white" />}
+            <p className="font-bold">{showNotification.msg}</p>
+          </div>
+        )
+      }
+    </div >
   );
 }
 

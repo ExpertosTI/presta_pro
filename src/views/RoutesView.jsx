@@ -3,6 +3,7 @@ import Card from '../components/Card.jsx';
 import { MapPin, CheckCircle, Printer } from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import DigitalReceipt from '../components/DigitalReceipt';
+import PaymentConfirmationModal from '../components/modals/PaymentConfirmationModal';
 
 export function RoutesView({
   loans,
@@ -428,76 +429,17 @@ export function RoutesView({
       )}
 
       {paymentToConfirm && (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">Confirmar cobro de ruta</h3>
-            <p className="text-sm text-slate-600 mb-3">
-              Vas a cobrar la cuota
-              <span className="font-semibold"> #{paymentToConfirm.number}</span> del cliente
-              <span className="font-semibold"> {paymentToConfirm.clientName}</span>.
-            </p>
-            <p className="text-sm text-slate-700 mb-1">
-              <span className="font-semibold">Fecha programada:</span> {formatDate(paymentToConfirm.date)}
-            </p>
-            <p className="text-sm text-slate-700 mb-2">
-              <span className="font-semibold">Monto de la cuota:</span> {formatCurrency(paymentToConfirm.amount)}
-            </p>
-            {showPenaltyInput && (
-              <div className="mb-3">
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Monto de mora</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={penaltyAmountInput}
-                  onChange={(e) => setPenaltyAmountInput(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  placeholder="Ej: 50.00"
-                />
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                const next = !showPenaltyInput;
-                setShowPenaltyInput(next);
-                if (!next) {
-                  setPenaltyAmountInput('');
-                }
-              }}
-              className="mb-3 text-xs text-amber-600 hover:text-amber-700 font-semibold"
-            >
-              {showPenaltyInput ? 'Quitar mora' : 'Agregar mora'}
-            </button>
-            <div className="flex flex-col sm:flex-row gap-2 mt-2">
-              <button
-                onClick={() => {
-                  const penalty = showPenaltyInput ? (parseFloat(penaltyAmountInput || '0') || 0) : 0;
-                  const options = {
-                    suppressAutoPrint: true,
-                    withPenalty: penalty > 0,
-                    penaltyAmountOverride: penalty > 0 ? penalty : undefined
-                  };
-
-                  const receipt = registerPayment(paymentToConfirm.loanId, paymentToConfirm.installmentId, options);
-                  if (receipt) {
-                    setReceiptToShow(receipt);
-                  }
-                  setPaymentToConfirm(null);
-                }}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 rounded-lg"
-              >
-                Confirmar pago
-              </button>
-            </div>
-            <button
-              onClick={() => setPaymentToConfirm(null)}
-              className="mt-3 w-full text-xs text-slate-500 hover:text-slate-700"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
+        <PaymentConfirmationModal
+          paymentToConfirm={paymentToConfirm}
+          onConfirm={(loanId, installmentId, options) => {
+            const receipt = registerPayment(loanId, installmentId, { ...options, suppressAutoPrint: true });
+            if (receipt) {
+              setReceiptToShow(receipt);
+            }
+            setPaymentToConfirm(null);
+          }}
+          onCancel={() => setPaymentToConfirm(null)}
+        />
       )}
 
       {receiptToShow && (

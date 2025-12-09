@@ -3,7 +3,7 @@ import Card from '../components/Card.jsx';
 
 const roleLabel = (role) => role || 'Empleado';
 
-export function HRView({ employees, onNewEmployee }) {
+export function HRView({ employees, onNewEmployee, onEditEmployee }) {
   const list = employees || [];
 
   const countByRole = (roleName) => list.filter(e => (e.role || '').toLowerCase() === roleName.toLowerCase()).length;
@@ -57,9 +57,17 @@ export function HRView({ employees, onNewEmployee }) {
                   <p className="font-semibold text-slate-800">{emp.name}</p>
                   <p className="text-[11px] text-slate-500">{emp.phone || ''}</p>
                 </div>
-                <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+                <span className="text-xs px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 mr-2">
                   {roleLabel(emp.role)}
                 </span>
+                {onEditEmployee && (
+                  <button
+                    onClick={() => onEditEmployee(emp)}
+                    className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+                  >
+                    Editar
+                  </button>
+                )}
               </li>
             ))}
           </ul>

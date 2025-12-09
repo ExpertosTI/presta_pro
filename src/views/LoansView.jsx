@@ -4,6 +4,7 @@ import Badge from '../components/ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { calculateSchedule } from '../utils/amortization';
 import { FileText, Sparkles, X, Printer, FileCheck } from 'lucide-react';
+import PaymentConfirmationModal from '../components/modals/PaymentConfirmationModal.jsx';
 
 export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument }) {
   const [generatingContract, setGeneratingContract] = useState(false);
@@ -154,48 +155,16 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Contract Modal */}
-      {showContractModal && (
-        <div className="fixed inset-0 bg-slate-900/90 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 rounded-t-xl sticky top-0 z-10">
-              <div>
-                <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                  <Sparkles className="text-indigo-500" size={20} />
-                  Contrato Generado por IA
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Revisa el contenido antes de guardar o imprimir.</p>
-              </div>
-              <button
-                onClick={() => setShowContractModal(false)}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 hover:text-red-500"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="p-8 overflow-y-auto flex-1 bg-slate-50 dark:bg-slate-950 font-serif text-slate-800 dark:text-slate-200 leading-relaxed text-justify whitespace-pre-wrap shadow-inner selection:bg-indigo-100 dark:selection:bg-indigo-900/30">
-              <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-8 shadow-sm min-h-full">
-                {contractContent}
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex gap-3 justify-end bg-white dark:bg-slate-900 rounded-b-xl">
-              <button
-                onClick={handlePrintContract}
-                className="flex items-center gap-2 bg-slate-800 dark:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-slate-900 dark:hover:bg-slate-600 transition-all shadow-lg shadow-slate-900/20"
-              >
-                <Printer size={18} /> Imprimir / PDF
-              </button>
-              <button
-                onClick={handleSaveContractToDocuments}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20"
-              >
-                <FileCheck size={18} /> Guardar en Documentos
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Payment Confirmation Modal - Extracted Component */}
+      {paymentToConfirm && (
+        <PaymentConfirmationModal
+          paymentToConfirm={paymentToConfirm}
+          onConfirm={(loanId, installmentId, options) => {
+            registerPayment(loanId, installmentId, options);
+            setPaymentToConfirm(null);
+          }}
+          onCancel={() => setPaymentToConfirm(null)}
+        />
       )}
 
       {/* Edit Loan Modal (solo préstamos sin pagos) */}
@@ -340,115 +309,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                 </tr>
               )}
 
-              {paymentToConfirm && (
-                <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50">
-                  <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Confirmar pago</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
-                      Vas a registrar el pago de la cuota
-                      <span className="font-semibold"> #{paymentToConfirm.number}</span> del cliente
-                      <span className="font-semibold"> {paymentToConfirm.clientName}</span>.
-                    </p>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-1">
-                      <span className="font-semibold">Fecha programada:</span> {formatDate(paymentToConfirm.date)}
-                    </p>
-                    <div className="mb-3">
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">💵 Monto a pagar</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={customPaymentAmount}
-                        onChange={(e) => setCustomPaymentAmount(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border-2 border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-slate-900 dark:text-slate-100 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-600"
-                        placeholder={`Sugerido: ${formatCurrency(paymentToConfirm.amount)}`}
-                      />
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Cuota sugerida: {formatCurrency(paymentToConfirm.amount)}
-                        <span className="ml-2 text-blue-500 cursor-pointer" onClick={() => setCustomPaymentAmount(paymentToConfirm.amount)}>
-                          (Usar sugerido)
-                        </span>
-                      </p>
-                    </div>
-                    {showPenaltyInput && (
-                      <div className="mb-3">
-                        <label className="block text-sm font-bold text-amber-700 dark:text-amber-400 mb-2">💰 Monto de mora</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={penaltyAmountInput}
-                          onChange={(e) => setPenaltyAmountInput(e.target.value)}
-                          className="w-full px-4 py-3 rounded-lg border-2 border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-slate-900 dark:text-slate-100 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-600"
-                          placeholder="Ej: 50.00"
-                          autoFocus
-                        />
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = !showPenaltyInput;
-                        setShowPenaltyInput(next);
-                        if (!next) {
-                          setPenaltyAmountInput('');
-                        }
-                      }}
-                      className="mb-3 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-semibold"
-                    >
-                      {showPenaltyInput ? 'Quitar mora' : 'Agregar mora'}
-                    </button>
-                    <div className="flex flex-col sm:flex-row gap-2 mt-2">
-                      <button
-                        onClick={() => {
-                          let options = {};
-
-                          // Custom payment amount
-                          // Custom payment amount
-                          // Allow any amount that is a valid number
-                          const inputVal = parseFloat(customPaymentAmount);
-                          if (!isNaN(inputVal)) {
-                            options.customAmount = inputVal;
-                          } else {
-                            // If empty/invalid, use original amount as fallback or let backend decide? 
-                            // Current logic implies we must send something. If user cleared it, maybe they want 0?
-                            // Let's assume clear = original amount for safety, or prompt. 
-                            // User requirement says "allow full flexibility". 
-                            // But registerPayment usually expects an amount.
-                            // If user explicitly typed 0, customAmount is 0.
-                            // If user typed nothing (empty string), let's default to original to avoid NaN errors, 
-                            // OR if we want to force explicit entry, we could block.
-                            // Given the placeholder shows suggested, defaulting to original if empty is safest UX.
-                          }
-
-                          // Penalty
-                          if (showPenaltyInput) {
-                            const penaltyVal = parseFloat(penaltyAmountInput) || 0;
-                            if (penaltyVal > 0) {
-                              options = { ...options, withPenalty: true, penaltyAmountOverride: penaltyVal };
-                            }
-                          }
-
-                          registerPayment(paymentToConfirm.loanId, paymentToConfirm.installmentId, options);
-                          setPaymentToConfirm(null);
-                          setPenaltyAmountInput('');
-                          setCustomPaymentAmount('');
-                          setShowPenaltyInput(false);
-                        }}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 rounded-lg"
-                      >
-                        Confirmar pago
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => setPaymentToConfirm(null)}
-                      className="mt-3 w-full text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Payment Modal removed - served by PaymentConfirmationModal content above */}
             </tbody>
           </table>
         </div>
