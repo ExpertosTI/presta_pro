@@ -36,6 +36,7 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const clientsRouter = require('./routes/clients');
 const loansRouter = require('./routes/loans');
 const paymentsRouter = require('./routes/payments');
+const expensesRouter = require('./routes/expenses');
 const syncRouter = require('./routes/sync');
 
 // Importar middleware de autenticación
@@ -57,6 +58,7 @@ const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotma
 app.use('/api/clients', authMiddleware, clientsRouter);
 app.use('/api/loans', authMiddleware, loansRouter);
 app.use('/api/payments', authMiddleware, paymentsRouter);
+app.use('/api/expenses', authMiddleware, expensesRouter);
 app.use('/api/sync', authMiddleware, syncRouter);
 
 let mailer = null;
