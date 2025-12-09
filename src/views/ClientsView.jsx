@@ -40,10 +40,10 @@ export function ClientsView({ clients, loans, onNewClient, selectedClientId, onS
           <table className="w-full text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
               <tr>
-                <th className="p-2 text-left w-16"></th>
+                <th className="p-2 text-left w-12 md:w-16"></th>
                 <th className="p-2 text-left">Nombre</th>
-                <th className="p-2 text-left">Teléfono</th>
-                <th className="p-2 text-left">Dirección</th>
+                <th className="p-2 text-left hidden sm:table-cell">Teléfono</th>
+                <th className="p-2 text-left hidden md:table-cell">Dirección</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -64,9 +64,14 @@ export function ClientsView({ clients, loans, onNewClient, selectedClientId, onS
                       )}
                     </div>
                   </td>
-                  <td className="p-2 font-medium text-slate-800 dark:text-slate-200">{c.name}</td>
-                  <td className="p-2 text-slate-600 dark:text-slate-400">{c.phone}</td>
-                  <td className="p-2 text-slate-600 dark:text-slate-400">{c.address}</td>
+                  <td className="p-2 font-medium text-slate-800 dark:text-slate-200">
+                    <div className="flex flex-col">
+                      <span>{c.name}</span>
+                      <span className="sm:hidden text-xs text-slate-500">{c.phone}</span>
+                    </div>
+                  </td>
+                  <td className="p-2 text-slate-600 dark:text-slate-400 hidden sm:table-cell">{c.phone}</td>
+                  <td className="p-2 text-slate-600 dark:text-slate-400 hidden md:table-cell">{c.address}</td>
                 </tr>
               ))}
               {clients.length === 0 && (

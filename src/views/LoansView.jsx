@@ -270,8 +270,8 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
               <tr>
                 <th className="p-2 text-left">Cliente</th>
                 <th className="p-2 text-left">Monto</th>
-                <th className="p-2 text-left">Tasa</th>
-                <th className="p-2 text-left">Estado</th>
+                <th className="p-2 text-left hidden md:table-cell">Tasa</th>
+                <th className="p-2 text-left hidden sm:table-cell">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -296,8 +296,8 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                       )}
                     </td>
                     <td className="p-2 text-slate-800 dark:text-slate-200 font-medium">{formatCurrency(l.amount)}</td>
-                    <td className="p-2 text-slate-600 dark:text-slate-400">{l.rate}%</td>
-                    <td className="p-2"><Badge status={l.status} /></td>
+                    <td className="p-2 text-slate-600 dark:text-slate-400 hidden md:table-cell">{l.rate}%</td>
+                    <td className="p-2 hidden sm:table-cell"><Badge status={l.status} /></td>
                   </tr>
                 );
               })}
