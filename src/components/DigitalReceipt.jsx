@@ -128,20 +128,54 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                                 </div>
                             </div>
                             <div className="border-t border-slate-100 dark:border-slate-700 my-2"></div>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Detalle</p>
-                                    <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">
-                                        Cuota #{receipt.installmentNumber}
+
+                            {/* Desglose de cuotas si hay distribución */}
+                            {receipt.paymentBreakdown && receipt.paymentBreakdown.length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                        Cuotas Pagadas
                                     </p>
-                                    {finalPenaltyAmount > 0 && (
-                                        <p className="text-xs text-amber-600 font-semibold">Incluye mora: {formatCurrency(finalPenaltyAmount)}</p>
+                                    {receipt.paymentBreakdown.map((item, idx) => (
+                                        <div key={idx} className="flex justify-between text-sm bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg">
+                                            <span className="text-slate-700 dark:text-slate-300">Cuota #{item.number}</span>
+                                            <span className="font-semibold text-emerald-600">{formatCurrency(item.amount)}</span>
+                                        </div>
+                                    ))}
+                                    {receipt.penaltyAmount > 0 && (
+                                        <div className="flex justify-between text-sm bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg">
+                                            <span className="text-amber-700 dark:text-amber-300">Mora</span>
+                                            <span className="font-semibold text-amber-600">{formatCurrency(receipt.penaltyAmount)}</span>
+                                        </div>
                                     )}
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="flex items-start gap-3">
+                                    <div className="mt-1">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Detalle</p>
+                                        <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">
+                                            Cuota #{receipt.installmentNumber}
+                                        </p>
+                                        {finalPenaltyAmount > 0 && (
+                                            <p className="text-xs text-amber-600 font-semibold">Incluye mora: {formatCurrency(finalPenaltyAmount)}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Saldo pendiente si está disponible */}
+                            {receipt.remainingBalance !== undefined && receipt.remainingBalance > 0 && (
+                                <>
+                                    <div className="border-t border-slate-100 dark:border-slate-700 my-2"></div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-500">Saldo Pendiente:</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(receipt.remainingBalance)}</span>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

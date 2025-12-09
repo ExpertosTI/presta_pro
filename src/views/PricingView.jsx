@@ -12,14 +12,14 @@ const PLAN_ICONS = {
 
 const PLAN_COLORS = {
     FREE: 'border-slate-300 dark:border-slate-600',
-    PRO: 'border-blue-500 ring-2 ring-blue-500/20',
-    ENTERPRISE: 'border-violet-500 ring-2 ring-violet-500/20',
+    PRO: 'border-emerald-500 ring-2 ring-emerald-500/20',
+    ENTERPRISE: 'border-slate-800 dark:border-amber-500 ring-2 ring-amber-500/20',
 };
 
 const PLAN_BADGES = {
-    FREE: 'bg-slate-100 text-slate-600',
-    PRO: 'bg-blue-100 text-blue-700',
-    ENTERPRISE: 'bg-violet-100 text-violet-700',
+    FREE: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+    PRO: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    ENTERPRISE: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 };
 
 export function PricingView({ showToast, currentPlan = 'FREE' }) {
@@ -57,19 +57,19 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                 {
                     id: 'PRO',
                     name: 'Plan Profesional',
-                    monthlyPrice: 99900,
-                    yearlyPrice: 999900,
-                    monthlyPriceFormatted: 'RD$999.00',
-                    yearlyPriceFormatted: 'RD$9,999.00',
+                    monthlyPrice: 80000,
+                    yearlyPrice: 800000,
+                    monthlyPriceFormatted: 'RD$800.00',
+                    yearlyPriceFormatted: 'RD$8,000.00',
                     features: ['100 clientes', '50 préstamos activos', '5 usuarios', '100 consultas AI/mes'],
                 },
                 {
                     id: 'ENTERPRISE',
                     name: 'Plan Empresarial',
-                    monthlyPrice: 249900,
-                    yearlyPrice: 2499900,
-                    monthlyPriceFormatted: 'RD$2,499.00',
-                    yearlyPriceFormatted: 'RD$24,999.00',
+                    monthlyPrice: 140000,
+                    yearlyPrice: 1400000,
+                    monthlyPriceFormatted: 'RD$1,400.00',
+                    yearlyPriceFormatted: 'RD$14,000.00',
                     features: ['Clientes ilimitados', 'Préstamos ilimitados', 'Usuarios ilimitados', 'AI ilimitado', 'Soporte prioritario'],
                 },
             ]);
@@ -155,8 +155,8 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                     <button
                         onClick={() => setBillingInterval('monthly')}
                         className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${billingInterval === 'monthly'
-                                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
-                                : 'text-slate-500 dark:text-slate-400'
+                            ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
+                            : 'text-slate-500 dark:text-slate-400'
                             }`}
                     >
                         Mensual
@@ -164,8 +164,8 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                     <button
                         onClick={() => setBillingInterval('yearly')}
                         className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${billingInterval === 'yearly'
-                                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
-                                : 'text-slate-500 dark:text-slate-400'
+                            ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
+                            : 'text-slate-500 dark:text-slate-400'
                             }`}
                     >
                         Anual <span className="text-emerald-600 text-xs ml-1">2 meses gratis</span>
@@ -187,7 +187,7 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                         >
                             {plan.id === 'PRO' && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                    <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                    <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
                                         Más Popular
                                     </span>
                                 </div>
@@ -236,8 +236,8 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                         className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${isCurrentPlan
                                                 ? 'bg-emerald-100 text-emerald-700 cursor-not-allowed'
                                                 : plan.id === 'PRO'
-                                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/25'
-                                                    : 'bg-violet-600 text-white hover:bg-violet-700 shadow-lg shadow-violet-500/25'
+                                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 shadow-lg shadow-emerald-500/25'
+                                                    : 'bg-gradient-to-r from-slate-800 to-slate-700 text-white hover:from-slate-900 hover:to-slate-800 shadow-lg shadow-slate-500/25'
                                             }`}
                                     >
                                         {isCurrentPlan ? 'Plan Actual' : 'Seleccionar'}
@@ -262,8 +262,8 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                 <button
                                     onClick={() => setPaymentMethod('AZUL')}
                                     className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${paymentMethod === 'AZUL'
-                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
                                         }`}
                                 >
                                     <CreditCard size={24} className="text-blue-600" />
@@ -276,8 +276,8 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                 <button
                                     onClick={() => setPaymentMethod('BANK_TRANSFER')}
                                     className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${paymentMethod === 'BANK_TRANSFER'
-                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
                                         }`}
                                 >
                                     <Building size={24} className="text-emerald-600" />
@@ -290,8 +290,8 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                 <button
                                     onClick={() => setPaymentMethod('CASH')}
                                     className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${paymentMethod === 'CASH'
-                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
                                         }`}
                                 >
                                     <Banknote size={24} className="text-amber-600" />

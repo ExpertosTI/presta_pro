@@ -678,6 +678,25 @@ function App() {
 
             {activeTab === 'notes' && <NotasView notes={notes} setNotes={setNotes} />}
 
+            {activeTab === 'ai' && (
+              <AIHelper
+                chatHistory={chatHistory}
+                setChatHistory={setChatHistory}
+                dbData={{
+                  clients,
+                  loans,
+                  expenses,
+                  receipts,
+                  employees,
+                  collectors,
+                  systemSettings,
+                }}
+                showToast={showToast}
+                ownerName={user?.name}
+                companyName={systemSettings.companyName}
+              />
+            )}
+
             {activeTab === 'reports' && <ReportesView loans={loans} expenses={expenses} clients={clients} routeClosings={routeClosings} />}
 
             {activeTab === 'hr' && (

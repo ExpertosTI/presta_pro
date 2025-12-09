@@ -133,8 +133,8 @@ const PLANS = {
     PRO: {
         id: 'PRO',
         name: 'Plan Profesional',
-        monthlyPrice: 99900, // RD$999.00
-        yearlyPrice: 999900, // RD$9,999.00 (2 meses gratis)
+        monthlyPrice: 80000, // RD$800.00
+        yearlyPrice: 800000, // RD$8,000.00 (2 meses gratis)
         limits: {
             maxClients: 100,
             maxLoans: 50,
@@ -146,8 +146,8 @@ const PLANS = {
     ENTERPRISE: {
         id: 'ENTERPRISE',
         name: 'Plan Empresarial',
-        monthlyPrice: 249900, // RD$2,499.00
-        yearlyPrice: 2499900, // RD$24,999.00 (2 meses gratis)
+        monthlyPrice: 140000, // RD$1,400.00
+        yearlyPrice: 1400000, // RD$14,000.00 (2 meses gratis)
         limits: {
             maxClients: -1, // Unlimited
             maxLoans: -1,

@@ -55,6 +55,11 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                   <div>
                     Plazo: {req.term} {req.frequency}
                   </div>
+                  <div>
+                    Cuota: <span className="font-semibold text-blue-400">
+                      {formatCurrency((parseFloat(req.amount) * (1 + parseFloat(req.rate) / 100)) / parseInt(req.term || 1))}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -161,6 +166,17 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                   <option>Mensual</option>
                 </select>
               </div>
+
+              {/* Cuota estimada preview */}
+              {form.amount && form.rate && form.term && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-emerald-400 mb-1">Cuota Estimada</p>
+                  <p className="text-xl font-bold text-emerald-400">
+                    {formatCurrency((parseFloat(form.amount) * (1 + parseFloat(form.rate) / 100)) / parseInt(form.term))} / {form.frequency}
+                  </p>
+                </div>
+              )}
+
               <button
                 type="submit"
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-bold shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 hover:scale-[1.02] transition-all"
