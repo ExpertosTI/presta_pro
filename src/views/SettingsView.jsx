@@ -176,6 +176,27 @@ export function SettingsView({
     <div className="space-y-6 animate-fade-in">
       <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Ajustes</h2>
 
+      {/* Subscription Status Card */}
+      <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <p className="text-sm font-medium text-blue-100">Tu Plan Actual</p>
+            <h3 className="text-2xl font-bold">Plan Gratuito</h3>
+            <p className="text-sm text-blue-200 mt-1">10 clientes • 5 préstamos • 1 usuario</p>
+          </div>
+          <button
+            onClick={() => {
+              // Navigate to pricing
+              const event = new CustomEvent('navigate-to-tab', { detail: 'pricing' });
+              window.dispatchEvent(event);
+            }}
+            className="px-4 py-2 bg-white text-blue-600 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors shadow-lg"
+          >
+            Mejorar Plan
+          </button>
+        </div>
+      </Card>
+
       <Card>
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Configuración del Sistema</h3>
         <form onSubmit={handleSaveSettings} className="space-y-4">

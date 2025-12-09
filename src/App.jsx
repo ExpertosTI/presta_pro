@@ -29,7 +29,8 @@ import {
   UserCheck,
   BookOpen,
   Video,
-  List
+  List,
+  Crown
 } from 'lucide-react';
 import logoSmall from '../logo-small.svg';
 
@@ -70,6 +71,7 @@ const AIHelper = React.lazy(() => import('./views/AIView'));
 const CalculatorView = React.lazy(() => import('./views/CalculatorView'));
 const SettingsView = React.lazy(() => import('./views/SettingsView'));
 const DocumentsView = React.lazy(() => import('./views/DocumentsView'));
+const PricingView = React.lazy(() => import('./views/PricingView'));
 import LoginView from './views/LoginView';
 
 const TAB_TITLES = {
@@ -88,6 +90,7 @@ const TAB_TITLES = {
   ai: 'Asistente IA',
   calculator: 'Simulador',
   settings: 'Ajustes',
+  pricing: 'Planes y Precios',
 };
 
 function App() {
@@ -166,6 +169,13 @@ function App() {
       setIncludeFutureInstallments(systemSettings.includeFutureInstallmentsInRoutes);
     }
   }, [systemSettings.includeFutureInstallmentsInRoutes]);
+
+  // Listen for navigate-to-tab events from child components
+  useEffect(() => {
+    const handleNavigate = (e) => setActiveTab(e.detail);
+    window.addEventListener('navigate-to-tab', handleNavigate);
+    return () => window.removeEventListener('navigate-to-tab', handleNavigate);
+  }, []);
 
   // --- ACCIONES GLOBALES ---
   const showToast = (msg, type = 'success') => {
@@ -577,6 +587,7 @@ function App() {
             />
             <MenuItem icon={BookOpen} label="Contabilidad" active={activeTab === 'accounting'} onClick={() => setActiveTab('accounting')} />
             <MenuItem icon={UserCheck} label="RRHH" active={activeTab === 'hr'} onClick={() => setActiveTab('hr')} />
+            <MenuItem icon={Crown} label="Planes" active={activeTab === 'pricing'} onClick={() => setActiveTab('pricing')} />
             <MenuItem icon={Settings} label="Ajustes" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
 
             <MenuItem icon={Video} label="Tutoriales" onClick={() => window.open('https://youtube.com', '_blank')} />
@@ -713,6 +724,9 @@ function App() {
                 auth={{ user: user || { name: 'Admin', role: 'admin' } }}
                 showToast={showToast}
               />
+            )}
+            {activeTab === 'pricing' && (
+              <PricingView showToast={showToast} />
             )}
           </React.Suspense>
         </div>
