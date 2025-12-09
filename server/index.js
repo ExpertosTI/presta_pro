@@ -56,6 +56,8 @@ if (SMTP_HOST) {
 
 
 // --- Security Middleware ---
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -68,23 +70,41 @@ app.use(helmet({
     },
   },
 }));
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+
+// Rate limiting global
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
   max: 2000,
+  message: { error: 'Demasiadas solicitudes, intenta más tarde' },
 });
-app.use(limiter);
+app.use(globalLimiter);
+
+// Rate limiting estricto para endpoints de autenticación
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 10, // Solo 10 intentos de login por IP cada 15 min
+  message: { error: 'Demasiados intentos de inicio de sesión. Espera 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting para registro (más estricto)
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5, // Solo 5 registros por IP por hora
+  message: { error: 'Demasiados registros desde esta IP. Intenta en 1 hora.' },
+});
 
 app.use(cors());
 app.use(express.json());
 
-app.use((req, res, next) => {
-  console.log(req.method, req.url);
-  next();
-});
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime() });
-});
+// Logging condicional (solo en desarrollo)
+if (!IS_PRODUCTION) {
+  app.use((req, res, next) => {
+    console.log(req.method, req.url);
+    next();
+  });
+}
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
@@ -110,6 +130,12 @@ async function authMiddleware(req, res, next) {
     if (!tenant.isVerified) {
       const expiresAt = tenant.verificationExpiresAt;
       if (expiresAt && expiresAt < new Date()) {
+        console.log('⛔ Account expired:', {
+          isVerified: tenant.isVerified,
+          expiresAt,
+          now: new Date(),
+          diffOrPast: expiresAt < new Date()
+        });
         return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
       }
       // Si aún no ha verificado pero no ha expirado, se permite acceso temporal
@@ -332,6 +358,11 @@ app.get('/api/tenants/verify', async (req, res) => {
     }
 
     if (tenant.verificationExpiresAt && tenant.verificationExpiresAt < new Date()) {
+      console.log('⛔ Verification link expired:', {
+        tenantId: tenant.id,
+        expiresAt: tenant.verificationExpiresAt,
+        now: new Date()
+      });
       return res.status(400).json({ error: 'El enlace de verificación ha expirado' });
     }
 

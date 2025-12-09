@@ -3,11 +3,13 @@
   "productName": "PrestaPro",
   "artifactName": "PrestaPro-${version}-${arch}.exe",
   "copyright": "© Renace Tech",
+  "cscLink": "cert.pfx",
+  "cscKeyPassword": "123456",
   "win": {
     "target": "nsis",
+    "icon": "favicon.ico",
     "verifyUpdateCodeSignature": false,
-    "forceCodeSigning": false,
-    "legalTrademarks": "Renace Tech"
+    "forceCodeSigning": false
   },
   "nsis": {
     "oneClick": false,

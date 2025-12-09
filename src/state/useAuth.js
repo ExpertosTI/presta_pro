@@ -97,11 +97,14 @@ export function useAuth(collectors, systemSettings, addCollector) {
                 if (response.status >= 400 && response.status < 500) {
                     const data = await response.json().catch(() => ({}));
                     remoteError = data.error || 'Credenciales inválidas';
+                    console.warn('Login failed (4xx):', remoteError);
                 } else {
-                    console.error('Remote login server error', response.status);
+                    console.error('Remote login server error', response.status, response.statusText);
+                    remoteError = `Error del servidor: ${response.status}`;
                 }
             } catch (err) {
                 console.error('Remote login error, falling back to local auth', err);
+                remoteError = `Error de conexión: ${err.message}`;
             }
         }
 

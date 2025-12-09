@@ -59,7 +59,7 @@ export function ClientsView({ clients, loans, onNewClient, selectedClientId, onS
                         <img src={c.photoUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs text-slate-500 dark:text-slate-400 font-bold">
-                          {c.name.charAt(0).toUpperCase()}
+                          {(c.name || '?').charAt(0).toUpperCase()}
                         </div>
                       )}
                     </div>

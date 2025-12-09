@@ -1,17 +1,29 @@
-import { useState, Suspense, lazy, useEffect } from 'react';
-import { GoogleLogin } from '@react-oauth/google';
-
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   LayoutDashboard,
   Users,
   Calculator,
   Wallet,
+  Bell,
+  Search,
+  Plus,
   FileText,
   TrendingUp,
   AlertCircle,
   CheckCircle,
+  X,
+  ChevronRight,
+  Menu,
+  DollarSign,
+  Calendar,
   Printer,
+  Trash2,
+  MoreVertical,
+  Download,
+  PieChart,
   Settings,
+  HelpCircle,
+  LogOut,
   Briefcase,
   MapPin,
   ClipboardList,
@@ -21,46 +33,46 @@ import {
   Video,
   UserCheck,
   Zap,
-  List,
+  Send,
   Loader2,
-  LogOut,
-  Info
+  List
 } from 'lucide-react';
+import { LineChart, Line, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import logoSmall from '../logo-small.svg';
 
-import logoSmall from './logo.png';
-import { generateSecurityToken } from './utils/ids';
-import { usePrestaProState } from './state/usePrestaProState';
-import PaymentTicket from './components/PaymentTicket.jsx';
-import MenuSection from './components/ui/MenuSection.jsx';
-import MenuItem from './components/ui/MenuItem.jsx';
+// Components
+import Card from './components/Card';
+import Badge from './components/ui/Badge';
+import PaymentTicket from './components/ui/PaymentTicket';
+import ClientModal from './components/modals/ClientModal';
+import EmployeeModal from './components/modals/EmployeeModal';
+import MenuItem from './components/ui/MenuItem';
+import MenuSection from './components/ui/MenuSection';
 
-import { Sidebar } from './components/layout/Sidebar.jsx';
-import Header from './components/layout/Header.jsx';
-import MobileMenu from './components/layout/MobileMenu.jsx';
-import BottomNav from './components/layout/BottomNav.jsx';
-import ClientModal from './components/modals/ClientModal.jsx';
-import EmployeeModal from './components/modals/EmployeeModal.jsx';
-import FloatingAIBot from './ai/FloatingAIBot.jsx';
-import OnboardingModal from './components/modals/OnboardingModal.jsx';
+// Utils
+import { generateId } from './utils/ids';
+import { formatCurrency, formatDate, formatDateTime } from './utils/formatters';
+import { calculateSchedule } from './utils/amortization';
+import { safeLoad } from './utils/storage';
 
-// Lazy Load Views
-const DashboardView = lazy(() => import('./views/DashboardView.jsx'));
-const AIView = lazy(() => import('./views/AIView.jsx'));
-const ClientsView = lazy(() => import('./views/ClientsView.jsx'));
-const LoansView = lazy(() => import('./views/LoansView.jsx'));
-const ExpensesView = lazy(() => import('./views/ExpensesView.jsx'));
-const CuadreView = lazy(() => import('./views/CuadreView.jsx'));
-const RequestsView = lazy(() => import('./views/RequestsView.jsx'));
-const RoutesView = lazy(() => import('./views/RoutesView.jsx'));
-const NotesView = lazy(() => import('./views/NotesView.jsx'));
-const ReportsView = lazy(() => import('./views/ReportsView.jsx'));
-const HRView = lazy(() => import('./views/HRView.jsx'));
-const AccountingView = lazy(() => import('./views/AccountingView.jsx'));
-const SettingsView = lazy(() => import('./views/SettingsView.jsx'));
-const CalculatorView = lazy(() => import('./views/CalculatorView.jsx'));
-const DocumentsView = lazy(() => import('./views/DocumentsView.jsx'));
+// Views
+const DashboardView = React.lazy(() => import('./views/DashboardView'));
+const CuadreView = React.lazy(() => import('./views/CuadreView'));
+const ClientsView = React.lazy(() => import('./views/ClientsView'));
+const LoansView = React.lazy(() => import('./views/LoansView'));
+const GastosView = React.lazy(() => import('./views/ExpensesView'));
+const SolicitudesView = React.lazy(() => import('./views/RequestsView'));
+const RutaView = React.lazy(() => import('./views/RoutesView'));
+const NotasView = React.lazy(() => import('./views/NotesView'));
+const ReportesView = React.lazy(() => import('./views/ReportsView'));
+const RRHHView = React.lazy(() => import('./views/HRView'));
+const ContabilidadView = React.lazy(() => import('./views/AccountingView'));
+const AIHelper = React.lazy(() => import('./views/AIView'));
+const CalculatorView = React.lazy(() => import('./views/CalculatorView'));
+const SettingsView = React.lazy(() => import('./views/SettingsView'));
+import LoginView from './views/LoginView';
 
-import { hasPermission, ROLES } from './logic/authLogic';
+
 
 const TAB_TITLES = {
   dashboard: 'Inicio',
@@ -70,7 +82,6 @@ const TAB_TITLES = {
   expenses: 'Gastos',
   requests: 'Solicitudes',
   routes: 'Rutas & GPS',
-  documents: 'Documentos',
   notes: 'Notas',
   reports: 'Reportes',
   hr: 'Recursos Humanos',
@@ -80,694 +91,352 @@ const TAB_TITLES = {
   settings: 'Ajustes',
 };
 
+
+
+
+
 function App() {
-  const {
-    activeTab,
-    mobileMenuOpen,
-    showNotification,
-    printReceipt,
-    clientModalOpen,
-    employeeModalOpen,
-    securityToken,
-    chatHistory,
-    clients,
-    loans,
-    expenses,
-    requests,
-    notes,
-    receipts,
-    systemSettings,
-    collectors,
-    routeClosings,
-    selectedClientId,
-    selectedLoanId,
-    currentRouteLoanIds,
-    routeActive,
-    setActiveTab,
-    setMobileMenuOpen,
-    setClientModalOpen,
-    setEmployeeModalOpen,
-    setSecurityToken,
-    setChatHistory,
-    setNotes,
-    setSystemSettings,
-    setSelectedClientId,
-    setSelectedLoanId,
-    dbData,
-    addClient,
-    updateClient,
-    addEmployee,
-    addExpense,
-    addRequest,
-    approveRequest,
-    rejectRequest,
-    registerPayment,
-    addCollector,
-    updateCollector,
-    removeCollector,
-    assignCollectorToClient,
-    toggleLoanInRoute,
-    clearCurrentRoute,
-    startRoute,
-    finishRoute,
-    addRouteClosing,
-    showToast,
-    auth,
-    updateLoan,
-    theme,
-    toggleTheme,
-    clientDocuments,
-    addClientDocument,
-    handlePrint,
-    setPrintReceipt
-  } = usePrestaProState();
+  // --- STATE PRINCIPAL ---
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showNotification, setShowNotification] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [printReceipt, setPrintReceipt] = useState(null);
+  const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
+  const [securityToken, setSecurityToken] = useState('');
 
-  const [loginUser, setLoginUser] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [editingClient, setEditingClient] = useState(null);
-  const [showRegister, setShowRegister] = useState(false);
-  const [registerTenantName, setRegisterTenantName] = useState('');
-  const [registerTenantSlug, setRegisterTenantSlug] = useState('');
-  const [registerAdminEmail, setRegisterAdminEmail] = useState('');
-  const [registerAdminPassword, setRegisterAdminPassword] = useState('');
-  const [registerError, setRegisterError] = useState('');
-  const [registerLoading, setRegisterLoading] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!safeLoad('rt_session', null));
+  const [user, setUser] = useState(() => safeLoad('rt_session', null));
 
-  // Sync Company Name from Auth
-  useEffect(() => {
-    if (auth.user?.tenantName && auth.user.tenantName !== systemSettings.companyName) {
-      setSystemSettings(prev => ({ ...prev, companyName: auth.user.tenantName }));
-    } else if (auth.user?.tenant?.name && auth.user.tenant.name !== systemSettings.companyName) {
-      setSystemSettings(prev => ({ ...prev, companyName: auth.user.tenant.name }));
-    }
-  }, [auth.user, setSystemSettings]);
+  // Estado del chat AI
+  const [chatHistory, setChatHistory] = useState([]);
 
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
+  // Datos persistentes
+  const [clients, setClients] = useState(() => safeLoad('rt_clients', []));
+  const [loans, setLoans] = useState(() => safeLoad('rt_loans', []));
+  const [expenses, setExpenses] = useState(() => safeLoad('rt_expenses', []));
+  const [requests, setRequests] = useState(() => safeLoad('rt_requests', []));
+  const [notes, setNotes] = useState(() => safeLoad('rt_notes', []));
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!loginUser.trim() || !loginPassword.trim()) {
-      setLoginError('Ingresa usuario y contraseña.');
-      return;
-    }
-    const result = await auth.login(loginUser.trim(), loginPassword.trim());
-    if (result.success) {
-      setLoginError('');
-      setLoginUser('');
-      setLoginPassword('');
-      const loggedUser = result.user || auth.user;
-      showToast(`Bienvenido, ${loggedUser?.name || 'Usuario'}`, 'success');
+  const [receipts, setReceipts] = useState(() => safeLoad('rt_receipts', []));
+  const [routeClosings, setRouteClosings] = useState(() => safeLoad('rt_closings', []));
 
-      if (loggedUser?.role === ROLES.COLLECTOR) {
-        setActiveTab('routes');
-      } else {
-        setActiveTab('dashboard');
-      }
-    } else {
-      setLoginError(result.error || 'Error de inicio de sesión');
-    }
+  // Estado de Navegación y Selección
+  const [selectedClientId, setSelectedClientId] = useState(null);
+  const [selectedLoanId, setSelectedLoanId] = useState(null);
+
+  // Estado para Rutas y Cobradores
+  const [collectors, setCollectors] = useState([
+    { id: '1', name: 'Cobrador Principal', active: true },
+    { id: '2', name: 'Cobrador Auxiliar', active: true }
+  ]);
+  const [currentRouteLoanIds, setCurrentRouteLoanIds] = useState([]);
+  const [routeActive, setRouteActive] = useState(false);
+  const [systemSettings, setSystemSettings] = useState({
+    companyName: 'Presta Pro',
+    companyLogo: logoSmall
+  });
+
+  // Bundle para el asistente AI
+  const dbData = { clients, loans, expenses, requests, notes, receipts };
+
+  // --- EFECTOS DE PERSISTENCIA ---
+  useEffect(() => localStorage.setItem('rt_clients', JSON.stringify(clients)), [clients]);
+  useEffect(() => localStorage.setItem('rt_loans', JSON.stringify(loans)), [loans]);
+  useEffect(() => localStorage.setItem('rt_expenses', JSON.stringify(expenses)), [expenses]);
+  useEffect(() => localStorage.setItem('rt_requests', JSON.stringify(requests)), [requests]);
+  useEffect(() => localStorage.setItem('rt_notes', JSON.stringify(notes)), [notes]);
+
+  useEffect(() => localStorage.setItem('rt_receipts', JSON.stringify(receipts)), [receipts]);
+  useEffect(() => localStorage.setItem('rt_closings', JSON.stringify(routeClosings)), [routeClosings]);
+
+  // --- ACCIONES GLOBALES ---
+  const showToast = (msg, type = 'success') => {
+    setShowNotification({ msg, type });
+    setTimeout(() => setShowNotification(null), 3000);
   };
 
-  const handleRegisterTenant = async (e) => {
-    e.preventDefault();
-    setRegisterError('');
+  const handlePrint = () => {
+    window.print();
+    setTimeout(() => setPrintReceipt(null), 1000);
+  };
 
-    const tenantName = registerTenantName.trim();
-    const adminEmail = registerAdminEmail.trim();
-    const adminPassword = registerAdminPassword.trim();
+  const addClient = (data) => {
+    setClients([...clients, { ...data, id: generateId(), score: 70 }]);
+    showToast('Cliente registrado correctamente');
+    setActiveTab('clients');
+  };
 
-    if (!tenantName || !adminEmail || !adminPassword) {
-      setRegisterError('Completa nombre de empresa, email y contraseña.');
-      return;
-    }
+  const addExpense = (data) => {
+    setExpenses([...expenses, { ...data, id: generateId(), date: new Date().toISOString() }]);
+    showToast('Gasto registrado');
+  };
 
-    const slug = (registerTenantSlug || tenantName)
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-')
-      .slice(0, 50);
+  const addRequest = (data) => {
+    setRequests([...requests, { ...data, id: generateId(), status: 'REVIEW', date: new Date().toISOString() }]);
+    showToast('Solicitud enviada a revisión');
+  };
 
-    if (!slug || slug.length < 3) {
-      setRegisterError('El identificador de la empresa (slug) debe tener al menos 3 caracteres.');
-      return;
-    }
+  const approveRequest = (req) => {
+    createLoan(req);
+    setRequests(requests.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r));
+  };
 
-    if (!adminEmail.includes('@')) {
-      setRegisterError('Ingresa un correo válido para el administrador.');
-      return;
-    }
+  const rejectRequest = (req) => {
+    setRequests(requests.map(r => r.id === req.id ? { ...r, status: 'REJECTED' } : r));
+    showToast('Solicitud rechazada', 'success');
+  };
 
-    setRegisterLoading(true);
-    const result = await auth.registerTenant(tenantName, slug, adminEmail, adminPassword);
-    setRegisterLoading(false);
+  const createLoan = (loanData) => {
+    const schedule = calculateSchedule(
+      loanData.amount, loanData.rate, loanData.term, loanData.frequency, loanData.startDate
+    );
+    const newLoan = {
+      ...loanData,
+      id: generateId(),
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+      schedule,
+      totalInterest: schedule.reduce((acc, item) => acc + item.interest, 0),
+      totalPaid: 0,
+    };
+    setLoans([newLoan, ...loans]);
+    showToast('Préstamo creado exitosamente');
+    setActiveTab('loans');
+  };
 
-    if (result.success) {
-      // showToast('Cuenta creada. Revisa tu correo...', 'success'); // Onboarding handles this message now better
-      setShowRegister(false);
-      setShowOnboarding(true); // Trigger welcome flow
-      setRegisterTenantName('');
-      setRegisterTenantSlug('');
-      setRegisterAdminEmail('');
-      setRegisterAdminPassword('');
-      setRegisterError('');
-    } else {
-      setRegisterError(result.error || 'No se pudo crear la cuenta');
-    }
+  const registerPayment = (loanId, installmentId) => {
+    const loan = loans.find(l => l.id === loanId);
+    const installment = loan?.schedule.find(i => i.id === installmentId);
+    const client = clients.find(c => c.id === loan?.clientId);
+    if (!loan || !installment || !client) return;
+
+    const newReceipt = {
+      id: generateId(),
+      date: new Date().toISOString(),
+      loanId: loan.id,
+      clientId: client.id,
+      clientName: client.name,
+      amount: installment.payment,
+      installmentNumber: installment.number,
+    };
+
+    setReceipts([newReceipt, ...receipts]);
+
+    setLoans(loans.map(l => {
+      if (l.id !== loanId) return l;
+      const updatedSchedule = l.schedule.map(inst =>
+        inst.id === installmentId
+          ? { ...inst, status: 'PAID', paidAmount: inst.payment, paidDate: new Date().toISOString() }
+          : inst
+      );
+      const allPaid = updatedSchedule.every(i => i.status === 'PAID');
+      return {
+        ...l,
+        schedule: updatedSchedule,
+        totalPaid: l.totalPaid + installment.payment,
+        status: allPaid ? 'PAID' : 'ACTIVE',
+      };
+    }));
+
+    setPrintReceipt(newReceipt);
+    setTimeout(handlePrint, 100);
+
+    showToast('Pago cobrado y recibo generado');
+  };
+
+  const handleLogin = (userData) => {
+    setIsAuthenticated(true);
+    setUser(userData);
+    localStorage.setItem('rt_session', JSON.stringify(userData));
+    showToast(`Bienvenido, ${userData.name}`);
   };
 
   const handleLogout = () => {
-    auth.logout();
-    showToast('Sesión cerrada.', 'info');
+    setIsAuthenticated(false);
+    setUser(null);
+    localStorage.removeItem('rt_session');
+    // window.location.reload(); // No need to reload, React state handles it
   };
 
-  if (auth.loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
+  // --- HANDLERS ADICIONALES ---
+  const onSelectClient = (id) => {
+    setSelectedClientId(id);
+    setActiveTab('clients');
+  };
+
+  const onSelectLoan = (id) => {
+    setSelectedLoanId(id);
+    setActiveTab('loans');
+  };
+
+  const onUpdateLoan = (updatedLoan) => {
+    setLoans(loans.map(l => l.id === updatedLoan.id ? updatedLoan : l));
+    showToast('Préstamo actualizado');
+  };
+
+  // Rutas
+  const toggleLoanInRoute = (loanId, installmentId) => {
+    const key = `${loanId}:${installmentId}`;
+    if (currentRouteLoanIds.includes(key)) {
+      setCurrentRouteLoanIds(currentRouteLoanIds.filter(id => id !== key));
+    } else {
+      setCurrentRouteLoanIds([...currentRouteLoanIds, key]);
+    }
+  };
+
+  const clearCurrentRoute = () => {
+    setCurrentRouteLoanIds([]);
+    setRouteActive(false);
+  };
+
+  const startRoute = () => setRouteActive(true);
+  const finishRoute = () => {
+    setRouteActive(false);
+    setCurrentRouteLoanIds([]);
+  };
+
+  const addRouteClosing = (closingData) => {
+    setRouteClosings([...routeClosings, { ...closingData, id: generateId() }]);
+  };
+
+  // --- HANDLERS para SETTINGS (Cobradores y Asignaciones) ---
+  const addCollector = (collectorData) => {
+    setCollectors([...collectors, { ...collectorData, id: generateId(), active: true }]);
+    showToast('Cobrador agregado');
+  };
+
+  const updateCollector = (updatedCollector) => {
+    setCollectors(collectors.map(c => c.id === updatedCollector.id ? { ...c, ...updatedCollector } : c));
+    showToast('Cobrador actualizado');
+  };
+
+  const removeCollector = (id) => {
+    setCollectors(collectors.filter(c => c.id !== id));
+    showToast('Cobrador eliminado');
+  };
+
+  const assignCollectorToClient = (clientId, collectorId) => {
+    setClients(clients.map(c => c.id === clientId ? { ...c, collectorId } : c));
+    showToast('Cliente asignado a cobrador');
+  };
+
+
+
+  if (!isAuthenticated) {
+    return <LoginView onLogin={handleLogin} />;
   }
-
-  if (!auth.isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50 px-4 py-10 md:py-0 relative overflow-hidden">
-        {/* Background effects */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/25 rounded-full blur-[110px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/25 rounded-full blur-[110px]"></div>
-
-        <div className="w-full max-w-md md:max-w-xl relative z-10">
-          <div className="bg-gradient-to-br from-slate-900/95 via-indigo-900/90 to-sky-950/95 border border-slate-700/60 rounded-3xl px-8 pt-6 pb-10 md:px-12 md:pt-8 md:pb-12 shadow-[0_30px_80px_rgba(15,23,42,0.95)] backdrop-blur-2xl">
-            <div className="flex flex-col items-center mb-4 space-y-2">
-              <div className="relative group p-4">
-                <img src={logoSmall} alt="Presta Pro" className="w-40 h-40 md:w-52 md:h-52 object-contain drop-shadow-2xl relative z-10" />
-                {/* Cinematic Shine Effect - Ultra Subtle Ghost-like */}
-                <div
-                  className="absolute inset-0 pointer-events-none z-20 animate-shimmer"
-                  style={{
-                    background: 'linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%)',
-                    maskImage: `url(${logoSmall})`,
-                    WebkitMaskImage: `url(${logoSmall})`,
-                    maskSize: 'contain',
-                    WebkitMaskSize: 'contain',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskPosition: 'center',
-                    WebkitMaskPosition: 'center',
-                  }}
-                />
-              </div>
-
-              <h2 className="text-xl md:text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                {showRegister ? 'Crear cuenta para tu financiera' : 'Acceso seguro'}
-              </h2>
-              <p className="text-sm text-slate-300 text-center">
-                {showRegister
-                  ? 'Registra tu empresa para empezar a usar Presta Pro SaaS.'
-                  : 'Ingresa tus credenciales para continuar.'}
-              </p>
-            </div>
-
-            {!showRegister ? (
-              <form onSubmit={handleLogin} className="space-y-5">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Usuario</label>
-                    <input
-                      type="text"
-                      value={loginUser}
-                      onChange={(e) => setLoginUser(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-900/50 border border-slate-700/50 text-sm text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      placeholder="admin@renace.tech"
-                    />
-
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
-                    <input
-                      type="password"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-900/50 border border-slate-700/50 text-sm text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      placeholder="••••••"
-                    />
-                  </div>
-                </div>
-
-                {loginError && (
-                  <p className="text-xs text-red-400 bg-red-950/40 border border-red-900/50 rounded-lg px-3 py-2 text-center">
-                    {loginError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm py-2.5 rounded-lg shadow-lg shadow-blue-900/20 transition-all transform hover:scale-[1.02] mt-2"
-                >
-                  Entrar al panel
-                </button>
-
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-slate-700/50"></span>
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-slate-900/90 px-2 text-slate-400">O continúa con</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-center">
-                  <GoogleLogin
-                    onSuccess={(credentialResponse) => {
-                      auth.loginWithGoogle(credentialResponse.credential).then((result) => {
-                        if (result.success) {
-                          setLoginError('');
-                          showToast(`Bienvenido con Google, ${result.user?.name || 'Usuario'}`, 'success');
-                          if (result.user?.role === ROLES.COLLECTOR) {
-                            setActiveTab('routes');
-                          } else {
-                            setActiveTab('dashboard');
-                          }
-                        } else {
-                          setLoginError(result.error || 'Error al iniciar sesión con Google');
-                        }
-                      });
-                    }}
-                    onError={() => {
-                      setLoginError('Falló el inicio de sesión con Google');
-                    }}
-                    theme="filled_black"
-                    shape="pill"
-                  />
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleRegisterTenant} className="space-y-5">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre de la financiera / empresa</label>
-                    <input
-                      type="text"
-                      value={registerTenantName}
-                      onChange={(e) => setRegisterTenantName(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-900/50 border border-slate-700/50 text-sm text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      placeholder="Ej: Presta Juan SRL"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Identificador (slug)</label>
-                    <input
-                      type="text"
-                      value={registerTenantSlug}
-                      onChange={(e) => setRegisterTenantSlug(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-900/50 border border-slate-700/50 text-sm text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      placeholder="Ej: presta-juan"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Email administrador</label>
-                    <input
-                      type="email"
-                      value={registerAdminEmail}
-                      onChange={(e) => setRegisterAdminEmail(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-900/50 border border-slate-700/50 text-sm text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      placeholder="admin@tuempresa.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Contraseña administrador</label>
-                    <input
-                      type="password"
-                      value={registerAdminPassword}
-                      onChange={(e) => setRegisterAdminPassword(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-slate-900/50 border border-slate-700/50 text-sm text-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      placeholder="••••••"
-                    />
-                  </div>
-                </div>
-
-                {registerError && (
-                  <p className="text-xs text-red-400 bg-red-950/40 border border-red-900/50 rounded-lg px-3 py-2 text-center">
-                    {registerError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={registerLoading}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow-lg shadow-emerald-900/20 transition-all transform hover:scale-[1.02] mt-2"
-                >
-                  {registerLoading ? 'Creando cuenta...' : 'Crear cuenta y entrar'}
-                </button>
-
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-slate-700/50"></span>
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-slate-900/90 px-2 text-slate-400">O regístrate con</span>
-                  </div>
-                </div>
-
-
-                <div className="flex justify-center">
-                  <GoogleLogin
-                    onSuccess={(credentialResponse) => {
-                      auth.loginWithGoogle(credentialResponse.credential).then((result) => {
-                        if (result.success) {
-                          setRegisterError('');
-                          showToast(`Bienvenido con Google, ${result.user?.name || 'Usuario'}`, 'success');
-                          if (result.user?.role === ROLES.COLLECTOR) {
-                            setActiveTab('routes');
-                          } else {
-                            setActiveTab('dashboard');
-                          }
-                        } else {
-                          setRegisterError(result.error || 'Error al registrarse con Google');
-                        }
-                      });
-                    }}
-                    onError={() => {
-                      setRegisterError('Error al iniciar sesión con Google');
-                    }}
-                    text="signup_with"
-                    shape="rectangular"
-                    theme="filled_black"
-                    size="large"
-                    width="300"
-                  />
-                </div>
-              </form>
-            )}
-
-            <div className="mt-4 text-center text-xs text-slate-400">
-              {!showRegister ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRegister(true);
-                    setRegisterError('');
-                  }}
-                  className="underline hover:text-slate-200"
-                >
-                  ¿No tienes cuenta? Crear cuenta para tu financiera
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRegister(false);
-                    setLoginError('');
-                  }}
-                  className="underline hover:text-slate-200"
-                >
-                  Ya tengo cuenta, iniciar sesión
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const role = auth.user?.role;
-
-  const displayUserName =
-    (systemSettings.ownerDisplayName && systemSettings.ownerDisplayName.trim()) ||
-    auth.user?.name ||
-    auth.user?.email ||
-    'Admin';
 
   return (
-    <div className="flex h-screen bg-transparent font-sans text-slate-100 print:bg-white">
+    <div className="flex h-screen bg-slate-100 font-sans text-slate-900 print:bg-white">
+      {/* CLIENT MODAL */}
       {clientModalOpen && (
         <ClientModal
           open={clientModalOpen}
-          initialClient={editingClient}
-          onClose={() => {
-            setClientModalOpen(false);
-            setEditingClient(null);
-          }}
-          onSave={(data) => {
-            if (data.id) {
-              updateClient(data);
-            } else {
-              addClient(data);
-            }
-            setClientModalOpen(false);
-            setEditingClient(null);
-          }}
+          onClose={() => setClientModalOpen(false)}
+          onSave={(data) => { addClient(data); setClientModalOpen(false); }}
         />
       )}
+      {/* EMPLOYEE MODAL */}
       {employeeModalOpen && (
         <EmployeeModal
           open={employeeModalOpen}
           onClose={() => setEmployeeModalOpen(false)}
-          onSave={(data) => {
-            addEmployee(data);
-            setEmployeeModalOpen(false);
-          }}
         />
       )}
-      {showOnboarding && (
-        <OnboardingModal
-          open={showOnboarding}
-          onClose={() => setShowOnboarding(false)}
-          userName={auth.user?.name || 'Emprendedor'}
-          userEmail={auth.user?.username || auth.user?.email}
-        />
-      )}
-      {printReceipt && <PaymentTicket receipt={printReceipt} companyName={systemSettings.companyName} companyLogo={systemSettings.companyLogo} />}
+      {/* TICKET PRINTER OVERLAY */}
+      {printReceipt && <PaymentTicket receipt={printReceipt} />}
+      {/* TICKET PRINTER OVERLAY */}
+      {printReceipt && <PaymentTicket receipt={printReceipt} />}
 
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} companyName={systemSettings.companyName}>
-        <MenuSection title="Tablero de Control">
-          {hasPermission(role, 'dashboard') && (
-            <MenuItem
-              icon={LayoutDashboard}
-              label="Tablero"
-              active={activeTab === 'dashboard'}
-              onClick={() => setActiveTab('dashboard')}
-            />
-          )}
-          {hasPermission(role, 'accounting') && (
-            <MenuItem
-              icon={Banknote}
-              label="Cuadre de Caja"
-              active={activeTab === 'cuadre'}
-              onClick={() => setActiveTab('cuadre')}
-            />
-          )}
-        </MenuSection>
-
-        <MenuSection title="Operaciones">
-          {hasPermission(role, 'clients') && (
-            <MenuItem
-              icon={Users}
-              label="Clientes"
-              active={activeTab === 'clients'}
-              onClick={() => setActiveTab('clients')}
-            />
-          )}
-          {hasPermission(role, 'loans') && (
-            <MenuItem
-              icon={Wallet}
-              label="Cobros"
-              active={activeTab === 'loans'}
-              onClick={() => setActiveTab('loans')}
-            />
-          )}
-          {hasPermission(role, 'requests') && (
-            <MenuItem
-              icon={FileText}
-              label="Solicitudes"
-              active={activeTab === 'requests'}
-              onClick={() => setActiveTab('requests')}
-            />
-          )}
-          {hasPermission(role, 'loans') && (
-            <MenuItem
-              icon={Briefcase}
-              label="Préstamos"
-              active={activeTab === 'loans'}
-              onClick={() => setActiveTab('loans')}
-            />
-          )}
-          {hasPermission(role, 'expenses') && (
-            <MenuItem
-              icon={TrendingUp}
-              label="Gastos"
-              active={activeTab === 'expenses'}
-              onClick={() => setActiveTab('expenses')}
-            />
-          )}
-        </MenuSection>
-
-        <MenuSection title="Herramientas">
-          {hasPermission(role, 'ai') && (
-            <MenuItem
-              icon={Zap}
-              label="Asistente IA"
-              active={activeTab === 'ai'}
-              onClick={() => setActiveTab('ai')}
-            />
-          )}
-          {hasPermission(role, 'routes') && (
-            <MenuItem
-              icon={MapPin}
-              label="Rutas & GPS"
-              active={activeTab === 'routes'}
-              onClick={() => setActiveTab('routes')}
-            />
-          )}
-          {hasPermission(role, 'documents') && (
-            <MenuItem
-              icon={FileText}
-              label="Documentos"
-              active={activeTab === 'documents'}
-              onClick={() => setActiveTab('documents')}
-            />
-          )}
-          {hasPermission(role, 'notes') && (
-            <MenuItem
-              icon={ClipboardList}
-              label="Notas"
-              active={activeTab === 'notes'}
-              onClick={() => setActiveTab('notes')}
-            />
-          )}
-          {hasPermission(role, 'reports') && (
-            <MenuItem
-              icon={Printer}
-              label="Reportes"
-              active={activeTab === 'reports'}
-              onClick={() => setActiveTab('reports')}
-            />
-          )}
-          {hasPermission(role, 'calculator') && (
-            <MenuItem
-              icon={Calculator}
-              label="Simulador"
-              active={activeTab === 'calculator'}
-              onClick={() => setActiveTab('calculator')}
-            />
-          )}
-        </MenuSection>
-
-        <MenuSection title="Administración">
-          {hasPermission(role, 'settings') && (
-            <MenuItem
-              icon={Shield}
-              label="Token Seguridad"
-              onClick={() => {
-                const token = generateSecurityToken();
-                setSecurityToken(token);
-                showToast('Token de seguridad actualizado: ' + token);
-              }}
-            />
-          )}
-          {hasPermission(role, 'accounting') && (
-            <MenuItem
-              icon={BookOpen}
-              label="Contabilidad"
-              active={activeTab === 'accounting'}
-              onClick={() => setActiveTab('accounting')}
-            />
-          )}
-          {hasPermission(role, 'hr') && (
-            <MenuItem
-              icon={UserCheck}
-              label="RRHH"
-              active={activeTab === 'hr'}
-              onClick={() => setActiveTab('hr')}
-            />
-          )}
-          {hasPermission(role, 'settings') && (
-            <MenuItem
-              icon={Settings}
-              label="Ajustes"
-              active={activeTab === 'settings'}
-              onClick={() => setActiveTab('settings')}
-            />
-          )}
-          <MenuItem icon={Video} label="Tutoriales" onClick={() => window.open('https://youtube.com', '_blank')} />
-          <MenuItem icon={LogOut} label="Cerrar Sesión" onClick={handleLogout} />
-        </MenuSection>
-
-        <div className="mt-auto pt-6 border-t border-slate-800 text-center pb-4">
-          <p className="font-bold text-slate-400 text-sm tracking-widest">RENACE.TECH</p>
+      {/* Sidebar - HIDDEN ON PRINT */}
+      <aside className="hidden md:flex flex-col w-72 bg-slate-900 text-white shadow-2xl z-20 print:hidden">
+        <div className="p-6 flex items-center gap-3 border-b border-slate-800">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center overflow-hidden">
+            <img src={logoSmall} alt="Presta Pro" className="w-8 h-8 object-contain" />
+          </div>
+          <div>
+            <span className="text-xl font-extrabold tracking-tight block leading-none">Presta Pro</span>
+            <span className="text-xs text-slate-400 font-medium tracking-wider uppercase">Gestión de Préstamos</span>
+          </div>
         </div>
-      </Sidebar>
 
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-hide">
+          <MenuSection title="Tablero de Control">
+            <MenuItem icon={LayoutDashboard} label="Tablero" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+            <MenuItem icon={Banknote} label="Cuadre de Caja" active={activeTab === 'cuadre'} onClick={() => setActiveTab('cuadre')} />
+          </MenuSection>
+
+          <MenuSection title="Operaciones">
+            <MenuItem icon={Users} label="Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
+            <MenuItem icon={Wallet} label="Cobros" active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} />
+            <MenuItem icon={FileText} label="Solicitudes" active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} />
+            <MenuItem icon={Briefcase} label="Préstamos" active={activeTab === 'loans'} onClick={() => setActiveTab('loans')} />
+            <MenuItem icon={TrendingUp} label="Gastos" active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} />
+          </MenuSection>
+
+          <MenuSection title="Herramientas">
+            <MenuItem icon={Zap} label="Asistente IA" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
+            <MenuItem icon={MapPin} label="Rutas & GPS" active={activeTab === 'routes'} onClick={() => setActiveTab('routes')} />
+            <MenuItem icon={ClipboardList} label="Notas" active={activeTab === 'notes'} onClick={() => setActiveTab('notes')} />
+            <MenuItem icon={Printer} label="Reportes" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} />
+            <MenuItem icon={Calculator} label="Simulador" active={activeTab === 'calculator'} onClick={() => setActiveTab('calculator')} />
+          </MenuSection>
+
+          <MenuSection title="Administración">
+            <MenuItem icon={Shield} label="Token Seguridad" onClick={() => {
+              const token = generateSecurityToken();
+              setSecurityToken(token);
+              showToast('Token de seguridad actualizado: ' + token);
+            }} />
+            <MenuItem icon={BookOpen} label="Contabilidad" active={activeTab === 'accounting'} onClick={() => setActiveTab('accounting')} />
+            <MenuItem icon={UserCheck} label="RRHH" active={activeTab === 'hr'} onClick={() => setActiveTab('hr')} />
+            <MenuItem icon={Settings} label="Ajustes" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+
+            <MenuItem icon={Video} label="Tutoriales" onClick={() => window.open('https://youtube.com', '_blank')} />
+            <MenuItem icon={LogOut} label="Cerrar Sesión" onClick={handleLogout} className="text-red-400 hover:text-red-300 hover:bg-red-900/20" />
+          </MenuSection>
+
+          <div className="mt-auto pt-6 border-t border-slate-800 text-center pb-4">
+            <p className="text-[10px] text-slate-500">Powered by</p>
+            <p className="font-bold text-slate-400 text-sm tracking-widest">RENACE.TECH</p>
+          </div>
+        </nav>
+      </aside>
+
+      {/* Main Content */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative print:h-auto print:overflow-visible">
-        <Header
-          activeTitle={TAB_TITLES[activeTab] || 'Presta Pro'}
-          setMobileMenuOpen={setMobileMenuOpen}
-          theme={theme}
-          toggleTheme={toggleTheme}
-          companyName={systemSettings.companyName}
-          userName={displayUserName}
-          companyLogo={systemSettings.companyLogo}
-          onLogout={handleLogout}
-        />
+        {/* Header - HIDDEN ON PRINT */}
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10 print:hidden">
+          <div className="md:hidden flex items-center gap-3">
+            <button onClick={() => setMobileMenuOpen(true)}><Menu /></button>
+            <img src={logoSmall} alt="Presta Pro" className="w-7 h-7 rounded-lg object-contain" />
+            <span className="font-bold text-slate-800">Presta Pro</span>
+          </div>
+          <h1 className="hidden md:block text-xl font-bold text-slate-800">{TAB_TITLES[activeTab] || 'Presta Pro'}</h1>
+          <div className="flex items-center gap-4">
+            <button className="bg-slate-100 p-2 rounded-full relative">
+              <Bell size={20} />
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">A</div>
+              <span className="text-sm font-bold hidden md:block">Admin</span>
+            </div>
+          </div>
+        </header>
 
+        {/* Dynamic View Content */}
         <div className="flex-1 overflow-y-auto p-4 pb-20 md:p-8 md:pb-8 relative print:p-0 print:overflow-visible">
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="animate-spin text-blue-600" size={48} />
-              </div>
-            }
-          >
-            {activeTab === 'dashboard' && hasPermission(role, 'dashboard') && (
-              <DashboardView
-                loans={loans}
-                clients={clients}
-                selectedClientId={selectedClientId}
-                selectedLoanId={selectedLoanId}
-                onSelectLoan={(loanId) => {
-                  setSelectedLoanId(loanId);
-                  setActiveTab('loans');
-                }}
-                onSelectClient={(clientId) => {
-                  setSelectedClientId(clientId);
-                  setActiveTab('clients');
-                }}
-              />
-            )}
-            {activeTab === 'cuadre' && hasPermission(role, 'accounting') && (
-              <CuadreView
-                receipts={receipts}
-                expenses={expenses}
-                clients={clients}
-                collectors={collectors}
-                routeClosings={routeClosings}
-              />
-            )}
-            {activeTab === 'expenses' && hasPermission(role, 'expenses') && (
-              <ExpensesView expenses={expenses} addExpense={addExpense} />
-            )}
-            {activeTab === 'requests' && hasPermission(role, 'requests') && (
-              <RequestsView
-                requests={requests}
-                clients={clients}
-                addRequest={addRequest}
-                approveRequest={approveRequest}
-                rejectRequest={rejectRequest}
-                onNewClient={() => setClientModalOpen(true)}
-              />
-            )}
-            {activeTab === 'routes' && hasPermission(role, 'routes') && (
-              <RoutesView
+          <React.Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-blue-600" size={48} /></div>}>
+            {activeTab === 'dashboard' && <DashboardView loans={loans} clients={clients} activeTab={activeTab} />}
+            {activeTab === 'cuadre' && <CuadreView />}
+            {activeTab === 'expenses' && <GastosView expenses={expenses} addExpense={addExpense} />}
+            {activeTab === 'requests' && <SolicitudesView requests={requests} clients={clients} addRequest={addRequest} approveRequest={approveRequest} rejectRequest={rejectRequest} onNewClient={() => setClientModalOpen(true)} />}
+            {activeTab === 'routes' && (
+              <RutaView
                 loans={loans}
                 clients={clients}
                 registerPayment={registerPayment}
@@ -781,81 +450,42 @@ function App() {
                 addRouteClosing={addRouteClosing}
                 routeClosings={routeClosings}
                 receipts={receipts}
-                includeFutureInstallments={systemSettings?.includeFutureInstallmentsInRoutes}
-                systemSettings={systemSettings}
+                showToast={showToast}
                 handlePrint={handlePrint}
                 setPrintReceipt={setPrintReceipt}
+                systemSettings={systemSettings}
               />
             )}
-            {activeTab === 'documents' && hasPermission(role, 'documents') && (
-              <DocumentsView
-                clients={clients}
-                loans={loans}
-                companyName={systemSettings.companyName}
-                selectedClientId={selectedClientId}
-                onSelectClient={setSelectedClientId}
-                clientDocuments={clientDocuments}
-                addClientDocument={addClientDocument}
-              />
+            {activeTab === 'notes' && <NotasView notes={notes} setNotes={setNotes} />}
+            {activeTab === 'reports' && <ReportesView loans={loans} expenses={expenses} />}
+            {activeTab === 'hr' && <RRHHView />}
+            {activeTab === 'accounting' && <ContabilidadView />}
+            {activeTab === 'ai' && (
+              <AIHelper chatHistory={chatHistory} setChatHistory={setChatHistory} dbData={dbData} showToast={showToast} />
             )}
-            {activeTab === 'notes' && hasPermission(role, 'notes') && (
-              <NotesView notes={notes} setNotes={setNotes} />
-            )}
-            {activeTab === 'reports' && hasPermission(role, 'reports') && (
-              <ReportsView loans={loans} expenses={expenses} />
-            )}
-            {activeTab === 'hr' && hasPermission(role, 'hr') && (
-              <HRView
-                employees={dbData?.employees || []}
-                onNewEmployee={() => setEmployeeModalOpen(true)}
-              />
-            )}
-            {activeTab === 'accounting' && hasPermission(role, 'accounting') && (
-              <AccountingView loans={loans} expenses={expenses} receipts={receipts} />
-            )}
-            {activeTab === 'ai' && hasPermission(role, 'ai') && (
-              <AIView
-                chatHistory={chatHistory}
-                setChatHistory={setChatHistory}
-                dbData={dbData}
-                showToast={showToast}
-                ownerName={displayUserName}
-                companyName={systemSettings.companyName}
-              />
-            )}
-            {activeTab === 'clients' && hasPermission(role, 'clients') && (
+
+            {activeTab === 'clients' && (
               <ClientsView
                 clients={clients}
                 loans={loans}
+                onNewClient={() => setClientModalOpen(true)}
                 selectedClientId={selectedClientId}
-                onSelectClient={setSelectedClientId}
-                onSelectLoan={(loanId) => {
-                  setSelectedLoanId(loanId);
-                  setActiveTab('loans');
-                }}
-                onNewClient={() => {
-                  setEditingClient(null);
-                  setClientModalOpen(true);
-                }}
-                onEditClient={(client) => {
-                  setEditingClient(client);
-                  setClientModalOpen(true);
-                }}
+                onSelectClient={onSelectClient}
+                onSelectLoan={onSelectLoan}
               />
             )}
-            {activeTab === 'loans' && hasPermission(role, 'loans') && (
+            {activeTab === 'loans' && (
               <LoansView
                 loans={loans}
                 clients={clients}
                 registerPayment={registerPayment}
                 selectedLoanId={selectedLoanId}
-                onSelectLoan={setSelectedLoanId}
-                onUpdateLoan={updateLoan}
-                addClientDocument={addClientDocument}
+                onSelectLoan={onSelectLoan}
+                onUpdateLoan={onUpdateLoan}
               />
             )}
-            {activeTab === 'calculator' && hasPermission(role, 'calculator') && <CalculatorView />}
-            {activeTab === 'settings' && hasPermission(role, 'settings') && (
+            {activeTab === 'calculator' && <CalculatorView />}
+            {activeTab === 'settings' && (
               <SettingsView
                 systemSettings={systemSettings}
                 setSystemSettings={setSystemSettings}
@@ -865,77 +495,94 @@ function App() {
                 removeCollector={removeCollector}
                 clients={clients}
                 assignCollectorToClient={assignCollectorToClient}
-                auth={auth}
+                auth={{ user: user || { name: 'Admin', role: 'admin' } }}
               />
             )}
-          </Suspense>
+          </React.Suspense>
         </div>
       </main>
 
-      <BottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        setMobileMenuOpen={setMobileMenuOpen}
-        items={[
-          hasPermission(role, 'dashboard') && { id: 'dashboard', icon: LayoutDashboard, label: 'Inicio' },
-          hasPermission(role, 'clients') && { id: 'clients', icon: Users, label: 'Clientes' },
-          hasPermission(role, 'loans') && { id: 'loans', icon: Wallet, label: 'Cobros' },
-          hasPermission(role, 'routes') && { id: 'routes', icon: MapPin, label: 'Rutas' },
-          hasPermission(role, 'expenses') && { id: 'expenses', icon: TrendingUp, label: 'Gastos' },
-        ].filter(Boolean)}
-      />
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col p-6 text-white md:hidden animate-fade-in backdrop-blur-sm overflow-y-auto">
+          <div className="flex justify-between items-center mb-6">
+            <span className="text-xl font-bold">Menú</span>
+            <button onClick={() => setMobileMenuOpen(false)}><X /></button>
+          </div>
+          {/* Replicate Sidebar Menu Items Here for Mobile */}
+          <div className="space-y-1">
+            <button onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><LayoutDashboard size={18} /> Dashboard</button>
+            <button onClick={() => { setActiveTab('cuadre'); setMobileMenuOpen(false); }} className="w-full py-3 border-b border-slate-700 text-left flex items-center gap-3"><Banknote size={18} /> Cuadre de Caja</button>
 
-      <MobileMenu
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        setActiveTab={setActiveTab}
-        items={[
-          hasPermission(role, 'dashboard') && { id: 'dashboard', icon: LayoutDashboard, label: 'Inicio' },
-          hasPermission(role, 'accounting') && { id: 'cuadre', icon: Banknote, label: 'Cuadre de Caja' },
-          hasPermission(role, 'clients') && { id: 'clients', icon: Users, label: 'Clientes' },
-          hasPermission(role, 'loans') && { id: 'loans', icon: Wallet, label: 'Cobros' },
-          hasPermission(role, 'requests') && { id: 'requests', icon: FileText, label: 'Solicitudes' },
-          hasPermission(role, 'expenses') && { id: 'expenses', icon: TrendingUp, label: 'Gastos' },
-          hasPermission(role, 'routes') && { id: 'routes', icon: MapPin, label: 'Rutas & GPS' },
-          hasPermission(role, 'documents') && { id: 'documents', icon: FileText, label: 'Documentos' },
-          hasPermission(role, 'notes') && { id: 'notes', icon: ClipboardList, label: 'Notas' },
-          hasPermission(role, 'reports') && { id: 'reports', icon: Printer, label: 'Reportes' },
-          hasPermission(role, 'ai') && { id: 'ai', icon: Zap, label: 'Asistente IA' },
-          hasPermission(role, 'calculator') && { id: 'calculator', icon: Calculator, label: 'Simulador' },
-          hasPermission(role, 'accounting') && { id: 'accounting', icon: BookOpen, label: 'Contabilidad' },
-          hasPermission(role, 'hr') && { id: 'hr', icon: UserCheck, label: 'RRHH' },
-          hasPermission(role, 'settings') && { id: 'settings', icon: Settings, label: 'Ajustes' },
-        ].filter(Boolean)}
-      />
+            <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Operaciones</div>
+            <button onClick={() => { setActiveTab('clients'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Users size={18} /> Clientes</button>
+            <button onClick={() => { setActiveTab('loans'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Wallet size={18} /> Préstamos y Cobros</button>
+            <button onClick={() => { setActiveTab('requests'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><FileText size={18} /> Solicitudes</button>
+            <button onClick={() => { setActiveTab('expenses'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><TrendingUp size={18} /> Gastos</button>
 
-      {hasPermission(role, 'ai') && (
-        <FloatingAIBot
-          chatHistory={chatHistory}
-          setChatHistory={setChatHistory}
-          dbData={dbData}
-          showToast={showToast}
-          ownerName={displayUserName}
-          companyName={systemSettings.companyName}
-        />
-      )}
+            <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Herramientas</div>
+            <button onClick={() => { setActiveTab('ai'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Zap size={18} /> Asistente AI</button>
+            <button onClick={() => { setActiveTab('routes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><MapPin size={18} /> Rutas</button>
+            <button onClick={() => { setActiveTab('notes'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><ClipboardList size={18} /> Notas</button>
+            <button onClick={() => { setActiveTab('reports'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Printer size={18} /> Reportes</button>
+            <button onClick={() => { setActiveTab('calculator'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Calculator size={18} /> Simulador</button>
 
-      {showNotification && (
-        <div className={`fixed bottom-20 md:bottom-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl glass flex items-center gap-3 animate-fade-in-up max-w-[90vw] md:max-w-md border-l-4 ${showNotification.type === 'error' ? 'border-l-red-500 text-red-600 dark:text-red-400' :
-          showNotification.type === 'info' ? 'border-l-blue-500 text-blue-600 dark:text-blue-400' :
-            'border-l-emerald-500 text-emerald-600 dark:text-emerald-400'
-          }`}>
-          {showNotification.type === 'error' ? <AlertCircle size={24} /> :
-            showNotification.type === 'info' ? <Info size={24} /> :
-              <CheckCircle size={24} />}
-          <div className="flex-1">
-            <p className="font-bold text-sm tracking-wide">{showNotification.type === 'error' ? 'Error' : showNotification.type === 'info' ? 'Información' : 'Éxito'}</p>
-            <p className="text-sm font-medium opacity-90">{showNotification.msg}</p>
+            <div className="pt-2 pb-1 text-xs font-bold text-slate-500 uppercase">Admin</div>
+            <button onClick={() => { setActiveTab('accounting'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><BookOpen size={18} /> Contabilidad</button>
+            <button onClick={() => { setActiveTab('hr'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><UserCheck size={18} /> RRHH</button>
+            <button onClick={() => { setActiveTab('settings'); setMobileMenuOpen(false); }} className="w-full py-2 text-left flex items-center gap-3"><Settings size={18} /> Ajustes</button>
           </div>
         </div>
       )}
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed inset-x-0 bottom-0 bg-white border-t border-slate-200 flex justify-around py-2 px-1 md:hidden print:hidden z-40">
+        {[
+          { id: 'dashboard', icon: LayoutDashboard, label: 'Inicio' },
+          { id: 'clients', icon: Users, label: 'Clientes' },
+          { id: 'loans', icon: Wallet, label: 'Cobros' },
+          { id: 'expenses', icon: TrendingUp, label: 'Gastos' },
+          { id: 'more', icon: List, label: 'Menú' },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = item.id !== 'more' && activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (item.id === 'more') {
+                  setMobileMenuOpen(true);
+                } else {
+                  setActiveTab(item.id);
+                  setMobileMenuOpen(false);
+                }
+              }}
+              className={`flex flex-col items-center text-[10px] font-medium ${isActive ? 'text-blue-600' : 'text-slate-400'
+                }`}
+            >
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center mb-1 ${isActive ? 'bg-blue-50' : 'bg-slate-100'
+                  }`}
+              >
+                <Icon size={18} />
+              </div>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Toast */}
+      {showNotification && (
+        <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-slide-up z-50 ${showNotification.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
+          {showNotification.type === 'success' ? <CheckCircle size={24} className="text-white" /> : <AlertCircle size={24} className="text-white" />}
+          <p className="font-bold">{showNotification.msg}</p>
+        </div>
+      )}
     </div>
   );
 }
+
+
 
 export default App;
