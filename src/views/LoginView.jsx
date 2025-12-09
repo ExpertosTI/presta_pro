@@ -168,8 +168,8 @@ export function LoginView({ onLogin }) {
             <div className="relative z-10 w-full max-w-md p-6">
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-8 transform transition-all duration-500 hover:shadow-indigo-500/20">
                     <div className="flex flex-col items-center mb-8">
-                        {/* Logo: Increased size significantly as requested */}
-                        <img src={logo} alt="Presta Pro" className="w-36 h-36 object-contain drop-shadow-2xl mb-4 hover:scale-105 transition-transform" />
+                        {/* Logo: Large size for better visibility */}
+                        <img src={logo} alt="Presta Pro" className="w-48 h-48 object-contain drop-shadow-2xl mb-4 hover:scale-105 transition-transform" />
                         <h1 className="text-4xl font-bold text-white tracking-tight">Presta Pro</h1>
                         <p className="text-blue-200 text-lg mt-1 font-light">Gestión Inteligente de Préstamos</p>
                     </div>
