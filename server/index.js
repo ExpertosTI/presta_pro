@@ -1149,8 +1149,397 @@ app.post('/api/auth/google', async (req, res) => {
       details: err.message
     });
   }
-});
 
-app.listen(PORT, () => {
-  console.log(`API server running on port ${PORT}`);
-});
+  // ============================================
+  // SUBSCRIPTION ENDPOINTS
+  // ============================================
+
+  const azulService = require('./services/azul');
+
+  // Get subscription plans
+  app.get('/api/subscriptions/plans', (req, res) => {
+    const plans = Object.values(azulService.PLANS).map(plan => ({
+      ...plan,
+      monthlyPriceFormatted: azulService.formatPriceForDisplay(plan.monthlyPrice),
+      yearlyPriceFormatted: azulService.formatPriceForDisplay(plan.yearlyPrice),
+    }));
+    res.json(plans);
+  });
+
+  // Get current subscription status
+  app.get('/api/subscriptions/status', authMiddleware, async (req, res) => {
+    try {
+      const subscription = await prisma.subscription.findUnique({
+        where: { tenantId: req.user.tenantId },
+        include: { payments: { orderBy: { createdAt: 'desc' }, take: 5 } },
+      });
+
+      if (!subscription) {
+        // Create default FREE subscription
+        const newSub = await prisma.subscription.create({
+          data: {
+            tenantId: req.user.tenantId,
+            plan: 'FREE',
+            status: 'ACTIVE',
+            limits: JSON.stringify(azulService.PLANS.FREE.limits),
+          },
+        });
+        return res.json({
+          ...newSub,
+          planDetails: azulService.PLANS.FREE,
+          limits: azulService.PLANS.FREE.limits,
+        });
+      }
+
+      const planDetails = azulService.PLANS[subscription.plan] || azulService.PLANS.FREE;
+      const limits = typeof subscription.limits === 'string'
+        ? JSON.parse(subscription.limits)
+        : subscription.limits;
+
+      res.json({
+        ...subscription,
+        planDetails,
+        limits,
+        isExpired: subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date(),
+      });
+    } catch (err) {
+      console.error('SUBSCRIPTION_STATUS_ERROR', err);
+      res.status(500).json({ error: 'Error al obtener estado de suscripción' });
+    }
+  });
+
+  // Initiate subscription upgrade/payment
+  app.post('/api/subscriptions/upgrade', authMiddleware, async (req, res) => {
+    const { plan, interval = 'monthly', paymentMethod } = req.body;
+
+    if (!plan || !['PRO', 'ENTERPRISE'].includes(plan)) {
+      return res.status(400).json({ error: 'Plan inválido' });
+    }
+
+    if (!paymentMethod || !['AZUL', 'PAYPAL', 'BANK_TRANSFER', 'CASH'].includes(paymentMethod)) {
+      return res.status(400).json({ error: 'Método de pago inválido' });
+    }
+
+    try {
+      const amount = azulService.getPlanPrice(plan, interval);
+      const orderId = `SUB-${req.user.tenantId.slice(0, 8)}-${Date.now()}`;
+
+      // Create pending payment record
+      let subscription = await prisma.subscription.findUnique({
+        where: { tenantId: req.user.tenantId },
+      });
+
+      if (!subscription) {
+        subscription = await prisma.subscription.create({
+          data: {
+            tenantId: req.user.tenantId,
+            plan: 'FREE',
+            status: 'PENDING',
+          },
+        });
+      }
+
+      const payment = await prisma.payment.create({
+        data: {
+          subscriptionId: subscription.id,
+          amount: amount / 100, // Store in currency units
+          currency: 'DOP',
+          plan: plan,
+          interval: interval,
+          method: paymentMethod,
+          status: 'PENDING',
+          referenceNumber: orderId,
+        },
+      });
+
+      // Generate response based on payment method
+      if (paymentMethod === 'AZUL') {
+        const tenant = await prisma.tenant.findUnique({ where: { id: req.user.tenantId } });
+        const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+
+        const callbackUrl = `${process.env.APP_BASE_URL}/api/subscriptions/azul-callback`;
+
+        const azulData = azulService.generatePaymentData({
+          orderId,
+          amount,
+          customerName: tenant?.name || 'Cliente',
+          customerEmail: user?.email || '',
+          description: `Suscripción ${plan} - ${interval === 'yearly' ? 'Anual' : 'Mensual'}`,
+          callbackUrl,
+          cancelUrl: `${process.env.APP_BASE_URL}/?payment=cancelled`,
+        });
+
+        return res.json({
+          paymentId: payment.id,
+          method: 'AZUL',
+          redirectUrl: azulData.pageUrl,
+          formData: azulData.formData,
+        });
+      }
+
+      // For manual payments (BANK_TRANSFER, CASH)
+      res.json({
+        paymentId: payment.id,
+        method: paymentMethod,
+        orderId,
+        amount: amount / 100,
+        amountFormatted: azulService.formatPriceForDisplay(amount),
+        instructions: paymentMethod === 'BANK_TRANSFER'
+          ? 'Realiza la transferencia y sube el comprobante.'
+          : 'Contacta al administrador para coordinar el pago.',
+      });
+    } catch (err) {
+      console.error('SUBSCRIPTION_UPGRADE_ERROR', err);
+      res.status(500).json({ error: 'Error al procesar upgrade' });
+    }
+  });
+
+  // Azul callback (POST from Azul after payment)
+  app.post('/api/subscriptions/azul-callback', express.urlencoded({ extended: true }), async (req, res) => {
+    try {
+      const response = azulService.parseResponse(req.body);
+
+      // Verify hash
+      if (!azulService.verifyResponseHash(req.body)) {
+        console.error('AZUL_INVALID_HASH', req.body);
+        return res.redirect(`${process.env.APP_BASE_URL}/?payment=invalid`);
+      }
+
+      // Find payment by order ID
+      const payment = await prisma.payment.findFirst({
+        where: { referenceNumber: response.orderId },
+        include: { subscription: true },
+      });
+
+      if (!payment) {
+        return res.redirect(`${process.env.APP_BASE_URL}/?payment=notfound`);
+      }
+
+      if (response.success) {
+        // Update payment as verified
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'VERIFIED',
+            externalTransactionId: response.authorizationCode,
+            verifiedAt: new Date(),
+            externalData: JSON.stringify(response.rawData),
+          },
+        });
+
+        // Activate subscription
+        const periodEnd = new Date();
+        periodEnd.setMonth(periodEnd.getMonth() + (payment.interval === 'yearly' ? 12 : 1));
+
+        await prisma.subscription.update({
+          where: { id: payment.subscriptionId },
+          data: {
+            plan: payment.plan,
+            status: 'ACTIVE',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: periodEnd,
+            limits: JSON.stringify(azulService.PLANS[payment.plan].limits),
+          },
+        });
+
+        return res.redirect(`${process.env.APP_BASE_URL}/?payment=success`);
+      } else {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'REJECTED',
+            rejectedReason: response.message,
+          },
+        });
+
+        return res.redirect(`${process.env.APP_BASE_URL}/?payment=declined`);
+      }
+    } catch (err) {
+      console.error('AZUL_CALLBACK_ERROR', err);
+      return res.redirect(`${process.env.APP_BASE_URL}/?payment=error`);
+    }
+  });
+
+  // Upload payment proof (for bank transfer)
+  app.post('/api/subscriptions/upload-proof', authMiddleware, async (req, res) => {
+    const { paymentId, proofImageUrl, referenceNumber } = req.body;
+
+    if (!paymentId) {
+      return res.status(400).json({ error: 'paymentId es requerido' });
+    }
+
+    try {
+      const payment = await prisma.payment.findFirst({
+        where: {
+          id: paymentId,
+          subscription: { tenantId: req.user.tenantId },
+        },
+      });
+
+      if (!payment) {
+        return res.status(404).json({ error: 'Pago no encontrado' });
+      }
+
+      await prisma.payment.update({
+        where: { id: paymentId },
+        data: {
+          proofImageUrl,
+          referenceNumber: referenceNumber || payment.referenceNumber,
+          notes: 'Pendiente de verificación',
+        },
+      });
+
+      res.json({ success: true, message: 'Comprobante subido. Pendiente de verificación.' });
+    } catch (err) {
+      console.error('UPLOAD_PROOF_ERROR', err);
+      res.status(500).json({ error: 'Error al subir comprobante' });
+    }
+  });
+
+  // Get payment history
+  app.get('/api/subscriptions/payments', authMiddleware, async (req, res) => {
+    try {
+      const subscription = await prisma.subscription.findUnique({
+        where: { tenantId: req.user.tenantId },
+      });
+
+      if (!subscription) {
+        return res.json([]);
+      }
+
+      const payments = await prisma.payment.findMany({
+        where: { subscriptionId: subscription.id },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      res.json(payments);
+    } catch (err) {
+      console.error('PAYMENTS_HISTORY_ERROR', err);
+      res.status(500).json({ error: 'Error al obtener historial' });
+    }
+  });
+
+  // ============================================
+  // ADMIN ENDPOINTS
+  // ============================================
+
+  // Middleware to check admin role
+  const adminMiddleware = async (req, res, next) => {
+    if (req.user.role !== 'OWNER' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de administrador.' });
+    }
+    next();
+  };
+
+  // Get all subscriptions (admin)
+  app.get('/api/admin/subscriptions', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const subscriptions = await prisma.subscription.findMany({
+        include: {
+          tenant: { select: { name: true, slug: true } },
+          payments: { orderBy: { createdAt: 'desc' }, take: 1 },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+
+      res.json(subscriptions);
+    } catch (err) {
+      console.error('ADMIN_SUBSCRIPTIONS_ERROR', err);
+      res.status(500).json({ error: 'Error al obtener suscripciones' });
+    }
+  });
+
+  // Get pending payments (admin)
+  app.get('/api/admin/payments/pending', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const payments = await prisma.payment.findMany({
+        where: { status: 'PENDING' },
+        include: {
+          subscription: {
+            include: { tenant: { select: { name: true, slug: true } } },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      res.json(payments);
+    } catch (err) {
+      console.error('ADMIN_PENDING_PAYMENTS_ERROR', err);
+      res.status(500).json({ error: 'Error al obtener pagos pendientes' });
+    }
+  });
+
+  // Verify payment (admin)
+  app.post('/api/admin/payments/:id/verify', authMiddleware, adminMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const { notes } = req.body;
+
+    try {
+      const payment = await prisma.payment.findUnique({
+        where: { id },
+        include: { subscription: true },
+      });
+
+      if (!payment) {
+        return res.status(404).json({ error: 'Pago no encontrado' });
+      }
+
+      // Update payment
+      await prisma.payment.update({
+        where: { id },
+        data: {
+          status: 'VERIFIED',
+          verifiedBy: req.user.userId,
+          verifiedAt: new Date(),
+          notes: notes || 'Verificado manualmente',
+        },
+      });
+
+      // Activate subscription
+      const periodEnd = new Date();
+      periodEnd.setMonth(periodEnd.getMonth() + (payment.interval === 'yearly' ? 12 : 1));
+
+      await prisma.subscription.update({
+        where: { id: payment.subscriptionId },
+        data: {
+          plan: payment.plan,
+          status: 'ACTIVE',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: periodEnd,
+          limits: JSON.stringify(azulService.PLANS[payment.plan].limits),
+        },
+      });
+
+      res.json({ success: true, message: 'Pago verificado y suscripción activada' });
+    } catch (err) {
+      console.error('ADMIN_VERIFY_PAYMENT_ERROR', err);
+      res.status(500).json({ error: 'Error al verificar pago' });
+    }
+  });
+
+  // Reject payment (admin)
+  app.post('/api/admin/payments/:id/reject', authMiddleware, adminMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    try {
+      await prisma.payment.update({
+        where: { id },
+        data: {
+          status: 'REJECTED',
+          rejectedReason: reason || 'Rechazado por el administrador',
+          verifiedBy: req.user.userId,
+          verifiedAt: new Date(),
+        },
+      });
+
+      res.json({ success: true, message: 'Pago rechazado' });
+    } catch (err) {
+      console.error('ADMIN_REJECT_PAYMENT_ERROR', err);
+      res.status(500).json({ error: 'Error al rechazar pago' });
+    }
+  });
+
+  app.listen(PORT, () => {
+    console.log(`API server running on port ${PORT}`);
+  });

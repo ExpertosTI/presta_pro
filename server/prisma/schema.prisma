@@ -151,7 +151,7 @@ enum SubscriptionStatus {
 
 enum PaymentMethod {
   PAYPAL
-  CARNET
+  AZUL
   BANK_TRANSFER
   CASH
 }
