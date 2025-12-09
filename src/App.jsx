@@ -275,8 +275,14 @@ function App() {
       ? options.customAmount
       : installment.payment;
 
+    const penaltyRate = systemSettings.defaultPenaltyRate || 5;
     const penaltyAmount = options.withPenalty ? (options.penaltyAmountOverride || 0) : 0;
     const totalReceiptAmount = paymentAmount + penaltyAmount;
+
+    // Calcular saldo pendiente del préstamo
+    const totalLoanAmount = loan.schedule.reduce((acc, i) => acc + i.payment, 0);
+    const totalPaidBefore = loan.totalPaid || 0;
+    const remainingBalance = totalLoanAmount - totalPaidBefore - paymentAmount;
 
     const newReceipt = {
       id: generateId(),
@@ -286,9 +292,12 @@ function App() {
       clientName: client.name,
       amount: paymentAmount,
       penalty: penaltyAmount,
+      penaltyRate: penaltyRate,
       total: totalReceiptAmount,
       installmentNumber: installment.number,
-      isCustomAmount: options.customAmount !== undefined
+      isCustomAmount: options.customAmount !== undefined,
+      collectorName: user?.name || 'Admin',
+      remainingBalance: remainingBalance > 0 ? remainingBalance : 0
     };
 
     setReceipts([newReceipt, ...receipts]);
@@ -441,9 +450,7 @@ function App() {
         />
       )}
       {/* TICKET PRINTER OVERLAY */}
-      {printReceipt && <PaymentTicket receipt={printReceipt} />}
-      {/* TICKET PRINTER OVERLAY */}
-      {printReceipt && <PaymentTicket receipt={printReceipt} />}
+      {printReceipt && <PaymentTicket receipt={printReceipt} systemSettings={systemSettings} />}
 
       {/* Sidebar - HIDDEN ON PRINT */}
       <aside className="hidden md:flex flex-col w-72 bg-slate-900 text-white shadow-2xl z-20 print:hidden">
