@@ -81,13 +81,14 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      connectSrc: ["'self'", "https://accounts.google.com", "https://oauth2.googleapis.com", process.env.APP_BASE_URL || "http://localhost:4000"],
+      connectSrc: ["'self'", "https://accounts.google.com", "https://oauth2.googleapis.com", "https://generativelanguage.googleapis.com", "https://prestanace.renace.tech", "https://*.renace.tech", process.env.APP_BASE_URL || "http://localhost:4000"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https://lh3.googleusercontent.com"], // Google avatars
       frameSrc: ["'self'", "https://accounts.google.com"]
     },
   },
+  crossOriginOpenerPolicy: false, // Disable COOP to allow OAuth popups
 }));
 
 // Rate limiting global

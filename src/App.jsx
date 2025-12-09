@@ -34,26 +34,25 @@ import {
 } from 'lucide-react';
 import logoSmall from '../logo-small.svg';
 
-// Theme Colors Mapping - Colores oscuros empresariales
 const THEME_COLORS = {
-  indigo: 'bg-indigo-900',
-  blue: 'bg-blue-900',
-  emerald: 'bg-emerald-800',
-  violet: 'bg-violet-900',
-  slate: 'bg-slate-900',
-  zinc: 'bg-zinc-900',
-  neutral: 'bg-neutral-900',
-  stone: 'bg-stone-900',
-  gray: 'bg-gray-900',
-  teal: 'bg-teal-900',
-  cyan: 'bg-cyan-900',
-  sky: 'bg-sky-900',
-  rose: 'bg-rose-900',
-  amber: 'bg-amber-900',
-  orange: 'bg-orange-900',
-  fuchsia: 'bg-fuchsia-900',
-  purple: 'bg-purple-900',
-  green: 'bg-green-900',
+  indigo: 'bg-[#0f172a] border-indigo-900', // Very dark slate/blue
+  blue: 'bg-[#0f172a] border-blue-900',
+  emerald: 'bg-[#064e3b] border-emerald-900',
+  violet: 'bg-[#2e1065] border-violet-900',
+  slate: 'bg-[#020617] border-slate-800', // Almost black
+  zinc: 'bg-[#18181b] border-zinc-900',
+  neutral: 'bg-[#171717] border-neutral-900',
+  stone: 'bg-[#1c1917] border-stone-900',
+  gray: 'bg-[#111827] border-gray-900',
+  teal: 'bg-[#134e4a] border-teal-900',
+  cyan: 'bg-[#164e63] border-cyan-900',
+  sky: 'bg-[#0c4a6e] border-sky-900',
+  rose: 'bg-[#881337] border-rose-900',
+  amber: 'bg-[#78350f] border-amber-900',
+  orange: 'bg-[#7c2d12] border-orange-900',
+  fuchsia: 'bg-[#701a75] border-fuchsia-900',
+  purple: 'bg-[#581c87] border-purple-900',
+  green: 'bg-[#14532d] border-green-900',
 };
 
 import PaymentTicket from './components/ui/PaymentTicket';

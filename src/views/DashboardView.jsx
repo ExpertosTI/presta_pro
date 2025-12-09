@@ -192,20 +192,16 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('loans')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
+                    <Card className="bg-[#0f172a] border border-blue-900/50 hover:border-blue-500/50 transition-all group-hover:shadow-blue-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
-                                <p className="text-[10px] md:text-xs font-medium text-blue-100 uppercase tracking-wide">Cartera</p>
-                                <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1 truncate">{formatCurrency(totalLent)}</p>
-                                <p className="text-[10px] md:text-xs text-blue-200 mt-0.5 md:mt-1">{loans.length} préstamos</p>
+                                <p className="text-[10px] md:text-xs font-bold text-blue-400 uppercase tracking-widest">Cartera</p>
+                                <p className="text-xl md:text-3xl font-black text-white mt-1 truncate">{formatCurrency(totalLent)}</p>
+                                <p className="text-[10px] md:text-xs text-slate-400 mt-1">{loans.length} préstamos</p>
                             </div>
-                            <div className="p-1.5 md:p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors flex-shrink-0">
-                                <Wallet size={16} className="md:w-5 md:h-5" />
+                            <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 flex-shrink-0">
+                                <Wallet size={20} />
                             </div>
-                        </div>
-                        <div className="flex items-center gap-1 mt-2 text-xs text-blue-200">
-                            <span>Ver préstamos</span>
-                            <ChevronRight size={14} />
                         </div>
                     </Card>
                 </button>
@@ -214,20 +210,16 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('cuadre')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
+                    <Card className="bg-[#0f172a] border border-emerald-900/50 hover:border-emerald-500/50 transition-all group-hover:shadow-emerald-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
-                                <p className="text-[10px] md:text-xs font-medium text-emerald-100 uppercase tracking-wide">Recaudado</p>
-                                <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1 truncate">{formatCurrency(totalCollected)}</p>
-                                <p className="text-[10px] md:text-xs text-emerald-200 mt-0.5 md:mt-1 truncate">{paidLoans} pagados</p>
+                                <p className="text-[10px] md:text-xs font-bold text-emerald-400 uppercase tracking-widest">Recaudado</p>
+                                <p className="text-xl md:text-3xl font-black text-white mt-1 truncate">{formatCurrency(totalCollected)}</p>
+                                <p className="text-[10px] md:text-xs text-slate-400 mt-1 truncate">{paidLoans} pagados</p>
                             </div>
-                            <div className="p-1.5 md:p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors flex-shrink-0">
-                                <TrendingUp size={16} className="md:w-5 md:h-5" />
+                            <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 flex-shrink-0">
+                                <TrendingUp size={20} />
                             </div>
-                        </div>
-                        <div className="flex items-center gap-1 mt-2 text-xs text-emerald-200">
-                            <span>Ver cuadre</span>
-                            <ChevronRight size={14} />
                         </div>
                     </Card>
                 </button>
@@ -236,20 +228,16 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('routes')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
+                    <Card className="bg-[#0f172a] border border-amber-900/50 hover:border-amber-500/50 transition-all group-hover:shadow-amber-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
-                                <p className="text-[10px] md:text-xs font-medium text-amber-100 uppercase tracking-wide">Por Cobrar</p>
-                                <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1 truncate">{formatCurrency(pendingAmount)}</p>
-                                <p className="text-[10px] md:text-xs text-amber-200 mt-0.5 md:mt-1">{activeLoans} activos</p>
+                                <p className="text-[10px] md:text-xs font-bold text-amber-400 uppercase tracking-widest">Por Cobrar</p>
+                                <p className="text-xl md:text-3xl font-black text-white mt-1 truncate">{formatCurrency(pendingAmount)}</p>
+                                <p className="text-[10px] md:text-xs text-slate-400 mt-1">{activeLoans} activos</p>
                             </div>
-                            <div className="p-1.5 md:p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors flex-shrink-0">
-                                <Clock size={16} className="md:w-5 md:h-5" />
+                            <div className="p-2 bg-amber-500/10 rounded-xl text-amber-400 flex-shrink-0">
+                                <Clock size={20} />
                             </div>
-                        </div>
-                        <div className="flex items-center gap-1 mt-2 text-xs text-amber-200">
-                            <span>Ver rutas</span>
-                            <ChevronRight size={14} />
                         </div>
                     </Card>
                 </button>
@@ -258,20 +246,16 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('clients')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-gradient-to-br from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 transition-all group-hover:scale-[1.02] group-hover:shadow-lg">
+                    <Card className="bg-[#0f172a] border border-violet-900/50 hover:border-violet-500/50 transition-all group-hover:shadow-violet-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
-                                <p className="text-[10px] md:text-xs font-medium text-violet-100 uppercase tracking-wide">Clientes</p>
-                                <p className="text-lg md:text-2xl font-bold mt-0.5 md:mt-1">{clients.length}</p>
-                                <p className="text-[10px] md:text-xs text-violet-200 mt-0.5 md:mt-1">Registrados</p>
+                                <p className="text-[10px] md:text-xs font-bold text-violet-400 uppercase tracking-widest">Clientes</p>
+                                <p className="text-xl md:text-3xl font-black text-white mt-1">{clients.length}</p>
+                                <p className="text-[10px] md:text-xs text-slate-400 mt-1">Registrados</p>
                             </div>
-                            <div className="p-1.5 md:p-2 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors flex-shrink-0">
-                                <Users size={16} className="md:w-5 md:h-5" />
+                            <div className="p-2 bg-violet-500/10 rounded-xl text-violet-400 flex-shrink-0">
+                                <Users size={20} />
                             </div>
-                        </div>
-                        <div className="flex items-center gap-1 mt-2 text-xs text-violet-200">
-                            <span>Ver clientes</span>
-                            <ChevronRight size={14} />
                         </div>
                     </Card>
                 </button>
