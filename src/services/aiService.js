@@ -6,7 +6,7 @@ export const sendMessageToAI = async (chatHistory, userMessage, systemInstructio
     }
 
     // Modelo Gemini 2.5 Flash (Google AI Studio)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${effectiveKey}`;
 
     // Construir el contenido de la conversación: siempre reinyectar instrucciones + resumen de datos
     const historyContents = chatHistory.map(msg => ({
@@ -93,7 +93,7 @@ export const generateLoanContract = async (loan, client, companyName, apiKey) =>
       Redacta el contrato de manera profesional, listo para imprimir y firmar.
     `;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${effectiveKey}`;
 
     const payload = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
@@ -201,7 +201,7 @@ ${instrucciones}
 
 Devuelve únicamente el texto del documento listo para imprimir.`;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${effectiveKey}`;
 
     const payload = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
