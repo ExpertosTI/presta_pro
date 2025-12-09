@@ -165,13 +165,13 @@ export function LoginView({ onLogin }) {
                 <div className="absolute bottom-0 right-0 w-72 md:w-[500px] h-72 md:h-[500px] bg-indigo-600 rounded-full blur-[120px] opacity-20" />
             </div>
 
-            <div className="relative z-10 w-full max-w-sm md:max-w-md">
+            <div className="relative z-10 w-full max-w-sm md:max-w-md flex flex-col justify-center">
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-4 md:p-8 transform transition-all duration-500 hover:shadow-indigo-500/20">
-                    <div className="flex flex-col items-center mb-4 md:mb-6">
-                        {/* Logo: Responsive sizes */}
-                        <img src={logo} alt="Presta Pro" className="w-20 h-20 md:w-32 md:h-32 object-contain drop-shadow-2xl mb-2 md:mb-4 hover:scale-105 transition-transform" />
-                        <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight">Presta Pro</h1>
-                        <p className="text-blue-200 text-xs md:text-base mt-0.5 md:mt-1 font-light">Gestión Inteligente de Préstamos</p>
+                    <div className="flex flex-col items-center mb-2 md:mb-6 text-center">
+                        {/* Logo: Responsive sizes - Larger but compact spacing */}
+                        <img src={logo} alt="Presta Pro" className="w-24 h-24 md:w-32 md:h-32 object-contain drop-shadow-2xl mb-1 md:mb-2 hover:scale-105 transition-transform" />
+                        <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight leading-none">Presta Pro</h1>
+                        <p className="text-blue-200 text-xs md:text-base mt-2 md:mt-1 font-light leading-tight">Gestión Inteligente de Préstamos</p>
                     </div>
 
                     {successMsg && (
