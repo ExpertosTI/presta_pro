@@ -3,7 +3,7 @@ import logoSmall from '../../../logo.png';
 
 export function Sidebar({ activeTab, setActiveTab, children, companyName }) {
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-slate-950 text-slate-300 border-r border-slate-800 h-screen shadow-2xl z-50">
+    <aside className="flex flex-col w-64 bg-slate-950 text-slate-300 border-r border-slate-800 h-screen shadow-2xl z-50">
       <div className="p-6 flex items-center gap-3 border-b border-slate-800/50">
         <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20">
           <img src={logoSmall} alt="Logo" className="w-6 h-6 object-contain" />
