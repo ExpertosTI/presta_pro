@@ -1,5 +1,5 @@
-import { generateId } from '../utils/ids';
-import { calculateSchedule } from '../utils/amortization';
+import { generateId } from '../shared/utils/ids';
+import { calculateSchedule } from '../shared/utils/amortization';
 
 export function createLoanFromRequest(request) {
   const schedule = calculateSchedule(

@@ -71,7 +71,7 @@ export function SettingsView({
     if (!file) return;
 
     try {
-      const { fileToBase64, resizeImage } = await import('../utils/imageUtils.js');
+      const { fileToBase64, resizeImage } = await import('../shared/utils/imageUtils.js');
       const base64 = await fileToBase64(file);
       const resized = await resizeImage(base64, 300, 300);
 
@@ -89,7 +89,7 @@ export function SettingsView({
     const file = e.target.files[0];
     if (!file) return;
     try {
-      const { fileToBase64, resizeImage } = await import('../utils/imageUtils.js');
+      const { fileToBase64, resizeImage } = await import('../shared/utils/imageUtils.js');
       const base64 = await fileToBase64(file);
       const resized = await resizeImage(base64, 400, 400);
       setForm(prev => ({ ...prev, companyLogo: resized }));

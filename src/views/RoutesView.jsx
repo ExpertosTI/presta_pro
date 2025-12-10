@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import Card from '../components/Card.jsx';
 import { MapPin, CheckCircle, Printer } from 'lucide-react';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate } from '../shared/utils/formatters';
 import DigitalReceipt from '../components/DigitalReceipt';
 import PaymentConfirmationModal from '../components/modals/PaymentConfirmationModal';
 

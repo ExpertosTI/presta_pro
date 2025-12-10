@@ -34,9 +34,9 @@ import {
 import { clientService, loanService, paymentService, syncService } from './services/api';
 
 // Utilities
-import { generateId, generateSecurityToken } from './utils/ids';
-import { formatCurrency, formatDate, formatDateTime } from './utils/formatters';
-import { calculateSchedule } from './utils/amortization';
+import { generateId, generateSecurityToken } from './shared/utils/ids';
+import { formatCurrency, formatDate, formatDateTime } from './shared/utils/formatters';
+import { calculateSchedule } from './shared/utils/amortization';
 
 // Components
 import Sidebar from './components/layout/Sidebar';

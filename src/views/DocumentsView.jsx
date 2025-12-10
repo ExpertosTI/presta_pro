@@ -29,7 +29,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
     }
     setIsUploading(true);
     try {
-      const { fileToBase64 } = await import('../utils/imageUtils.js');
+      const { fileToBase64 } = await import('../shared/utils/imageUtils.js');
       const base64 = await fileToBase64(file);
       const title = uploadTitle.trim() || file.name;
       addClientDocument(currentClient.id, {

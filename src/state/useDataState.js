@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { generateId } from '../utils/ids';
-import { safeLoad } from '../utils/storage';
+import { generateId } from '../shared/utils/ids';
+import { safeLoad } from '../shared/utils/storage';
 import { createLoanLogic, registerPaymentLogic } from '../logic/loanLogic';
 
 const API_BASE_URL =

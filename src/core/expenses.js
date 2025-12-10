@@ -1,4 +1,4 @@
-import { generateId } from '../utils/ids';
+import { generateId } from '../shared/utils/ids';
 
 export function buildExpense(data) {
   return {

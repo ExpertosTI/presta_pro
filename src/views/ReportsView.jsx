@@ -1,6 +1,6 @@
 import React from 'react';
 import Card from '../components/Card.jsx';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency } from '../shared/utils/formatters';
 
 export function ReportsView({ loans, expenses }) {
   const totalCapital = loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);

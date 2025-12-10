@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime } from '../shared/utils/formatters';
 import logoSmall from '../logo.png';
 
 // --- TICKET DE PAGO (ESTILO MODERNO / IMPRESIÓN TÉRMICA) ---

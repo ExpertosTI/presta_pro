@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import Card from '../components/Card';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate } from '../shared/utils/formatters';
 import {
     TrendingUp, TrendingDown, Users, Wallet, Calendar, AlertTriangle,
     CheckCircle, Clock, DollarSign, Bell, Filter, ChevronRight, Crown

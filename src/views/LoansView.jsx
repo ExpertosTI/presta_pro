@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import Card from '../components/Card.jsx';
 import Badge from '../components/ui/Badge.jsx';
-import { formatCurrency, formatDate } from '../utils/formatters';
-import { calculateSchedule } from '../utils/amortization';
+import { formatCurrency, formatDate } from '../shared/utils/formatters';
+import { calculateSchedule } from '../shared/utils/amortization';
 import { FileText, Sparkles, X, Printer, FileCheck } from 'lucide-react';
 import PaymentConfirmationModal from '../components/modals/PaymentConfirmationModal.jsx';
 

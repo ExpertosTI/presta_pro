@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Card from '../components/Card.jsx';
-import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { formatCurrency, formatDateTime } from '../shared/utils/formatters';
 
 export function ExpensesView({ expenses, addExpense }) {
   const [form, setForm] = useState({ concept: '', amount: '' });

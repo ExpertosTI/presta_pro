@@ -1,5 +1,5 @@
 
-import { calculateSchedule } from '../utils/amortization';
+import { calculateSchedule } from '../shared/utils/amortization';
 
 export const createLoanLogic = (loanData) => {
     const schedule = calculateSchedule(

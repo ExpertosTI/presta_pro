@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Card from '../components/Card.jsx';
-import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
-import { exportToPDF, exportToExcel } from '../utils/reportExport';
+import { formatCurrency, formatDateTime, formatDate } from '../shared/utils/formatters';
+import { exportToPDF, exportToExcel } from '../shared/utils/reportExport';
 import { FileText, FileSpreadsheet, Printer, Calendar, Filter, X } from 'lucide-react';
 
 export function AccountingView({ loans = [], expenses = [], receipts = [], systemSettings = {}, routeClosings = [] }) {
@@ -94,8 +94,8 @@ export function AccountingView({ loans = [], expenses = [], receipts = [], syste
             type="button"
             onClick={() => setShowFilters(!showFilters)}
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-colors ${showFilters || hasFilters
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+              ? 'bg-blue-600 text-white'
+              : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
               }`}
           >
             <Filter size={16} /> Filtros {hasFilters && '•'}
