@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { registerUser } from '../../../logic/authLogic';
+import { settingsService } from '../../../services/api';
 
 // Use relative URLs - nginx will proxy to backend
 const API_BASE_URL = '';
@@ -38,7 +39,21 @@ export function SettingsView({
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
 
-  const handleSaveSettings = (e) => {
+  /* Sincronizar formulario cuando llegan settings del backend */
+  React.useEffect(() => {
+    setForm(prev => ({
+      ...prev,
+      companyName: systemSettings.companyName || prev.companyName,
+      mainCurrency: systemSettings.mainCurrency || prev.mainCurrency,
+      defaultPenaltyRate: systemSettings.defaultPenaltyRate || prev.defaultPenaltyRate,
+      themeColor: systemSettings.themeColor || prev.themeColor,
+      securityUser: systemSettings.securityUser || prev.securityUser,
+      ownerDisplayName: systemSettings.ownerDisplayName || prev.ownerDisplayName,
+      companyLogo: systemSettings.companyLogo || prev.companyLogo,
+    }));
+  }, [systemSettings]);
+
+  const handleSaveSettings = async (e) => {
     e.preventDefault();
     const newSettings = {
       ...systemSettings,
@@ -53,10 +68,20 @@ export function SettingsView({
       ownerDisplayName: form.ownerDisplayName || '',
       companyLogo: form.companyLogo || systemSettings.companyLogo || '',
     };
-    setSystemSettings(newSettings);
-    // Persist to localStorage
-    localStorage.setItem('systemSettings', JSON.stringify(newSettings));
-    if (showToast) showToast('Ajustes guardados correctamente', 'success');
+
+    try {
+      // Persist to backend
+      await settingsService.update(newSettings);
+      setSystemSettings(newSettings);
+      // Persist to localStorage as backup
+      localStorage.setItem('systemSettings', JSON.stringify(newSettings));
+      if (showToast) showToast('Ajustes guardados en servidor', 'success');
+    } catch (err) {
+      console.error('Error saving settings:', err);
+      if (showToast) showToast('Error al guardar ajustes en servidor', 'error');
+      // Fallback local update
+      setSystemSettings(newSettings);
+    }
   };
 
   const handleAddCollector = (e) => {

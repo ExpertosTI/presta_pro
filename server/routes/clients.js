@@ -108,6 +108,45 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+// POST /api/clients/:id/documents - Agregar documento
+router.post('/:id/documents', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { type, title, content, fileName, mimeType, dataUrl } = req.body;
+
+        const client = await prisma.client.findFirst({
+            where: { id, tenantId: req.user.tenantId }
+        });
+
+        if (!client) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+
+        const document = await prisma.clientDocument.create({
+            data: {
+                tenantId: req.user.tenantId,
+                clientId: id,
+                type: type || 'UPLOAD',
+                title: title || 'Sin título',
+                content,
+                fileName,
+                mimeType,
+                dataUrl,
+            }
+        });
+
+        // Registrar auditoría
+        if (req.auditLogger) {
+            // Si el logger existe, usarlo (opcional por ahora)
+        }
+
+        res.json(document);
+    } catch (error) {
+        console.error('Error adding document:', error);
+        res.status(500).json({ error: 'Error al guardar documento' });
+    }
+});
+
 // DELETE /api/clients/:id - Eliminar cliente
 router.delete('/:id', async (req, res) => {
     try {

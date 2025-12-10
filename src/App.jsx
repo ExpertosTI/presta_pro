@@ -31,7 +31,7 @@ import {
 } from 'recharts';
 
 // Services
-import { clientService, loanService, paymentService, syncService } from './services/api';
+import { clientService, loanService, paymentService, syncService, settingsService } from './services/api';
 
 // Utilities
 import { generateId, generateSecurityToken } from './shared/utils/ids';
@@ -232,17 +232,25 @@ function App() {
         clientService.getAll(),
         loanService.getAll(),
         paymentService.getAll(),
-        syncService.pull('expenses'), // Assuming syncService can pull generic or we need expenseService?
-        // Wait, expenses might not have a service yet if crud is pending?
-        // User checklist says "expenses pending".
-        // I will trust what syncService returns or empty if fails.
-        // Actually, let's use syncService.checkHealth or similar?
-        // Better: clientService, loanService are CRUD. 
-        // Let's safeLoad these.
-        Promise.resolve([]), // Expenses placeholder if service missing
+        Promise.resolve([]), // Expenses placeholder
         Promise.resolve([]), // Employees placeholder
-        Promise.resolve(null)
+        settingsService.get(),
       ]);
+
+      const settings = settingsRes || { companyName: 'Presta Pro' };
+
+      setDbData(prev => ({
+        ...prev,
+        clients: clients || [],
+        loans: loans || [],
+        receipts: payments || [],
+        expenses: expensesRes || [],
+        employees: employeesRes || [],
+        systemSettings: {
+          ...prev.systemSettings,
+          ...settings
+        }
+      }));
 
       // For now, let's try to load what we can.
       // If paymentService.getAll returns receipts, good.
@@ -341,7 +349,11 @@ function App() {
         }));
         showToast('Solicitud aprobada y préstamo creado', 'success');
         addNotification('Préstamo creado desde solicitud #' + req.id.slice(0, 4), 'success');
-      } catch (error) {
+      }
+
+
+
+      catch (error) {
         console.error('Error creating loan:', error);
         showToast('Error al crear préstamo en servidor - guardado localmente', 'error');
 
@@ -377,6 +389,27 @@ function App() {
         requests: p.requests.map(r => r.id === req.id ? { ...r, status: 'REJECTED' } : r)
       }));
       showToast('Solicitud rechazada', 'info');
+    };
+
+    const handleAddClientDocument = async (clientId, doc) => {
+      try {
+        const savedDoc = await clientService.uploadDocument(clientId, doc);
+
+        // Ajustar formato si viene envuelto
+        const newDoc = savedDoc.data || savedDoc;
+
+        setDbData(p => ({
+          ...p,
+          clients: p.clients.map(c => c.id === clientId ? {
+            ...c,
+            documents: [...(c.documents || []), newDoc]
+          } : c)
+        }));
+        showToast('Documento guardado correctamente', 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('Error al guardar documento', 'error');
+      }
     };
 
     const addExpense = (exp) => {
@@ -446,6 +479,7 @@ function App() {
             setEditingClient(client);
             setClientModalOpen(true);
           }}
+          addClientDocument={handleAddClientDocument}
         />;
       case 'loans':
         return <LoansView
@@ -461,17 +495,7 @@ function App() {
             }));
             showToast('Préstamo actualizado', 'success');
           }}
-          addClientDocument={(clientId, doc) => {
-            // Guardar documento en el cliente
-            setDbData(p => ({
-              ...p,
-              clients: p.clients.map(c => c.id === clientId ? {
-                ...c,
-                documents: [...(c.documents || []), { ...doc, id: generateId(), createdAt: new Date().toISOString() }]
-              } : c)
-            }));
-            showToast('Documento guardado', 'success');
-          }}
+          addClientDocument={handleAddClientDocument}
         />;
       case 'requests':
         return <RequestsView

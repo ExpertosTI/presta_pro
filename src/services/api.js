@@ -26,6 +26,19 @@ export const paymentService = {
     create: (data) => api.post('/payments', data),
 };
 
+// Settings Service
+export const settingsService = {
+    get: async () => {
+        try {
+            return await api.get('/settings');
+        } catch (e) {
+            console.error('settingsService.get error:', e);
+            return null;
+        }
+    },
+    update: (data) => api.put('/settings', data),
+};
+
 // Sync Service
 export const syncService = {
     syncData: (data) => api.post('/sync', data),
