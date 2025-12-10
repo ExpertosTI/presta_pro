@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const authMiddleware = require('../middleware/authMiddleware'); // Asegúrate de tener este middleware o exportarlo desde index.js
+const authMiddleware = require('../middleware/authMiddleware');
+const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger'); // Asegúrate de tener este middleware o exportarlo desde index.js
 
 // Middleware para asegurar autenticación en todas las rutas de clientes
 // router.use(authMiddleware); 
@@ -52,6 +53,17 @@ router.post('/', async (req, res) => {
                 tenantId: req.user.tenantId,
                 collectorId: req.body.collectorId // Opcional: asignar a un cobrador
             }
+        });
+
+        // Log audit
+        logAudit({
+            action: AUDIT_ACTIONS.CLIENT_CREATED,
+            resource: 'client',
+            resourceId: newClient.id,
+            userId: req.user.userId,
+            tenantId: req.user.tenantId,
+            details: { name, phone, email },
+            ipAddress: req.ip
         });
 
         res.status(201).json(newClient);

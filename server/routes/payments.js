@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-
+const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
 // GET /api/payments - Obtener historial de pagos
 router.get('/', async (req, res) => {
     try {
@@ -53,6 +53,17 @@ router.post('/', async (req, res) => {
         // Actualizar estado del préstamo/cuota (Simplificado)
         // En una implementación real, esto debería ser más robusto
         // UPDATE installments logic...
+
+        // Log audit
+        logAudit({
+            action: AUDIT_ACTIONS.PAYMENT_REGISTERED,
+            resource: 'payment',
+            resourceId: newReceipt.id,
+            userId: req.user.userId,
+            tenantId: req.user.tenantId,
+            details: { loanId, amount, penaltyAmount, installmentNumber },
+            ipAddress: req.ip
+        });
 
         res.status(201).json(newReceipt);
     } catch (error) {

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-
+const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
 // GET /api/loans
 router.get('/', async (req, res) => {
     try {
