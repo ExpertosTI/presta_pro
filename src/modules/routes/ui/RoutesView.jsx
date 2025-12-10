@@ -442,8 +442,8 @@ export function RoutesView({
       {paymentToConfirm && (
         <PaymentConfirmationModal
           paymentToConfirm={paymentToConfirm}
-          onConfirm={(loanId, installmentId, options) => {
-            const receipt = registerPayment(loanId, installmentId, { ...options, suppressAutoPrint: true });
+          onConfirm={async (loanId, installmentId, options) => {
+            const receipt = await registerPayment(loanId, installmentId, { ...options, suppressAutoPrint: true });
             if (receipt) {
               setReceiptToShow(receipt);
             }

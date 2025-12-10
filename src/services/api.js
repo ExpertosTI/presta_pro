@@ -49,5 +49,34 @@ export const syncService = {
     }
 };
 
+// Expense Service
+export const expenseService = {
+    getAll: async () => {
+        try {
+            return await api.get('/expenses');
+        } catch (e) {
+            console.error('expenseService.getAll error:', e);
+            return [];
+        }
+    },
+    create: (data) => api.post('/expenses', data),
+    delete: (id) => api.delete(`/expenses/${id}`),
+};
+
+// Collector Service (RRHH)
+export const collectorService = {
+    getAll: async () => {
+        try {
+            return await api.get('/collectors');
+        } catch (e) {
+            console.error('collectorService.getAll error:', e);
+            return [];
+        }
+    },
+    create: (data) => api.post('/collectors', data),
+    update: (id, data) => api.put(`/collectors/${id}`, data),
+    delete: (id) => api.delete(`/collectors/${id}`),
+};
+
 export default api;
 

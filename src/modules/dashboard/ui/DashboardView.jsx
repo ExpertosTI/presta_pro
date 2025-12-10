@@ -196,7 +196,7 @@ export default function DashboardView({
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
                                 <p className="text-[10px] md:text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Cartera</p>
-                                <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mt-1 truncate">{formatCurrency(totalLent)}</p>
+                                <p className="text-sm sm:text-lg md:text-2xl font-black text-slate-800 dark:text-white mt-1">{formatCurrency(totalLent)}</p>
                                 <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{loans.length} préstamos</p>
                             </div>
                             <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 flex-shrink-0">
@@ -214,8 +214,8 @@ export default function DashboardView({
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
                                 <p className="text-[10px] md:text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Recaudado</p>
-                                <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mt-1 truncate">{formatCurrency(totalCollected)}</p>
-                                <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">{paidLoans} pagados</p>
+                                <p className="text-sm sm:text-lg md:text-2xl font-black text-slate-800 dark:text-white mt-1">{formatCurrency(totalCollected)}</p>
+                                <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{paidLoans} pagados</p>
                             </div>
                             <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 flex-shrink-0">
                                 <TrendingUp size={20} />
@@ -232,7 +232,7 @@ export default function DashboardView({
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
                                 <p className="text-[10px] md:text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Por Cobrar</p>
-                                <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mt-1 truncate">{formatCurrency(pendingAmount)}</p>
+                                <p className="text-sm sm:text-lg md:text-2xl font-black text-slate-800 dark:text-white mt-1">{formatCurrency(pendingAmount)}</p>
                                 <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{activeLoans} activos</p>
                             </div>
                             <div className="p-2 bg-amber-500/10 rounded-xl text-amber-400 flex-shrink-0">
@@ -250,7 +250,7 @@ export default function DashboardView({
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
                                 <p className="text-[10px] md:text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest">Clientes</p>
-                                <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mt-1">{clients.length}</p>
+                                <p className="text-sm sm:text-lg md:text-2xl font-black text-slate-800 dark:text-white mt-1">{clients.length}</p>
                                 <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">Registrados</p>
                             </div>
                             <div className="p-2 bg-violet-500/10 rounded-xl text-violet-400 flex-shrink-0">
