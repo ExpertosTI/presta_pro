@@ -1,5 +1,5 @@
 import React from 'react';
-import AIHelper from '../ai/AIHelper.jsx';
+import AIHelper from '../../../components/ai/AIHelper.jsx';
 
 export function AIView({ chatHistory, setChatHistory, dbData, showToast, ownerName, companyName }) {
   return (

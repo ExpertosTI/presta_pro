@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Card from '../shared/components/ui/Card';
-import { formatCurrency } from '../shared/utils/formatters';
+import Card from '../../../shared/components/ui/Card';
+import { formatCurrency } from '../../../shared/utils/formatters';
 
 export function RequestsView({ requests, clients, addRequest, approveRequest, rejectRequest, onNewClient }) {
   const [form, setForm] = useState({

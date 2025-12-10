@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Card from '../shared/components/ui/Card';
+import Card from '../../../shared/components/ui/Card';
 import { Calculator } from 'lucide-react';
-import { calculateSchedule } from '../shared/utils/amortization';
-import { formatCurrency, formatDate } from '../shared/utils/formatters';
+import { calculateSchedule } from '../../../shared/utils/amortization';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 
 export function CalculatorView() {
   const [simData, setSimData] = useState({

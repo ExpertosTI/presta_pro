@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Card from '../shared/components/ui/Card';
-import { formatDateTime } from '../shared/utils/formatters';
+import Card from '../../../shared/components/ui/Card';
+import { formatDateTime } from '../../../shared/utils/formatters';
 
 export function NotesView({ notes, setNotes }) {
   const [note, setNote] = useState('');

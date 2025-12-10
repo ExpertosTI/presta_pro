@@ -50,18 +50,18 @@ const DashboardView = React.lazy(() => import('./modules/dashboard').then(module
 const CuadreView = React.lazy(() => import('./modules/accounting').then(module => ({ default: module.CuadreView })));
 const ClientsView = React.lazy(() => import('./modules/clients').then(module => ({ default: module.ClientsView })));
 const LoansView = React.lazy(() => import('./modules/loans').then(module => ({ default: module.LoansView })));
-const ExpensesView = React.lazy(() => import('./views/ExpensesView'));
-const RequestsView = React.lazy(() => import('./views/RequestsView'));
+const ExpensesView = React.lazy(() => import('./modules/expenses').then(module => ({ default: module.ExpensesView })));
+const RequestsView = React.lazy(() => import('./modules/requests').then(module => ({ default: module.RequestsView })));
 const RoutesView = React.lazy(() => import('./modules/routes').then(module => ({ default: module.RoutesView })));
-const NotesView = React.lazy(() => import('./views/NotesView'));
-const ReportsView = React.lazy(() => import('./views/ReportsView'));
+const NotesView = React.lazy(() => import('./modules/notes').then(module => ({ default: module.NotesView })));
+const ReportsView = React.lazy(() => import('./modules/reports').then(module => ({ default: module.ReportsView })));
 const PricingView = React.lazy(() => import('./modules/settings').then(module => ({ default: module.PricingView })));
 const SettingsView = React.lazy(() => import('./modules/settings').then(module => ({ default: module.SettingsView })));
 const DocumentsView = React.lazy(() => import('./modules/documents').then(module => ({ default: module.DocumentsView })));
 const HRView = React.lazy(() => import('./modules/employees').then(module => ({ default: module.HRView })));
 const AccountingView = React.lazy(() => import('./modules/accounting').then(module => ({ default: module.AccountingView })));
-const AIView = React.lazy(() => import('./views/AIView')); // AI Helper View
-const CalculatorView = React.lazy(() => import('./views/CalculatorView'));
+const AIView = React.lazy(() => import('./modules/ai').then(module => ({ default: module.AIView })));
+const CalculatorView = React.lazy(() => import('./modules/tools').then(module => ({ default: module.CalculatorView })));
 
 // Login View
 import LoginView from './views/LoginView';

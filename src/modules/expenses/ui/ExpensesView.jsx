@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Card from '../shared/components/ui/Card';
-import { formatCurrency, formatDateTime } from '../shared/utils/formatters';
+import Card from '../../../shared/components/ui/Card';
+import { formatCurrency, formatDateTime } from '../../../shared/utils/formatters';
 
 export function ExpensesView({ expenses, addExpense }) {
   const [form, setForm] = useState({ concept: '', amount: '' });
