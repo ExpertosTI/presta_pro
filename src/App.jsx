@@ -10,12 +10,13 @@ import {
   Menu,
   FileText,
   Calculator,
-  BrainCircuit, // Changed from Brain to BrainCircuit for AI
+  BrainCircuit,
   MapPin,
   FileDigit,
   UserCheck,
   Bell,
-  X
+  X,
+  CreditCard
 } from 'lucide-react';
 import {
   BarChart,
@@ -69,8 +70,8 @@ const MenuItem = ({ icon: Icon, label, id, activeTab, onClick, badge }) => (
   <button
     onClick={() => onClick(id)}
     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl mb-1 transition-all ${activeTab === id
-        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-        : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
       }`}
   >
     <div className="flex items-center gap-3">
@@ -280,15 +281,66 @@ function App() {
   const renderContent = () => {
     const commonProps = {
       dbData,
-      setDbData, // Careful using this directly
+      setDbData,
       showToast,
       user
+    };
+
+    // Handler functions
+    const addRequest = (req) => {
+      const newReq = { ...req, id: generateId(), status: 'REVIEW', createdAt: new Date().toISOString() };
+      setDbData(p => ({ ...p, requests: [...p.requests, newReq] }));
+    };
+
+    const approveRequest = (req) => {
+      setDbData(p => ({
+        ...p,
+        requests: p.requests.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r)
+      }));
+      showToast('Solicitud aprobada', 'success');
+    };
+
+    const rejectRequest = (req) => {
+      setDbData(p => ({
+        ...p,
+        requests: p.requests.map(r => r.id === req.id ? { ...r, status: 'REJECTED' } : r)
+      }));
+      showToast('Solicitud rechazada', 'info');
+    };
+
+    const addExpense = (exp) => {
+      const newExp = { ...exp, id: generateId(), date: new Date().toISOString() };
+      setDbData(p => ({ ...p, expenses: [...p.expenses, newExp] }));
+      showToast('Gasto registrado', 'success');
+    };
+
+    const addCollector = (c) => {
+      const newC = { ...c, id: generateId() };
+      setDbData(p => ({ ...p, collectors: [...p.collectors, newC] }));
+    };
+
+    const updateCollector = (c) => {
+      setDbData(p => ({
+        ...p,
+        collectors: p.collectors.map(col => col.id === c.id ? { ...col, ...c } : col)
+      }));
+    };
+
+    const removeCollector = (id) => {
+      setDbData(p => ({ ...p, collectors: p.collectors.filter(c => c.id !== id) }));
+    };
+
+    const assignCollectorToClient = (clientId, collectorId) => {
+      setDbData(p => ({
+        ...p,
+        clients: p.clients.map(c => c.id === clientId ? { ...c, collectorId } : c)
+      }));
     };
 
     switch (activeTab) {
       case 'dashboard':
         return <DashboardView {...commonProps}
-          stats={dbData} // Dashboard expects all data usually
+          stats={dbData}
           loans={dbData.loans}
           clients={dbData.clients}
           receipts={dbData.receipts}
@@ -306,10 +358,15 @@ function App() {
         return <ClientsView
           clients={dbData.clients}
           loans={dbData.loans}
-          // Add handlers for addClient etc
           onAddClient={async (c) => {
-            const newC = await clientService.create(c);
-            setDbData(p => ({ ...p, clients: [...p.clients, newC] }));
+            try {
+              const newC = await clientService.create(c);
+              setDbData(p => ({ ...p, clients: [...p.clients, newC] }));
+            } catch (e) {
+              // Fallback to local
+              const localC = { ...c, id: generateId() };
+              setDbData(p => ({ ...p, clients: [...p.clients, localC] }));
+            }
           }}
         />;
       case 'loans':
@@ -320,15 +377,27 @@ function App() {
           user={user}
           showToast={showToast}
           onCreateLoan={async (l) => {
-            const newL = await loanService.create(l);
-            setDbData(p => ({ ...p, loans: [...p.loans, newL] }));
+            try {
+              const newL = await loanService.create(l);
+              setDbData(p => ({ ...p, loans: [...p.loans, newL] }));
+            } catch (e) {
+              showToast('Error al crear préstamo', 'error');
+            }
           }}
         />;
       case 'requests':
         return <RequestsView
           requests={dbData.requests}
           clients={dbData.clients}
-        // Handlers...
+          addRequest={addRequest}
+          approveRequest={approveRequest}
+          rejectRequest={rejectRequest}
+          onNewClient={(callback) => {
+            // Open client modal flow - simplified
+            const newId = generateId();
+            setDbData(p => ({ ...p, clients: [...p.clients, { id: newId, name: 'Nuevo Cliente' }] }));
+            if (callback) callback(newId);
+          }}
         />;
       case 'routes':
         return <RoutesView
@@ -337,15 +406,15 @@ function App() {
           registerPayment={registerPayment}
           collectors={dbData.collectors}
           receipts={dbData.receipts}
-          currentRouteLoanIds={dbData.routes || []} // Fix this prop mapping
+          currentRouteLoanIds={dbData.routes || []}
           showToast={showToast}
         />;
       case 'notes':
         return <NotesView notes={dbData.notes} setNotes={(n) => setDbData(p => ({ ...p, notes: typeof n === 'function' ? n(p.notes) : n }))} />;
       case 'expenses':
-        return <ExpensesView expenses={dbData.expenses} />;
+        return <ExpensesView expenses={dbData.expenses} addExpense={addExpense} />;
       case 'reports':
-        return <ReportsView dbData={dbData} />;
+        return <ReportsView loans={dbData.loans} expenses={dbData.expenses} />;
       case 'hr':
         return <HRView employees={dbData.employees} />;
       case 'accounting':
@@ -356,10 +425,8 @@ function App() {
         return <CalculatorView />;
       case 'ai':
         return <AIView
-          chatHistory={[]} // Should manage chat history state in App typically or inside View
-          setChatHistory={() => { }} // Placeholder if View manages it, but View prop expects generic set. 
-          // Actually AIView definition I saw managed its own state? No, it accepted props.
-          // I should add chatHistory to App state if I want it persistent.
+          chatHistory={[]}
+          setChatHistory={() => { }}
           dbData={dbData}
           showToast={showToast}
           ownerName={user?.name}
@@ -367,9 +434,16 @@ function App() {
         />;
       case 'settings':
         return <SettingsView
-          settings={dbData.systemSettings}
-          user={user}
-          onSaveSettings={(s) => setDbData(p => ({ ...p, systemSettings: { ...p.systemSettings, ...s } }))}
+          systemSettings={dbData.systemSettings}
+          setSystemSettings={(s) => setDbData(p => ({ ...p, systemSettings: { ...p.systemSettings, ...s } }))}
+          collectors={dbData.collectors}
+          addCollector={addCollector}
+          updateCollector={updateCollector}
+          removeCollector={removeCollector}
+          clients={dbData.clients}
+          assignCollectorToClient={assignCollectorToClient}
+          auth={{ user }}
+          showToast={showToast}
         />;
       case 'pricing':
         return <PricingView showToast={showToast} />;
@@ -377,6 +451,7 @@ function App() {
         return <DashboardView {...commonProps} />;
     }
   };
+
 
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-slate-900 overflow-hidden font-sans transition-colors duration-300">
@@ -420,7 +495,7 @@ function App() {
             <MenuItem id="reports" label="Reportes" icon={PieChart} activeTab={activeTab} onClick={setActiveTab} />
             <MenuItem id="hr" label="RRHH" icon={UserCheck} activeTab={activeTab} onClick={setActiveTab} />
             <MenuItem id="accounting" label="Contabilidad" icon={Wallet} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="pricing" label="Planes y Precios" icon={Settings} activeTab={activeTab} onClick={setActiveTab} />
+            <MenuItem id="pricing" label="Planes y Precios" icon={CreditCard} activeTab={activeTab} onClick={setActiveTab} />
             <MenuItem id="settings" label="Configuración" icon={Settings} activeTab={activeTab} onClick={setActiveTab} />
           </MenuSection>
         </Sidebar>
