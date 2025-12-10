@@ -273,10 +273,6 @@ function App() {
 
   // --- Render ---
 
-  if (!token) {
-    return <LoginView onLogin={handleLogin} />;
-  }
-
   // Define components for tabs to pass props
   const renderContent = () => {
     const commonProps = {
@@ -358,15 +354,23 @@ function App() {
         return <ClientsView
           clients={dbData.clients}
           loans={dbData.loans}
-          onAddClient={async (c) => {
-            try {
-              const newC = await clientService.create(c);
-              setDbData(p => ({ ...p, clients: [...p.clients, newC] }));
-            } catch (e) {
-              // Fallback to local
-              const localC = { ...c, id: generateId() };
-              setDbData(p => ({ ...p, clients: [...p.clients, localC] }));
-            }
+          selectedClientId={null}
+          onNewClient={async () => {
+            // Just add a placeholder client for now - modal should handle this
+            const localC = { id: generateId(), name: 'Nuevo Cliente', phone: '', address: '' };
+            setDbData(p => ({ ...p, clients: [...p.clients, localC] }));
+            showToast('Cliente agregado', 'success');
+          }}
+          onSelectClient={(id) => {
+            // For now just log - would need state for selectedClientId
+            console.log('Selected client:', id);
+          }}
+          onSelectLoan={(id) => {
+            setActiveTab('loans');
+          }}
+          onEditClient={(client) => {
+            console.log('Edit client:', client);
+            showToast('Función de editar próximamente', 'info');
           }}
         />;
       case 'loans':

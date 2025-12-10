@@ -52,41 +52,49 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
             if (res.ok) {
                 const data = await res.json();
                 setPlans(data);
+            } else {
+                // API returned error (401, 403, etc) - use fallback plans
+                console.warn('Plans API returned', res.status, '- using fallback plans');
+                setFallbackPlans();
             }
         } catch (err) {
             console.error('Error fetching plans:', err);
-            setPlans([
-                {
-                    id: 'FREE',
-                    name: 'Plan Gratis',
-                    monthlyPrice: 0,
-                    yearlyPrice: 0,
-                    monthlyPriceFormatted: 'RD$0.00',
-                    yearlyPriceFormatted: 'RD$0.00',
-                    features: ['10 clientes', '5 préstamos activos', '1 usuario', 'Sin acceso a IA', 'Expira en 30 días'],
-                },
-                {
-                    id: 'PRO',
-                    name: 'Plan Profesional',
-                    monthlyPrice: 80000,
-                    yearlyPrice: 800000,
-                    monthlyPriceFormatted: 'RD$800.00',
-                    yearlyPriceFormatted: 'RD$8,000.00',
-                    features: ['100 clientes', '50 préstamos activos', '5 usuarios', '100 consultas AI/mes'],
-                },
-                {
-                    id: 'ENTERPRISE',
-                    name: 'Plan Empresarial',
-                    monthlyPrice: 140000,
-                    yearlyPrice: 1400000,
-                    monthlyPriceFormatted: 'RD$1,400.00',
-                    yearlyPriceFormatted: 'RD$14,000.00',
-                    features: ['Clientes ilimitados', 'Préstamos ilimitados', 'Usuarios ilimitados', 'AI ilimitado', 'Soporte prioritario'],
-                },
-            ]);
+            setFallbackPlans();
         } finally {
             setLoading(false);
         }
+    };
+
+    const setFallbackPlans = () => {
+        setPlans([
+            {
+                id: 'FREE',
+                name: 'Plan Gratis',
+                monthlyPrice: 0,
+                yearlyPrice: 0,
+                monthlyPriceFormatted: 'RD$0.00',
+                yearlyPriceFormatted: 'RD$0.00',
+                features: ['10 clientes', '5 préstamos activos', '1 usuario', 'Sin acceso a IA', 'Expira en 30 días'],
+            },
+            {
+                id: 'PRO',
+                name: 'Plan Profesional',
+                monthlyPrice: 80000,
+                yearlyPrice: 800000,
+                monthlyPriceFormatted: 'RD$800.00',
+                yearlyPriceFormatted: 'RD$8,000.00',
+                features: ['100 clientes', '50 préstamos activos', '5 usuarios', '100 consultas AI/mes'],
+            },
+            {
+                id: 'ENTERPRISE',
+                name: 'Plan Empresarial',
+                monthlyPrice: 140000,
+                yearlyPrice: 1400000,
+                monthlyPriceFormatted: 'RD$1,400.00',
+                yearlyPriceFormatted: 'RD$14,000.00',
+                features: ['Clientes ilimitados', 'Préstamos ilimitados', 'Usuarios ilimitados', 'AI ilimitado', 'Soporte prioritario'],
+            },
+        ]);
     };
 
     const handleFileChange = (e) => {
