@@ -40,7 +40,7 @@ export function SettingsView({
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
-    setSystemSettings({
+    const newSettings = {
       ...systemSettings,
       companyName: form.companyName,
       mainCurrency: form.mainCurrency,
@@ -52,8 +52,11 @@ export function SettingsView({
       securityPassword: form.securityPassword,
       ownerDisplayName: form.ownerDisplayName || '',
       companyLogo: form.companyLogo || systemSettings.companyLogo || '',
-    });
-    if (showToast) showToast('Ajustes guardados correctamente');
+    };
+    setSystemSettings(newSettings);
+    // Persist to localStorage
+    localStorage.setItem('systemSettings', JSON.stringify(newSettings));
+    if (showToast) showToast('Ajustes guardados correctamente', 'success');
   };
 
   const handleAddCollector = (e) => {

@@ -108,6 +108,11 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
+  // Modal States
+  const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState(null);
+  const [selectedClientId, setSelectedClientId] = useState(null);
+
   // Data State - load systemSettings from localStorage if available
   const [dbData, setDbData] = useState(() => {
     const savedSettings = localStorage.getItem('systemSettings');
@@ -362,23 +367,20 @@ function App() {
         return <ClientsView
           clients={dbData.clients}
           loans={dbData.loans}
-          selectedClientId={null}
-          onNewClient={async () => {
-            // Just add a placeholder client for now - modal should handle this
-            const localC = { id: generateId(), name: 'Nuevo Cliente', phone: '', address: '' };
-            setDbData(p => ({ ...p, clients: [...p.clients, localC] }));
-            showToast('Cliente agregado', 'success');
+          selectedClientId={selectedClientId}
+          onNewClient={() => {
+            setEditingClient(null);
+            setClientModalOpen(true);
           }}
           onSelectClient={(id) => {
-            // For now just log - would need state for selectedClientId
-            console.log('Selected client:', id);
+            setSelectedClientId(id);
           }}
           onSelectLoan={(id) => {
             setActiveTab('loans');
           }}
           onEditClient={(client) => {
-            console.log('Edit client:', client);
-            showToast('Función de editar próximamente', 'info');
+            setEditingClient(client);
+            setClientModalOpen(true);
           }}
         />;
       case 'loans':
@@ -568,6 +570,33 @@ function App() {
           </Suspense>
         </main>
       </div>
+
+      {/* Client Modal */}
+      <ClientModal
+        open={clientModalOpen}
+        onClose={() => {
+          setClientModalOpen(false);
+          setEditingClient(null);
+        }}
+        onSave={(clientData) => {
+          if (editingClient) {
+            // Update existing client
+            setDbData(p => ({
+              ...p,
+              clients: p.clients.map(c => c.id === editingClient.id ? { ...c, ...clientData } : c)
+            }));
+            showToast('Cliente actualizado', 'success');
+          } else {
+            // Add new client
+            const newClient = { ...clientData, id: generateId() };
+            setDbData(p => ({ ...p, clients: [...p.clients, newClient] }));
+            showToast('Cliente creado', 'success');
+          }
+          setClientModalOpen(false);
+          setEditingClient(null);
+        }}
+        initialClient={editingClient}
+      />
 
     </div>
   );
