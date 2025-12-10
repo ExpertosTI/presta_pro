@@ -57,8 +57,7 @@ router.post('/', async (req, res) => {
                 amount: finalAmount,
                 penaltyAmount: finalPenalty,
                 installmentNumber: installment?.number || installmentNumber || 0,
-                date: date ? new Date(date) : new Date(),
-                notes: notes || null
+                date: date ? new Date(date) : new Date()
             }
         });
 
