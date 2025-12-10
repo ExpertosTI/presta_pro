@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Card from '../components/Card.jsx';
+import Card from '../shared/components/ui/Card';
 import { registerUser } from '../logic/authLogic';
 
 // Use relative URLs - nginx will proxy to backend

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import Card from '../components/Card.jsx';
+import Card from '../shared/components/ui/Card';
 import { formatCurrency, formatDate } from '../shared/utils/formatters';
 import { Download } from 'lucide-react';
 import { generateReceiptPDF } from '../services/pdfService';

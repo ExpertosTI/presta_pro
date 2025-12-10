@@ -1,5 +1,5 @@
 import React from 'react';
-import Card from '../components/Card.jsx';
+import Card from '../shared/components/ui/Card';
 import { formatCurrency } from '../shared/utils/formatters';
 
 export function ReportsView({ loans, expenses }) {

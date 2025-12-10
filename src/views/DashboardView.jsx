@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import Card from '../components/Card';
+import Card from '../shared/components/ui/Card';
 import { formatCurrency, formatDate } from '../shared/utils/formatters';
 import {
     TrendingUp, TrendingDown, Users, Wallet, Calendar, AlertTriangle,

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import Card from '../components/Card.jsx';
-import Badge from '../components/ui/Badge.jsx';
+import Card from '../shared/components/ui/Card.jsx';
+import Badge from '../shared/components/ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../shared/utils/formatters';
 import { calculateSchedule } from '../shared/utils/amortization';
 import { FileText, Sparkles, X, Printer, FileCheck } from 'lucide-react';

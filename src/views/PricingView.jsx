@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Card from '../components/Card.jsx';
+import Card from '../shared/components/ui/Card';
 import { Check, Crown, Zap, Building2, CreditCard, Building, Banknote, Loader2, Upload, X, AlertCircle } from 'lucide-react';
 
 const API_BASE_URL = '';

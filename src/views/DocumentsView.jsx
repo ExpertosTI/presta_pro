@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Card from '../components/Card.jsx';
+import Card from '../shared/components/ui/Card';
 
 const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', selectedClientId, onSelectClient, clientDocuments, addClientDocument }) => {
   const hasClients = Array.isArray(clients) && clients.length > 0;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Card from '../components/Card.jsx';
+import Card from '../shared/components/ui/Card';
 import { formatCurrency, formatDateTime } from '../shared/utils/formatters';
 
 export function ExpensesView({ expenses, addExpense }) {
