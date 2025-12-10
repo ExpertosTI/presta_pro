@@ -192,12 +192,12 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('loans')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-[#0f172a] border border-blue-900/50 hover:border-blue-500/50 transition-all group-hover:shadow-blue-900/20 group-hover:shadow-lg">
+                    <Card className="bg-white dark:bg-[#0f172a] border border-blue-200 dark:border-blue-900/50 hover:border-blue-500/50 transition-all group-hover:shadow-blue-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
-                                <p className="text-[10px] md:text-xs font-bold text-blue-400 uppercase tracking-widest">Cartera</p>
-                                <p className="text-xl md:text-3xl font-black text-white mt-1 truncate">{formatCurrency(totalLent)}</p>
-                                <p className="text-[10px] md:text-xs text-slate-400 mt-1">{loans.length} préstamos</p>
+                                <p className="text-[10px] md:text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Cartera</p>
+                                <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mt-1 truncate">{formatCurrency(totalLent)}</p>
+                                <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{loans.length} préstamos</p>
                             </div>
                             <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 flex-shrink-0">
                                 <Wallet size={20} />
@@ -210,12 +210,12 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('cuadre')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-[#0f172a] border border-emerald-900/50 hover:border-emerald-500/50 transition-all group-hover:shadow-emerald-900/20 group-hover:shadow-lg">
+                    <Card className="bg-white dark:bg-[#0f172a] border border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-500/50 transition-all group-hover:shadow-emerald-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
-                                <p className="text-[10px] md:text-xs font-bold text-emerald-400 uppercase tracking-widest">Recaudado</p>
-                                <p className="text-xl md:text-3xl font-black text-white mt-1 truncate">{formatCurrency(totalCollected)}</p>
-                                <p className="text-[10px] md:text-xs text-slate-400 mt-1 truncate">{paidLoans} pagados</p>
+                                <p className="text-[10px] md:text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Recaudado</p>
+                                <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mt-1 truncate">{formatCurrency(totalCollected)}</p>
+                                <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">{paidLoans} pagados</p>
                             </div>
                             <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 flex-shrink-0">
                                 <TrendingUp size={20} />
@@ -228,12 +228,12 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('routes')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-[#0f172a] border border-amber-900/50 hover:border-amber-500/50 transition-all group-hover:shadow-amber-900/20 group-hover:shadow-lg">
+                    <Card className="bg-white dark:bg-[#0f172a] border border-amber-200 dark:border-amber-900/50 hover:border-amber-500/50 transition-all group-hover:shadow-amber-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
-                                <p className="text-[10px] md:text-xs font-bold text-amber-400 uppercase tracking-widest">Por Cobrar</p>
-                                <p className="text-xl md:text-3xl font-black text-white mt-1 truncate">{formatCurrency(pendingAmount)}</p>
-                                <p className="text-[10px] md:text-xs text-slate-400 mt-1">{activeLoans} activos</p>
+                                <p className="text-[10px] md:text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Por Cobrar</p>
+                                <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mt-1 truncate">{formatCurrency(pendingAmount)}</p>
+                                <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{activeLoans} activos</p>
                             </div>
                             <div className="p-2 bg-amber-500/10 rounded-xl text-amber-400 flex-shrink-0">
                                 <Clock size={20} />
@@ -246,12 +246,12 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('clients')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-[#0f172a] border border-violet-900/50 hover:border-violet-500/50 transition-all group-hover:shadow-violet-900/20 group-hover:shadow-lg">
+                    <Card className="bg-white dark:bg-[#0f172a] border border-violet-200 dark:border-violet-900/50 hover:border-violet-500/50 transition-all group-hover:shadow-violet-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between">
                             <div className="min-w-0">
-                                <p className="text-[10px] md:text-xs font-bold text-violet-400 uppercase tracking-widest">Clientes</p>
-                                <p className="text-xl md:text-3xl font-black text-white mt-1">{clients.length}</p>
-                                <p className="text-[10px] md:text-xs text-slate-400 mt-1">Registrados</p>
+                                <p className="text-[10px] md:text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest">Clientes</p>
+                                <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mt-1">{clients.length}</p>
+                                <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">Registrados</p>
                             </div>
                             <div className="p-2 bg-violet-500/10 rounded-xl text-violet-400 flex-shrink-0">
                                 <Users size={20} />

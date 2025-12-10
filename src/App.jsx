@@ -348,7 +348,7 @@ function App() {
           loans: [...p.loans, { ...newLoan, schedule: newLoan.installments || schedule }]
         }));
         showToast('Solicitud aprobada y préstamo creado', 'success');
-        addNotification('Préstamo creado desde solicitud #' + req.id.slice(0, 4), 'success');
+        addNotification('Préstamo creado desde solicitud #' + (req?.id?.slice(0, 4) || ''), 'success');
       }
 
 

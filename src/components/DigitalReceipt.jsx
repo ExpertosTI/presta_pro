@@ -102,7 +102,7 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                                 {formatDateTime(receipt.date)}
                             </p>
                             <div className="mt-2 bg-slate-200 dark:bg-slate-800 px-3 py-1 rounded-full text-xs font-mono text-slate-600 dark:text-slate-400">
-                                {receipt.id.slice(0, 12)}
+                                {receipt?.id?.slice(0, 12) || 'N/A'}
                             </div>
                         </div>
 

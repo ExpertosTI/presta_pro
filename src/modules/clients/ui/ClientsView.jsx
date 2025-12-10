@@ -99,7 +99,7 @@ export function ClientsView({ clients, loans, onNewClient, selectedClientId, onS
               </div>
               <div>
                 <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100">{selectedClient.name}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">CLIENTE #{selectedClient.id.slice(0, 6)}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">CLIENTE #{selectedClient?.id?.slice(0, 6) || ''}</p>
               </div>
             </div>
 

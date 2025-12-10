@@ -44,7 +44,7 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                       <span className="font-bold text-slate-800 dark:text-slate-100">{client?.name}</span>
                       <span className="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-200 border border-yellow-300 dark:border-yellow-500/30 px-2 py-0.5 rounded">Revisión</span>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Solicitud #{req.id.slice(0, 4)}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Solicitud #{req?.id?.slice(0, 4) || ''}</p>
                   </div>
                 </div>
                 <div className="text-sm text-slate-700 dark:text-slate-300 grid grid-cols-2 gap-2 mb-3 bg-slate-100 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700/50">
