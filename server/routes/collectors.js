@@ -1,11 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('../generated/prisma');
-const prisma = new PrismaClient();
-const authMiddleware = require('../middleware/authMiddleware');
+const prisma = require('../lib/prisma');
 
-// All routes require authentication
-router.use(authMiddleware);
+// Note: authMiddleware applied at mount level in index.js
 
 // GET all collectors for tenant
 router.get('/', async (req, res) => {
