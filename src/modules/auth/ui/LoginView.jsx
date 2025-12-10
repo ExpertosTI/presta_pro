@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { Shield, Lock, User, CheckCircle, Mail, Briefcase } from 'lucide-react';
 import { jwtDecode } from "jwt-decode";
-import logo from '../../logo-small.svg';
+import logo from '../../../../logo-small.svg';
 
 export function LoginView({ onLogin }) {
     const [isRegistering, setIsRegistering] = useState(false);

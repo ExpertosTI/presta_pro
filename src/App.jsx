@@ -64,7 +64,7 @@ const AIView = React.lazy(() => import('./modules/ai').then(module => ({ default
 const CalculatorView = React.lazy(() => import('./modules/tools').then(module => ({ default: module.CalculatorView })));
 
 // Login View
-import LoginView from './views/LoginView';
+import { LoginView } from './modules/auth';
 
 // --- Inline Components for Layout (MenuItem, MenuSection) ---
 const MenuItem = ({ icon: Icon, label, id, activeTab, onClick, badge }) => (
