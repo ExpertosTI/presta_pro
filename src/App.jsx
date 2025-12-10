@@ -112,6 +112,7 @@ function App() {
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [selectedClientId, setSelectedClientId] = useState(null);
+  const [selectedLoanId, setSelectedLoanId] = useState(null);
   const [clientCreatedCallback, setClientCreatedCallback] = useState(null);
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
@@ -451,8 +452,8 @@ function App() {
           loans={dbData.loans}
           clients={dbData.clients}
           registerPayment={registerPayment}
-          selectedLoanId={null}
-          onSelectLoan={(id) => console.log('Selected loan:', id)}
+          selectedLoanId={selectedLoanId}
+          onSelectLoan={(id) => setSelectedLoanId(id === selectedLoanId ? null : id)}
           onUpdateLoan={(loan) => {
             setDbData(p => ({
               ...p,
@@ -461,7 +462,15 @@ function App() {
             showToast('Préstamo actualizado', 'success');
           }}
           addClientDocument={(clientId, doc) => {
-            console.log('Add document to client:', clientId, doc);
+            // Guardar documento en el cliente
+            setDbData(p => ({
+              ...p,
+              clients: p.clients.map(c => c.id === clientId ? {
+                ...c,
+                documents: [...(c.documents || []), { ...doc, id: generateId(), createdAt: new Date().toISOString() }]
+              } : c)
+            }));
+            showToast('Documento guardado', 'success');
           }}
         />;
       case 'requests':
