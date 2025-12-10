@@ -35,7 +35,7 @@ async function logAudit({
                 resourceId,
                 userId,
                 tenantId,
-                details: details ? JSON.stringify(details) : null,
+                details: details || undefined, // Prisma Json field accepts object directly
                 ipAddress,
                 userAgent
             }
