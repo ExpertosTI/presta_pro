@@ -6,7 +6,7 @@ import { calculateSchedule } from '../../../shared/utils/amortization';
 import { FileText, Sparkles, X, Printer, FileCheck, Plus } from 'lucide-react';
 import { PaymentConfirmationModal } from '../../payments';
 
-export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan }) {
+export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan, onNewClient }) {
   const [generatingContract, setGeneratingContract] = useState(false);
   const [contractContent, setContractContent] = useState(null);
   const [showContractModal, setShowContractModal] = useState(false);
@@ -303,16 +303,30 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
             }} className="space-y-3 text-sm">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Cliente</label>
-                <select
-                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                  value={createForm.clientId}
-                  onChange={(e) => setCreateForm({ ...createForm, clientId: e.target.value })}
-                >
-                  <option value="">Selecciona un cliente</option>
-                  {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    className="flex-1 p-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    value={createForm.clientId}
+                    onChange={(e) => setCreateForm({ ...createForm, clientId: e.target.value })}
+                  >
+                    <option value="">Selecciona un cliente</option>
+                    {clients.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  {onNewClient && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateModalOpen(false);
+                        onNewClient();
+                      }}
+                      className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold whitespace-nowrap"
+                    >
+                      + Nuevo
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

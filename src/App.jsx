@@ -31,7 +31,7 @@ import {
 } from 'recharts';
 
 // Services
-import { clientService, loanService, paymentService, syncService, settingsService, expenseService, collectorService } from './services/api';
+import { clientService, loanService, paymentService, syncService, settingsService, expenseService, collectorService, employeeService, noteService } from './services/api';
 
 // Utilities
 import { generateId, generateSecurityToken } from './shared/utils/ids';
@@ -594,6 +594,10 @@ function App() {
             }
           }}
           addClientDocument={handleAddClientDocument}
+          onNewClient={() => {
+            setEditingClient(null);
+            setClientModalOpen(true);
+          }}
         />;
       case 'requests':
         return <RequestsView

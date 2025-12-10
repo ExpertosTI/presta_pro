@@ -41,6 +41,8 @@ const subscriptionsRouter = require('./routes/subscriptions');
 const settingsRouter = require('./routes/settings');
 const expensesRouter = require('./routes/expenses');
 const collectorsRouter = require('./routes/collectors');
+const employeesRouter = require('./routes/employees');
+const notesRouter = require('./routes/notes');
 
 
 // Importar middleware de autenticación
@@ -127,6 +129,8 @@ app.use('/api/subscriptions', authMiddleware, subscriptionsRouter);
 app.use('/api/settings', authMiddleware, settingsRouter);
 app.use('/api/expenses', authMiddleware, expensesRouter);
 app.use('/api/collectors', authMiddleware, collectorsRouter);
+app.use('/api/employees', authMiddleware, employeesRouter);
+app.use('/api/notes', authMiddleware, notesRouter);
 
 // Configurar multer para upload de comprobantes
 const uploadsDir = path.join(__dirname, 'uploads');

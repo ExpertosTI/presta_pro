@@ -78,5 +78,35 @@ export const collectorService = {
     delete: (id) => api.delete(`/collectors/${id}`),
 };
 
+// Employee Service
+export const employeeService = {
+    getAll: async () => {
+        try {
+            return await api.get('/employees');
+        } catch (e) {
+            console.error('employeeService.getAll error:', e);
+            return [];
+        }
+    },
+    create: (data) => api.post('/employees', data),
+    update: (id, data) => api.put(`/employees/${id}`, data),
+    delete: (id) => api.delete(`/employees/${id}`),
+};
+
+// Note Service
+export const noteService = {
+    getAll: async () => {
+        try {
+            return await api.get('/notes');
+        } catch (e) {
+            console.error('noteService.getAll error:', e);
+            return [];
+        }
+    },
+    create: (data) => api.post('/notes', data),
+    update: (id, data) => api.put(`/notes/${id}`, data),
+    delete: (id) => api.delete(`/notes/${id}`),
+};
+
 export default api;
 

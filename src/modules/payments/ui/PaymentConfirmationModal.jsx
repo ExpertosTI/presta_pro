@@ -38,7 +38,7 @@ export default function PaymentConfirmationModal({
         if (showPenaltyInput) {
             const penaltyVal = parseFloat(penaltyAmountInput) || 0;
             if (penaltyVal > 0) {
-                options = { ...options, withPenalty: true, penaltyAmountOverride: penaltyVal };
+                options = { ...options, withPenalty: true, penaltyAmount: penaltyVal };
             }
         }
 
