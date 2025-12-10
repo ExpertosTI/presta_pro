@@ -291,30 +291,34 @@ export function SettingsView({
 
             <div>
               <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Apariencia</label>
-              <div className="flex gap-2">
-                {['indigo', 'blue', 'emerald', 'violet'].map((color) => (
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'indigo', bg: 'bg-indigo-700', label: 'Índigo' },
+                  { id: 'blue', bg: 'bg-blue-600', label: 'Azul' },
+                  { id: 'emerald', bg: 'bg-emerald-500', label: 'Verde' },
+                  { id: 'violet', bg: 'bg-violet-500', label: 'Violeta' },
+                  { id: 'slate', bg: 'bg-slate-700', label: 'Gris Oscuro' },
+                  { id: 'zinc', bg: 'bg-zinc-900', label: 'Negro' },
+                ].map((color) => (
                   <button
-                    key={color}
+                    key={color.id}
                     type="button"
+                    title={color.label}
                     onClick={() => {
-                      const newSettings = { ...systemSettings, themeColor: color };
+                      const newSettings = { ...systemSettings, themeColor: color.id };
                       setSystemSettings(newSettings);
-                      setForm({ ...form, themeColor: color });
+                      setForm({ ...form, themeColor: color.id });
+                      // Persist to localStorage
+                      localStorage.setItem('systemSettings', JSON.stringify(newSettings));
                     }}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${form.themeColor === color
-                      ? 'border-slate-900 dark:border-slate-100 scale-110'
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${form.themeColor === color.id
+                      ? 'border-slate-900 dark:border-slate-100 scale-110 ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-800 ring-blue-500'
                       : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
-                      } ${color === 'indigo'
-                        ? 'bg-indigo-700'
-                        : color === 'blue'
-                          ? 'bg-blue-600'
-                          : color === 'emerald'
-                            ? 'bg-emerald-500'
-                            : 'bg-violet-500'
-                      }`}
+                      } ${color.bg}`}
                   />
                 ))}
               </div>
+              <p className="text-xs text-slate-400 mt-1">Colores corporativos oscuros: Gris Oscuro y Negro</p>
             </div>
           </div>
 

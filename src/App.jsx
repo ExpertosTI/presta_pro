@@ -108,24 +108,32 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
-  // Data State
-  const [dbData, setDbData] = useState({
-    clients: [],
-    loans: [],
-    expenses: [],
-    receipts: [],
-    requests: [],
-    notes: [], // Added notes
-    employees: [],
-    collectors: [],
-    routes: [], // routeClosings?
-    goals: { monthly: 500000, daily: 15000 },
-    systemSettings: {
-      companyName: 'Presta Pro',
-      currency: 'DOP',
-      allowLatePayments: true,
-      interestMethod: 'simple'
-    }
+  // Data State - load systemSettings from localStorage if available
+  const [dbData, setDbData] = useState(() => {
+    const savedSettings = localStorage.getItem('systemSettings');
+    const parsedSettings = savedSettings ? JSON.parse(savedSettings) : {};
+    return {
+      clients: [],
+      loans: [],
+      expenses: [],
+      receipts: [],
+      requests: [],
+      notes: [],
+      employees: [],
+      collectors: [],
+      routes: [],
+      goals: { monthly: 500000, daily: 15000 },
+      systemSettings: {
+        companyName: parsedSettings.companyName || 'Presta Pro',
+        currency: 'DOP',
+        allowLatePayments: true,
+        interestMethod: 'simple',
+        themeColor: parsedSettings.themeColor || 'indigo',
+        companyLogo: parsedSettings.companyLogo || '',
+        ownerDisplayName: parsedSettings.ownerDisplayName || '',
+        ...parsedSettings
+      }
+    };
   });
 
   // Derived State (for UI badges etc)
@@ -530,8 +538,11 @@ function App() {
           theme={theme}
           toggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
           companyName={dbData.systemSettings?.companyName}
+          companyLogo={dbData.systemSettings?.companyLogo}
           userName={user?.name}
           onLogout={handleLogout}
+          notifications={notifications}
+          onClearNotifications={() => setNotifications([])}
         />
 
         <main className="flex-1 overflow-auto p-4 md:p-6 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">

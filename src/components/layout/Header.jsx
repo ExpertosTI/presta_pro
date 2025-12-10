@@ -1,9 +1,20 @@
 import { useState } from 'react';
 import logoSmall from '../../../logo-small.svg';
-import { Bell, Menu } from 'lucide-react';
+import { Bell, Menu, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
-export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, companyName, userName, onLogout, companyLogo }) {
+export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, companyName, userName, onLogout, companyLogo, notifications = [], onClearNotifications }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const getNotifIcon = (type) => {
+    switch (type) {
+      case 'success': return <CheckCircle size={16} className="text-emerald-500" />;
+      case 'error': return <AlertCircle size={16} className="text-red-500" />;
+      default: return <Info size={16} className="text-blue-500" />;
+    }
+  };
 
   return (
     <header className="h-16 glass z-20 sticky top-0 flex items-center justify-between px-6 transition-all print:hidden">
@@ -21,10 +32,58 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
           <span className="block dark:hidden">🌙</span>
           <span className="hidden dark:block">☀️</span>
         </button>
-        <button className="p-2 rounded-full relative hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-200">
-          <Bell size={20} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
-        </button>
+
+        {/* Notification Bell with Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setNotifOpen(!notifOpen)}
+            className="p-2 rounded-full relative hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-200"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900 text-[10px] text-white font-bold flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {notifOpen && (
+            <div className="absolute right-0 mt-2 w-80 glass rounded-xl overflow-hidden animate-fade-in z-50 shadow-2xl">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">Notificaciones</h3>
+                <button onClick={() => setNotifOpen(false)}>
+                  <X size={16} className="text-slate-400 hover:text-slate-600" />
+                </button>
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-sm text-slate-400">No hay notificaciones</p>
+                ) : (
+                  notifications.slice(0, 10).map((n) => (
+                    <div key={n.id} className={`px-4 py-3 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!n.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                      <div className="flex gap-2 items-start">
+                        {getNotifIcon(n.type)}
+                        <div className="flex-1">
+                          <p className="text-sm text-slate-700 dark:text-slate-200">{n.text}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{new Date(n.date).toLocaleString('es-DO')}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              {notifications.length > 0 && onClearNotifications && (
+                <button
+                  onClick={() => { onClearNotifications(); setNotifOpen(false); }}
+                  className="w-full px-4 py-2 text-sm text-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-medium"
+                >
+                  Limpiar todas
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="relative">
           <button
             type="button"
@@ -60,3 +119,4 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
 }
 
 export default Header;
+
