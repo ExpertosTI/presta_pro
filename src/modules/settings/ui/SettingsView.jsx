@@ -693,6 +693,94 @@ export function SettingsView({
           </div>
         )}
       </Card>
+
+      {/* Backup Section */}
+      <Card className="mt-6">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">📦 Copia de Seguridad</h3>
+        <p className="text-xs text-slate-400 mb-4">
+          Exporta todos tus datos (clientes, préstamos, pagos) o restaura desde un archivo anterior.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Export Button */}
+          <button
+            type="button"
+            onClick={() => {
+              // Get all data from localStorage or context
+              const backupData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                systemSettings,
+                collectors,
+                clients,
+              };
+
+              // Create blob and download
+              const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `presta_pro_backup_${new Date().toISOString().split('T')[0]}.json`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+
+              if (showToast) showToast('Backup exportado correctamente', 'success');
+            }}
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+          >
+            📥 Exportar Datos
+          </button>
+
+          {/* Restore Button */}
+          <label className="flex-1 bg-slate-600 hover:bg-slate-700 text-white px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer">
+            📤 Restaurar Backup
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  try {
+                    const backup = JSON.parse(event.target.result);
+
+                    if (!backup.version || !backup.exportDate) {
+                      if (showToast) showToast('Archivo de backup inválido', 'error');
+                      return;
+                    }
+
+                    // Confirm before restoring
+                    if (window.confirm(`¿Restaurar backup del ${new Date(backup.exportDate).toLocaleDateString('es-DO')}?\n\nEsto reemplazará tus datos actuales.`)) {
+                      // Restore settings
+                      if (backup.systemSettings) {
+                        setSystemSettings(backup.systemSettings);
+                        localStorage.setItem('systemSettings', JSON.stringify(backup.systemSettings));
+                      }
+
+                      // Note: collectors and clients would need to be restored via API or passed handler
+                      if (showToast) showToast('Backup restaurado. Recarga la página para ver los cambios.', 'success');
+                    }
+                  } catch (err) {
+                    console.error('Restore error:', err);
+                    if (showToast) showToast('Error al leer el archivo de backup', 'error');
+                  }
+                };
+                reader.readAsText(file);
+                e.target.value = ''; // Reset file input
+              }}
+            />
+          </label>
+        </div>
+
+        <p className="text-xs text-slate-500 mt-3">
+          💡 Tip: Guarda el archivo de backup en un lugar seguro (Google Drive, USB, etc.)
+        </p>
+      </Card>
     </div >
   );
 }

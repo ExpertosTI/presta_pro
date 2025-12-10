@@ -277,21 +277,55 @@ function App() {
 
   const registerPayment = async (loanId, installmentId, options) => {
     try {
-      // Logic to call paymentService.create
-      // And update local state optimistically or reload.
-      const receipt = await paymentService.create({ loanId, installmentId, ...options });
+      // Get loan and client info for the receipt
+      const loan = dbData.loans.find(l => l.id === loanId);
+      const client = dbData.clients.find(c => c.id === loan?.clientId);
+      const installment = loan?.schedule?.find(s => s.id === installmentId) ||
+        loan?.installments?.find(s => s.id === installmentId);
+
+      // Build payment data
+      const paymentData = {
+        loanId,
+        installmentId,
+        installmentNumber: installment?.number || options?.installmentNumber || 0,
+        amount: options?.customAmount || installment?.payment || 0,
+        penaltyAmount: options?.penaltyAmount || 0,
+        ...options
+      };
+
+      // Call API
+      const serverReceipt = await paymentService.create(paymentData);
+
+      // Enrich receipt with client/loan data for display
+      const enrichedReceipt = {
+        ...serverReceipt,
+        id: serverReceipt?.id || generateId(),
+        clientId: loan?.clientId,
+        clientName: client?.name || 'Cliente',
+        clientPhone: client?.phone || '',
+        loanId,
+        amount: paymentData.amount,
+        penaltyAmount: paymentData.penaltyAmount,
+        installmentNumber: paymentData.installmentNumber,
+        date: serverReceipt?.date || new Date().toISOString(),
+        loanAmount: loan?.amount,
+        remainingBalance: (loan?.amount || 0) - ((loan?.totalPaid || 0) + paymentData.amount + paymentData.penaltyAmount),
+      };
+
       setDbData(prev => ({
         ...prev,
-        receipts: [...prev.receipts, receipt],
+        receipts: [...prev.receipts, enrichedReceipt],
         loans: prev.loans.map(l => l.id === loanId ? {
           ...l,
-          schedule: l.schedule.map(s => s.id === installmentId ? { ...s, status: 'PAID', paidDate: new Date() } : s)
+          totalPaid: (l.totalPaid || 0) + paymentData.amount + paymentData.penaltyAmount,
+          schedule: (l.schedule || []).map(s => s.id === installmentId ? { ...s, status: 'PAID', paidDate: new Date() } : s)
         } : l)
       }));
       showToast("Pago registrado", "success");
-      return receipt;
+      return enrichedReceipt;
     } catch (e) {
-      showToast(e.message, "error");
+      console.error('registerPayment error:', e);
+      showToast(e.message || 'Error al registrar pago', "error");
       return null;
     }
   };
