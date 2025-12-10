@@ -20,7 +20,12 @@ router.get('/', async (req, res) => {
 // POST /api/payments - Registrar un pago
 router.post('/', async (req, res) => {
     try {
-        const { loanId, amount, penaltyAmount, installmentNumber, date, notes } = req.body;
+        // Frontend sends: loanId, installmentId (or installmentNumber), amount, penaltyAmount, customAmount
+        const { loanId, installmentId, installmentNumber, amount, penaltyAmount, customAmount, date, notes } = req.body;
+
+        if (!loanId) {
+            return res.status(400).json({ error: 'Se requiere ID de préstamo' });
+        }
 
         // Verificar préstamo
         const loan = await prisma.loan.findFirst({
@@ -32,9 +37,16 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ error: 'Préstamo no encontrado' });
         }
 
-        // Aquí debería ir la lógica compleja de aplicar pago a cuotas
-        // Por simplicidad en esta fase inicial, asumimos que el frontend envía qué cuota se paga
-        // O implementamos una lógica básica de actualización
+        // Encontrar la cuota a pagar
+        let installment = null;
+        if (installmentId) {
+            installment = loan.installments.find(i => i.id === installmentId);
+        } else if (installmentNumber) {
+            installment = loan.installments.find(i => i.number === installmentNumber);
+        }
+
+        const finalAmount = parseFloat(customAmount || amount || installment?.payment || 0);
+        const finalPenalty = parseFloat(penaltyAmount || 0);
 
         // Crear recibo
         const newReceipt = await prisma.receipt.create({
@@ -42,17 +54,45 @@ router.post('/', async (req, res) => {
                 tenantId: req.user.tenantId,
                 loanId,
                 clientId: loan.clientId,
-                amount: parseFloat(amount),
-                penaltyAmount: parseFloat(penaltyAmount || 0),
-                installmentNumber: installmentNumber || 0,
+                amount: finalAmount,
+                penaltyAmount: finalPenalty,
+                installmentNumber: installment?.number || installmentNumber || 0,
                 date: date ? new Date(date) : new Date(),
-                // Más campos si son necesarios
+                notes: notes || null
             }
         });
 
-        // Actualizar estado del préstamo/cuota (Simplificado)
-        // En una implementación real, esto debería ser más robusto
-        // UPDATE installments logic...
+        // Actualizar la cuota como pagada si se encontró
+        if (installment) {
+            await prisma.loanInstallment.update({
+                where: { id: installment.id },
+                data: {
+                    status: 'PAID',
+                    paidAmount: finalAmount,
+                    paidDate: new Date(),
+                    penaltyPaid: finalPenalty
+                }
+            });
+        }
+
+        // Actualizar totalPaid del préstamo
+        const newTotalPaid = (loan.totalPaid || 0) + finalAmount + finalPenalty;
+        await prisma.loan.update({
+            where: { id: loanId },
+            data: { totalPaid: newTotalPaid }
+        });
+
+        // Verificar si todas las cuotas están pagadas para cerrar el préstamo
+        const updatedInstallments = await prisma.loanInstallment.findMany({
+            where: { loanId }
+        });
+        const allPaid = updatedInstallments.every(i => i.status === 'PAID');
+        if (allPaid) {
+            await prisma.loan.update({
+                where: { id: loanId },
+                data: { status: 'COMPLETED' }
+            });
+        }
 
         // Log audit
         logAudit({
@@ -61,7 +101,7 @@ router.post('/', async (req, res) => {
             resourceId: newReceipt.id,
             userId: req.user.userId,
             tenantId: req.user.tenantId,
-            details: { loanId, amount, penaltyAmount, installmentNumber },
+            details: { loanId, amount: finalAmount, penaltyAmount: finalPenalty, installmentId: installment?.id },
             ipAddress: req.ip
         });
 

@@ -624,7 +624,24 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         <Header
-          activeTitle={activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+          activeTitle={{
+            dashboard: 'Panel de Control',
+            routes: 'Ruta de Cobros',
+            cuadre: 'Cuadre de Caja',
+            clients: 'Clientes',
+            loans: 'Préstamos',
+            expenses: 'Gastos',
+            requests: 'Solicitudes',
+            notes: 'Notas',
+            hr: 'Recursos Humanos',
+            settings: 'Ajustes',
+            pricing: 'Planes',
+            accounting: 'Contabilidad',
+            documents: 'Documentos',
+            calculator: 'Calculadora',
+            ai: 'Asistente IA',
+            reports: 'Reportes'
+          }[activeTab] || activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
           setMobileMenuOpen={setSidebarOpen}
           theme={theme}
           toggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}

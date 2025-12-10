@@ -42,6 +42,9 @@ export function RoutesView({
       const client = clients.find(c => c.id === loan.clientId);
       if (!client) return [];
 
+      // Validación defensiva: asegurar que schedule existe
+      if (!loan.schedule || !Array.isArray(loan.schedule)) return [];
+
       if (collectorFilter && client.collectorId !== collectorFilter) return [];
       const pendingInstallment = loan.schedule.find(s => s.status !== 'PAID');
       if (!pendingInstallment) return [];
