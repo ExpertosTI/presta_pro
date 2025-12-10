@@ -25,6 +25,7 @@ export function Sidebar({ activeTab, setActiveTab, children, companyName }) {
       </div>
     </aside>
   );
+}
 
-  export default Sidebar;
+export default Sidebar;
 
