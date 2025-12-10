@@ -44,6 +44,7 @@ import Header from './shared/components/layout/Header';
 import { ClientModal } from './modules/clients';
 import { EmployeeModal } from './modules/employees';
 import PaymentTicket from './shared/components/ui/PaymentTicket';
+import { BottomNav } from './shared/components/layout/BottomNav';
 
 // Views (Lazy Loaded)
 const DashboardView = React.lazy(() => import('./modules/dashboard').then(module => ({ default: module.DashboardView })));
@@ -895,6 +896,20 @@ function App() {
           setEditingEmployee(null);
         }}
         initialEmployee={editingEmployee}
+      />
+
+      {/* Bottom Navigation for Mobile */}
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        setMobileMenuOpen={setSidebarOpen}
+        items={[
+          { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
+          { id: 'clients', label: 'Clientes', icon: Users },
+          { id: 'routes', label: 'Cobros', icon: MapPin },
+          { id: 'expenses', label: 'Gastos', icon: Wallet },
+          { id: 'more', label: 'Menú', icon: Menu },
+        ]}
       />
 
     </div>
