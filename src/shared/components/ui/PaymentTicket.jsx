@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatCurrency, formatDateTime } from '../../shared/utils/formatters';
+import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { X, Share2, Printer, Download, CheckCircle } from 'lucide-react';
 
 export function PaymentTicket({ receipt, companyName = 'Renace.tech', systemSettings = {}, onClose }) {

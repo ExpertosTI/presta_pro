@@ -43,7 +43,7 @@ import Sidebar from './shared/components/layout/Sidebar';
 import Header from './shared/components/layout/Header';
 import { ClientModal } from './modules/clients';
 import EmployeeModal from './components/modals/EmployeeModal';
-import PaymentTicket from './components/PaymentTicket'; // Restored import
+import PaymentTicket from './shared/components/ui/PaymentTicket';
 
 // Views (Lazy Loaded)
 const DashboardView = React.lazy(() => import('./views/DashboardView'));
