@@ -146,3 +146,132 @@ body {
   animation: shimmer 8s ease-in-out infinite;
   animation-delay: 2s;
 }
+
+/* ========================================
+   ENHANCED DARK MODE CONTRAST & LEGIBILITY
+   ======================================== */
+
+/* Better text contrast in dark mode */
+.dark {
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --bg-card: rgba(30, 41, 59, 0.95);
+  --bg-input: rgba(15, 23, 42, 0.8);
+  --border-color: rgba(148, 163, 184, 0.2);
+}
+
+/* Improve input visibility in dark mode */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
+  color: #f1f5f9 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Better label contrast */
+.dark label {
+  color: #e2e8f0;
+}
+
+/* Card improvements in dark mode */
+.dark .glass {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+/* Table contrast in dark mode */
+.dark table thead th {
+  background-color: rgba(30, 41, 59, 0.9);
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.dark table tbody tr:hover {
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+.dark table tbody td {
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.1);
+}
+
+/* Better button contrast */
+.dark button:not([class*="bg-"]) {
+  color: #e2e8f0;
+}
+
+/* Badge improvements */
+.dark .badge {
+  font-weight: 600;
+}
+
+/* ========================================
+   IMPROVED TEXT LEGIBILITY
+   ======================================== */
+
+/* Base text improvements */
+body {
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+/* Improve paragraph readability */
+p {
+  line-height: 1.65;
+}
+
+/* Small text improvements */
+.text-xs {
+  letter-spacing: 0.02em;
+}
+
+.text-sm {
+  letter-spacing: 0.01em;
+}
+
+/* Number formatting */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ========================================
+   ACCESSIBILITY IMPROVEMENTS
+   ======================================== */
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
