@@ -49,7 +49,7 @@ import PaymentTicket from './shared/components/ui/PaymentTicket';
 const DashboardView = React.lazy(() => import('./views/DashboardView'));
 const CuadreView = React.lazy(() => import('./views/CuadreView'));
 const ClientsView = React.lazy(() => import('./modules/clients').then(module => ({ default: module.ClientsView })));
-const LoansView = React.lazy(() => import('./views/LoansView'));
+const LoansView = React.lazy(() => import('./modules/loans').then(module => ({ default: module.LoansView })));
 const ExpensesView = React.lazy(() => import('./views/ExpensesView'));
 const RequestsView = React.lazy(() => import('./views/RequestsView'));
 const RoutesView = React.lazy(() => import('./views/RoutesView'));

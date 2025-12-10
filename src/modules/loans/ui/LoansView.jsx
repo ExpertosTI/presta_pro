@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import Card from '../shared/components/ui/Card.jsx';
-import Badge from '../shared/components/ui/Badge.jsx';
-import { formatCurrency, formatDate } from '../shared/utils/formatters';
-import { calculateSchedule } from '../shared/utils/amortization';
+import Card from '../../../shared/components/ui/Card.jsx';
+import Badge from '../../../shared/components/ui/Badge.jsx';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
+import { calculateSchedule } from '../../../shared/utils/amortization';
 import { FileText, Sparkles, X, Printer, FileCheck } from 'lucide-react';
-import PaymentConfirmationModal from '../components/modals/PaymentConfirmationModal.jsx';
+import PaymentConfirmationModal from '../../../components/modals/PaymentConfirmationModal.jsx';
 
 export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument }) {
   const [generatingContract, setGeneratingContract] = useState(false);
@@ -97,7 +97,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       // Dynamic import to avoid circular dependency issues if any, though direct import is fine here
-      const { generateLoanContract } = await import('../services/aiService');
+      const { generateLoanContract } = await import('../../../services/aiService');
       const contract = await generateLoanContract(selectedLoan, selectedClient, "Presta Pro", apiKey);
       setContractContent(contract);
       setShowContractModal(true);
