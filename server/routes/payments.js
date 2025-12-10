@@ -68,9 +68,8 @@ router.post('/', async (req, res) => {
                 where: { id: installment.id },
                 data: {
                     status: 'PAID',
-                    paidAmount: finalAmount,
-                    paidDate: new Date(),
-                    penaltyPaid: finalPenalty
+                    paidAmount: finalAmount + finalPenalty,
+                    paidDate: new Date()
                 }
             });
         }
