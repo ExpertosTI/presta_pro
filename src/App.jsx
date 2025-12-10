@@ -46,8 +46,8 @@ import { EmployeeModal } from './modules/employees';
 import PaymentTicket from './shared/components/ui/PaymentTicket';
 
 // Views (Lazy Loaded)
-const DashboardView = React.lazy(() => import('./views/DashboardView'));
-const CuadreView = React.lazy(() => import('./views/CuadreView'));
+const DashboardView = React.lazy(() => import('./modules/dashboard').then(module => ({ default: module.DashboardView })));
+const CuadreView = React.lazy(() => import('./modules/accounting').then(module => ({ default: module.CuadreView })));
 const ClientsView = React.lazy(() => import('./modules/clients').then(module => ({ default: module.ClientsView })));
 const LoansView = React.lazy(() => import('./modules/loans').then(module => ({ default: module.LoansView })));
 const ExpensesView = React.lazy(() => import('./views/ExpensesView'));
@@ -57,9 +57,9 @@ const NotesView = React.lazy(() => import('./views/NotesView'));
 const ReportsView = React.lazy(() => import('./views/ReportsView'));
 const PricingView = React.lazy(() => import('./modules/settings').then(module => ({ default: module.PricingView })));
 const SettingsView = React.lazy(() => import('./modules/settings').then(module => ({ default: module.SettingsView })));
-const DocumentsView = React.lazy(() => import('./views/DocumentsView'));
+const DocumentsView = React.lazy(() => import('./modules/documents').then(module => ({ default: module.DocumentsView })));
 const HRView = React.lazy(() => import('./modules/employees').then(module => ({ default: module.HRView })));
-const AccountingView = React.lazy(() => import('./views/AccountingView'));
+const AccountingView = React.lazy(() => import('./modules/accounting').then(module => ({ default: module.AccountingView })));
 const AIView = React.lazy(() => import('./views/AIView')); // AI Helper View
 const CalculatorView = React.lazy(() => import('./views/CalculatorView'));
 

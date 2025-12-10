@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Card from '../shared/components/ui/Card';
+import Card from '../../../shared/components/ui/Card';
 
 const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', selectedClientId, onSelectClient, clientDocuments, addClientDocument }) => {
   const hasClients = Array.isArray(clients) && clients.length > 0;
@@ -29,7 +29,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
     }
     setIsUploading(true);
     try {
-      const { fileToBase64 } = await import('../shared/utils/imageUtils.js');
+      const { fileToBase64 } = await import('../../../shared/utils/imageUtils.js');
       const base64 = await fileToBase64(file);
       const title = uploadTitle.trim() || file.name;
       addClientDocument(currentClient.id, {
@@ -173,7 +173,7 @@ Firma PRESTATARIO: ______________________`
 
     setAiGenerating(true);
     try {
-      const { generateClientDocument } = await import('../services/aiService');
+      const { generateClientDocument } = await import('../../../services/aiService');
       const lastLoan = getLastLoanForClient(currentClient.id);
       const effectiveCompanyName = companyName || 'Presta Pro';
       const generated = await generateClientDocument(templateType, currentClient, lastLoan, effectiveCompanyName, apiKey);

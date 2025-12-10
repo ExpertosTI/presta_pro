@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import Card from '../shared/components/ui/Card';
-import { formatCurrency, formatDate } from '../shared/utils/formatters';
+import Card from '../../../shared/components/ui/Card';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { Download } from 'lucide-react';
-import { generateReceiptPDF } from '../services/pdfService';
+import { generateReceiptPDF } from '../../../services/pdfService';
 
 function CuadreView({ receipts = [], expenses = [], clients = [], collectors = [], routeClosings = [] }) {
   const [closingDetail, setClosingDetail] = useState(null);
