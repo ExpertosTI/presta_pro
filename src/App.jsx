@@ -108,10 +108,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
-  // Modal States
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [selectedClientId, setSelectedClientId] = useState(null);
+  const [clientCreatedCallback, setClientCreatedCallback] = useState(null);
+  const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
 
   // Data State - load systemSettings from localStorage if available
   const [dbData, setDbData] = useState(() => {
@@ -302,11 +304,27 @@ function App() {
     };
 
     const approveRequest = (req) => {
+      // Create loan from request
+      const newLoan = {
+        id: generateId(),
+        clientId: req.clientId,
+        amount: parseFloat(req.amount),
+        rate: parseFloat(req.rate),
+        term: parseInt(req.term),
+        frequency: req.frequency || 'Mensual',
+        startDate: req.startDate || new Date().toISOString().split('T')[0],
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString(),
+        schedule: [] // Will be calculated by view
+      };
+
       setDbData(p => ({
         ...p,
-        requests: p.requests.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r)
+        requests: p.requests.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r),
+        loans: [...p.loans, newLoan]
       }));
-      showToast('Solicitud aprobada', 'success');
+      showToast('Solicitud aprobada y préstamo creado', 'success');
+      addNotification('Préstamo creado desde solicitud #' + req.id.slice(0, 4), 'success');
     };
 
     const rejectRequest = (req) => {
@@ -409,10 +427,9 @@ function App() {
           approveRequest={approveRequest}
           rejectRequest={rejectRequest}
           onNewClient={(callback) => {
-            // Open client modal flow - simplified
-            const newId = generateId();
-            setDbData(p => ({ ...p, clients: [...p.clients, { id: newId, name: 'Nuevo Cliente' }] }));
-            if (callback) callback(newId);
+            setClientCreatedCallback(() => callback);
+            setEditingClient(null);
+            setClientModalOpen(true);
           }}
         />;
       case 'routes':
@@ -435,13 +452,12 @@ function App() {
         return <HRView
           employees={dbData.employees}
           onNewEmployee={() => {
-            const newEmp = { id: generateId(), name: 'Nuevo Empleado', role: 'Cobrador', phone: '' };
-            setDbData(p => ({ ...p, employees: [...p.employees, newEmp] }));
-            showToast('Empleado agregado', 'success');
+            setEditingEmployee(null);
+            setEmployeeModalOpen(true);
           }}
           onEditEmployee={(emp) => {
-            console.log('Edit employee:', emp);
-            showToast('Función de editar próximamente', 'info');
+            setEditingEmployee(emp);
+            setEmployeeModalOpen(true);
           }}
         />;
       case 'accounting':
@@ -577,6 +593,7 @@ function App() {
         onClose={() => {
           setClientModalOpen(false);
           setEditingClient(null);
+          setClientCreatedCallback(null);
         }}
         onSave={(clientData) => {
           if (editingClient) {
@@ -588,14 +605,48 @@ function App() {
             showToast('Cliente actualizado', 'success');
           } else {
             // Add new client
-            const newClient = { ...clientData, id: generateId() };
+            const newClientId = generateId();
+            const newClient = { ...clientData, id: newClientId };
             setDbData(p => ({ ...p, clients: [...p.clients, newClient] }));
             showToast('Cliente creado', 'success');
+
+            // Call callback if exists (from RequestsView)
+            if (clientCreatedCallback) {
+              clientCreatedCallback(newClientId);
+              setClientCreatedCallback(null);
+            }
           }
           setClientModalOpen(false);
           setEditingClient(null);
         }}
         initialClient={editingClient}
+      />
+
+      {/* Employee Modal */}
+      <EmployeeModal
+        open={employeeModalOpen}
+        onClose={() => {
+          setEmployeeModalOpen(false);
+          setEditingEmployee(null);
+        }}
+        onSave={(employeeData) => {
+          if (editingEmployee) {
+            // Update existing employee
+            setDbData(p => ({
+              ...p,
+              employees: p.employees.map(e => e.id === editingEmployee.id ? { ...e, ...employeeData } : e)
+            }));
+            showToast('Empleado actualizado', 'success');
+          } else {
+            // Add new employee
+            const newEmployee = { ...employeeData, id: generateId() };
+            setDbData(p => ({ ...p, employees: [...p.employees, newEmployee] }));
+            showToast('Empleado creado', 'success');
+          }
+          setEmployeeModalOpen(false);
+          setEditingEmployee(null);
+        }}
+        initialEmployee={editingEmployee}
       />
 
     </div>
