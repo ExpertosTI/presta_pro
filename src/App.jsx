@@ -36,6 +36,7 @@ import { clientService, loanService, paymentService, syncService } from './servi
 // Utilities
 import { generateId, generateSecurityToken } from './utils/ids';
 import { formatCurrency, formatDate, formatDateTime } from './utils/formatters';
+import { calculateSchedule } from './utils/amortization';
 
 // Components
 import Sidebar from './components/layout/Sidebar';
@@ -307,18 +308,30 @@ function App() {
     };
 
     const approveRequest = (req) => {
-      // Create loan from request
+      // Create loan from request with calculated schedule
+      const amount = parseFloat(req.amount);
+      const rate = parseFloat(req.rate);
+      const term = parseInt(req.term);
+      const frequency = req.frequency || 'Mensual';
+      const startDate = req.startDate || new Date().toISOString().split('T')[0];
+
+      // Calculate amortization schedule
+      const schedule = calculateSchedule(amount, rate, term, frequency, startDate);
+      const totalInterest = schedule.reduce((acc, item) => acc + item.interest, 0);
+
       const newLoan = {
         id: generateId(),
         clientId: req.clientId,
-        amount: parseFloat(req.amount),
-        rate: parseFloat(req.rate),
-        term: parseInt(req.term),
-        frequency: req.frequency || 'Mensual',
-        startDate: req.startDate || new Date().toISOString().split('T')[0],
+        amount,
+        rate,
+        term,
+        frequency,
+        startDate,
         status: 'ACTIVE',
         createdAt: new Date().toISOString(),
-        schedule: [] // Will be calculated by view
+        schedule,
+        totalInterest,
+        totalPaid: 0
       };
 
       setDbData(p => ({
@@ -374,7 +387,9 @@ function App() {
           loans={dbData.loans}
           clients={dbData.clients}
           receipts={dbData.receipts}
+          expenses={dbData.expenses}
           user={user}
+          onNavigate={(tab) => setActiveTab(tab)}
         />;
       case 'cuadre':
         return <CuadreView
@@ -443,7 +458,22 @@ function App() {
           collectors={dbData.collectors}
           receipts={dbData.receipts}
           currentRouteLoanIds={dbData.routes || []}
+          routeActive={dbData.routeActive || false}
+          toggleLoanInRoute={(loanId) => {
+            setDbData(p => {
+              const routes = p.routes || [];
+              const exists = routes.includes(loanId);
+              return { ...p, routes: exists ? routes.filter(id => id !== loanId) : [...routes, loanId] };
+            });
+          }}
+          clearCurrentRoute={() => setDbData(p => ({ ...p, routes: [] }))}
+          startRoute={() => setDbData(p => ({ ...p, routeActive: true }))}
+          finishRoute={() => setDbData(p => ({ ...p, routeActive: false }))}
           showToast={showToast}
+          addRouteClosing={(closing) => setDbData(p => ({ ...p, routeClosings: [...(p.routeClosings || []), closing] }))}
+          routeClosings={dbData.routeClosings || []}
+          includeFutureInstallments={dbData.systemSettings?.includeFutureInstallmentsInRoutes ?? true}
+          systemSettings={dbData.systemSettings}
         />;
       case 'notes':
         return <NotesView notes={dbData.notes} setNotes={(n) => setDbData(p => ({ ...p, notes: typeof n === 'function' ? n(p.notes) : n }))} />;
