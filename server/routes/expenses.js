@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
 // POST create new expense
 router.post('/', async (req, res) => {
     try {
-        const { description, amount, category, date, notes } = req.body;
+        const { description, amount, category, date } = req.body;
 
         const expense = await prisma.expense.create({
             data: {
@@ -29,7 +29,6 @@ router.post('/', async (req, res) => {
                 amount: parseFloat(amount) || 0,
                 category: category || 'General',
                 date: date ? new Date(date) : new Date(),
-                notes: notes || null,
                 tenantId: req.tenantId
             }
         });

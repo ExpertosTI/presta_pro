@@ -506,11 +506,23 @@ function App() {
       }
     };
 
-    const assignCollectorToClient = (clientId, collectorId) => {
-      setDbData(p => ({
-        ...p,
-        clients: p.clients.map(c => c.id === clientId ? { ...c, collectorId } : c)
-      }));
+    const assignCollectorToClient = async (clientId, collectorId) => {
+      try {
+        await clientService.update(clientId, { collectorId });
+        setDbData(p => ({
+          ...p,
+          clients: p.clients.map(c => c.id === clientId ? { ...c, collectorId } : c)
+        }));
+        showToast('Cliente asignado a ruta', 'success');
+      } catch (e) {
+        console.error('assignCollectorToClient error:', e);
+        // Fallback local
+        setDbData(p => ({
+          ...p,
+          clients: p.clients.map(c => c.id === clientId ? { ...c, collectorId } : c)
+        }));
+        showToast('Asignado localmente', 'warning');
+      }
     };
 
     switch (activeTab) {
