@@ -307,40 +307,67 @@ function App() {
       addNotification(`Nueva solicitud de ${client?.name || 'cliente'} por ${formatCurrency(req.amount)}`, 'info');
     };
 
-    const approveRequest = (req) => {
-      // Create loan from request with calculated schedule
-      const amount = parseFloat(req.amount);
-      const rate = parseFloat(req.rate);
-      const term = parseInt(req.term);
-      const frequency = req.frequency || 'Mensual';
-      const startDate = req.startDate || new Date().toISOString().split('T')[0];
+    const approveRequest = async (req) => {
+      try {
+        // Create loan from request with calculated schedule
+        const amount = parseFloat(req.amount);
+        const rate = parseFloat(req.rate);
+        const term = parseInt(req.term);
+        const frequency = req.frequency || 'Mensual';
+        const startDate = req.startDate || new Date().toISOString().split('T')[0];
 
-      // Calculate amortization schedule
-      const schedule = calculateSchedule(amount, rate, term, frequency, startDate);
-      const totalInterest = schedule.reduce((acc, item) => acc + item.interest, 0);
+        // Calculate amortization schedule
+        const schedule = calculateSchedule(amount, rate, term, frequency, startDate);
+        const totalInterest = schedule.reduce((acc, item) => acc + item.interest, 0);
 
-      const newLoan = {
-        id: generateId(),
-        clientId: req.clientId,
-        amount,
-        rate,
-        term,
-        frequency,
-        startDate,
-        status: 'ACTIVE',
-        createdAt: new Date().toISOString(),
-        schedule,
-        totalInterest,
-        totalPaid: 0
-      };
+        // Create loan in database
+        const newLoan = await loanService.create({
+          clientId: req.clientId,
+          amount,
+          rate,
+          term,
+          frequency,
+          startDate,
+          schedule,
+          totalInterest
+        });
 
-      setDbData(p => ({
-        ...p,
-        requests: p.requests.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r),
-        loans: [...p.loans, newLoan]
-      }));
-      showToast('Solicitud aprobada y préstamo creado', 'success');
-      addNotification('Préstamo creado desde solicitud #' + req.id.slice(0, 4), 'success');
+        // Update local state
+        setDbData(p => ({
+          ...p,
+          requests: p.requests.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r),
+          loans: [...p.loans, { ...newLoan, schedule: newLoan.installments || schedule }]
+        }));
+        showToast('Solicitud aprobada y préstamo creado', 'success');
+        addNotification('Préstamo creado desde solicitud #' + req.id.slice(0, 4), 'success');
+      } catch (error) {
+        console.error('Error creating loan:', error);
+        showToast('Error al crear préstamo en servidor - guardado localmente', 'error');
+
+        // Fallback: save locally
+        const amount = parseFloat(req.amount);
+        const rate = parseFloat(req.rate);
+        const term = parseInt(req.term);
+        const frequency = req.frequency || 'Mensual';
+        const startDate = req.startDate || new Date().toISOString().split('T')[0];
+        const schedule = calculateSchedule(amount, rate, term, frequency, startDate);
+        const totalInterest = schedule.reduce((acc, item) => acc + item.interest, 0);
+
+        const newLoan = {
+          id: generateId(),
+          clientId: req.clientId,
+          amount, rate, term, frequency, startDate,
+          status: 'ACTIVE',
+          createdAt: new Date().toISOString(),
+          schedule, totalInterest, totalPaid: 0
+        };
+
+        setDbData(p => ({
+          ...p,
+          requests: p.requests.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r),
+          loans: [...p.loans, newLoan]
+        }));
+      }
     };
 
     const rejectRequest = (req) => {
@@ -628,25 +655,40 @@ function App() {
           setEditingClient(null);
           setClientCreatedCallback(null);
         }}
-        onSave={(clientData) => {
-          if (editingClient) {
-            // Update existing client
-            setDbData(p => ({
-              ...p,
-              clients: p.clients.map(c => c.id === editingClient.id ? { ...c, ...clientData } : c)
-            }));
-            showToast('Cliente actualizado', 'success');
-          } else {
-            // Add new client
-            const newClientId = generateId();
-            const newClient = { ...clientData, id: newClientId };
-            setDbData(p => ({ ...p, clients: [...p.clients, newClient] }));
-            showToast('Cliente creado', 'success');
+        onSave={async (clientData) => {
+          try {
+            if (editingClient) {
+              // Update existing client in DB and state
+              const updated = await clientService.update(editingClient.id, clientData);
+              setDbData(p => ({
+                ...p,
+                clients: p.clients.map(c => c.id === editingClient.id ? { ...c, ...updated } : c)
+              }));
+              showToast('Cliente actualizado', 'success');
+            } else {
+              // Create new client in DB
+              const newClient = await clientService.create(clientData);
+              setDbData(p => ({ ...p, clients: [...p.clients, newClient] }));
+              showToast('Cliente creado', 'success');
 
-            // Call callback if exists (from RequestsView)
-            if (clientCreatedCallback) {
-              clientCreatedCallback(newClientId);
-              setClientCreatedCallback(null);
+              // Call callback if exists (from RequestsView)
+              if (clientCreatedCallback) {
+                clientCreatedCallback(newClient.id);
+                setClientCreatedCallback(null);
+              }
+            }
+          } catch (error) {
+            console.error('Error saving client:', error);
+            showToast('Error al guardar cliente', 'error');
+            // Fallback: still update local state
+            if (!editingClient) {
+              const newClientId = generateId();
+              const newClient = { ...clientData, id: newClientId };
+              setDbData(p => ({ ...p, clients: [...p.clients, newClient] }));
+              if (clientCreatedCallback) {
+                clientCreatedCallback(newClientId);
+                setClientCreatedCallback(null);
+              }
             }
           }
           setClientModalOpen(false);
