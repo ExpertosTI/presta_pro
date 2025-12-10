@@ -18,6 +18,15 @@ api.interceptors.request.use((config) => {
     return config;
 }, (error) => Promise.reject(error));
 
+// Response interceptor to unwrap data
+api.interceptors.response.use(
+    (response) => response.data, // Unwrap response to return only data
+    (error) => {
+        console.error('API Error:', error?.response?.data || error.message);
+        return Promise.reject(error);
+    }
+);
+
 // Auth Services
 export const authService = {
     login: (credentials) => api.post('/auth/login', credentials),
@@ -26,28 +35,55 @@ export const authService = {
     verifyToken: () => api.get('/auth/verify'),
 };
 
-// Data Services
+// Data Services - now return data directly
 export const clientService = {
-    getAll: () => api.get('/clients'),
+    getAll: async () => {
+        try {
+            return await api.get('/clients');
+        } catch (e) {
+            console.error('clientService.getAll error:', e);
+            return [];
+        }
+    },
     create: (data) => api.post('/clients', data),
     update: (id, data) => api.put(`/clients/${id}`, data),
     delete: (id) => api.delete(`/clients/${id}`),
 };
 
 export const loanService = {
-    getAll: () => api.get('/loans'),
+    getAll: async () => {
+        try {
+            return await api.get('/loans');
+        } catch (e) {
+            console.error('loanService.getAll error:', e);
+            return [];
+        }
+    },
     create: (data) => api.post('/loans', data),
     update: (id, data) => api.put(`/loans/${id}`, data),
 };
 
 export const paymentService = {
-    getAll: () => api.get('/payments'),
+    getAll: async () => {
+        try {
+            return await api.get('/payments');
+        } catch (e) {
+            console.error('paymentService.getAll error:', e);
+            return [];
+        }
+    },
     create: (data) => api.post('/payments', data),
 };
 
 // Sync Service
 export const syncService = {
     syncData: (data) => api.post('/sync', data),
+    pull: async (type) => {
+        // Placeholder - returns empty array until backend implements this
+        console.warn(`syncService.pull('${type}') not implemented, returning empty array`);
+        return [];
+    }
 };
 
 export default api;
+
