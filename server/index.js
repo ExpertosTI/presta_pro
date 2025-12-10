@@ -53,14 +53,8 @@ const SMTP_FROM = process.env.SMTP_FROM || 'noreply@renace.tech';
 const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
 
 // ... (nodemailer setup logic unchanged)
+// NOTE: Routes are mounted AFTER express.json() middleware below
 
-// MOUNT ROUTES
-// Montar las nuevas rutas protegidas con authMiddleware
-app.use('/api/clients', authMiddleware, clientsRouter);
-app.use('/api/loans', authMiddleware, loansRouter);
-app.use('/api/payments', authMiddleware, paymentsRouter);
-app.use('/api/sync', authMiddleware, syncRouter);
-app.use('/api/subscriptions', authMiddleware, subscriptionsRouter);
 
 let mailer = null;
 if (SMTP_HOST) {
@@ -120,6 +114,13 @@ const registerLimiter = rateLimit({
 
 app.use(cors());
 app.use(express.json());
+
+// MOUNT ROUTES - MUST be after express.json() to parse req.body
+app.use('/api/clients', authMiddleware, clientsRouter);
+app.use('/api/loans', authMiddleware, loansRouter);
+app.use('/api/payments', authMiddleware, paymentsRouter);
+app.use('/api/sync', authMiddleware, syncRouter);
+app.use('/api/subscriptions', authMiddleware, subscriptionsRouter);
 
 // Configurar multer para upload de comprobantes
 const uploadsDir = path.join(__dirname, 'uploads');
