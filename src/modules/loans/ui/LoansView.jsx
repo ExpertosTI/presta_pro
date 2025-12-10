@@ -4,7 +4,7 @@ import Badge from '../../../shared/components/ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { calculateSchedule } from '../../../shared/utils/amortization';
 import { FileText, Sparkles, X, Printer, FileCheck } from 'lucide-react';
-import PaymentConfirmationModal from '../../../components/modals/PaymentConfirmationModal.jsx';
+import { PaymentConfirmationModal } from '../../payments';
 
 export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument }) {
   const [generatingContract, setGeneratingContract] = useState(false);

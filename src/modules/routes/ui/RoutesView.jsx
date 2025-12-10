@@ -3,7 +3,7 @@ import Card from '../../../shared/components/ui/Card';
 import { MapPin, CheckCircle, Printer } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import DigitalReceipt from '../../../components/DigitalReceipt';
-import PaymentConfirmationModal from '../../../components/modals/PaymentConfirmationModal';
+import { PaymentConfirmationModal } from '../../payments';
 
 export function RoutesView({
   loans,

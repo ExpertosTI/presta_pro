@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatCurrency, formatDate } from '../../shared/utils/formatters';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 
 export default function PaymentConfirmationModal({
     paymentToConfirm,
