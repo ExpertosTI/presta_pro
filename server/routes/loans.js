@@ -12,7 +12,15 @@ router.get('/', async (req, res) => {
             },
             orderBy: { createdAt: 'desc' }
         });
-        res.json(loans);
+
+        // Map installments to schedule for frontend compatibility
+        const loansWithSchedule = loans.map(loan => ({
+            ...loan,
+            schedule: loan.installments || [],
+            startDate: loan.startDate?.toISOString?.() || loan.startDate
+        }));
+
+        res.json(loansWithSchedule);
     } catch (error) {
         console.error('Error fetching loans:', error);
         res.status(500).json({ error: 'Error al obtener préstamos' });
@@ -67,7 +75,14 @@ router.post('/', async (req, res) => {
             }
         });
 
-        res.status(201).json(newLoan);
+        // Map for frontend compatibility
+        const responseData = {
+            ...newLoan,
+            schedule: newLoan.installments || [],
+            startDate: newLoan.startDate?.toISOString?.() || newLoan.startDate
+        };
+
+        res.status(201).json(responseData);
     } catch (error) {
         console.error('Error creating loan:', error);
         res.status(500).json({ error: 'Error al crear préstamo' });
@@ -122,7 +137,14 @@ router.put('/:id', async (req, res) => {
             include: { installments: true }
         });
 
-        res.json(finalLoan);
+        // Map for frontend compatibility
+        const responseData = {
+            ...finalLoan,
+            schedule: finalLoan?.installments || [],
+            startDate: finalLoan?.startDate?.toISOString?.() || finalLoan?.startDate
+        };
+
+        res.json(responseData);
     } catch (error) {
         console.error('Error updating loan:', error);
         res.status(500).json({ error: 'Error al actualizar préstamo' });
