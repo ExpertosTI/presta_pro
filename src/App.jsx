@@ -301,6 +301,9 @@ function App() {
     const addRequest = (req) => {
       const newReq = { ...req, id: generateId(), status: 'REVIEW', createdAt: new Date().toISOString() };
       setDbData(p => ({ ...p, requests: [...p.requests, newReq] }));
+      // Add notification for admin
+      const client = dbData.clients.find(c => c.id === req.clientId);
+      addNotification(`Nueva solicitud de ${client?.name || 'cliente'} por ${formatCurrency(req.amount)}`, 'info');
     };
 
     const approveRequest = (req) => {
@@ -632,16 +635,42 @@ function App() {
         onSave={(employeeData) => {
           if (editingEmployee) {
             // Update existing employee
-            setDbData(p => ({
-              ...p,
-              employees: p.employees.map(e => e.id === editingEmployee.id ? { ...e, ...employeeData } : e)
-            }));
+            setDbData(p => {
+              const updatedEmployees = p.employees.map(e => e.id === editingEmployee.id ? { ...e, ...employeeData } : e);
+              // If role changed to/from Cobrador, update collectors
+              let updatedCollectors = [...p.collectors];
+              const wasCollector = editingEmployee.role?.toLowerCase() === 'cobrador';
+              const isNowCollector = employeeData.role?.toLowerCase() === 'cobrador';
+
+              if (!wasCollector && isNowCollector) {
+                // Add to collectors
+                updatedCollectors.push({ id: editingEmployee.id, name: employeeData.name, phone: employeeData.phone || '' });
+              } else if (wasCollector && !isNowCollector) {
+                // Remove from collectors
+                updatedCollectors = updatedCollectors.filter(c => c.id !== editingEmployee.id);
+              } else if (isNowCollector) {
+                // Update collector info
+                updatedCollectors = updatedCollectors.map(c => c.id === editingEmployee.id ? { ...c, name: employeeData.name, phone: employeeData.phone || '' } : c);
+              }
+
+              return { ...p, employees: updatedEmployees, collectors: updatedCollectors };
+            });
             showToast('Empleado actualizado', 'success');
           } else {
             // Add new employee
             const newEmployee = { ...employeeData, id: generateId() };
-            setDbData(p => ({ ...p, employees: [...p.employees, newEmployee] }));
+            setDbData(p => {
+              const newState = { ...p, employees: [...p.employees, newEmployee] };
+              // If role is Cobrador, also add to collectors
+              if (employeeData.role?.toLowerCase() === 'cobrador') {
+                newState.collectors = [...p.collectors, { id: newEmployee.id, name: newEmployee.name, phone: newEmployee.phone || '' }];
+              }
+              return newState;
+            });
             showToast('Empleado creado', 'success');
+            if (employeeData.role?.toLowerCase() === 'cobrador') {
+              showToast('Agregado a cobradores automáticamente', 'info');
+            }
           }
           setEmployeeModalOpen(false);
           setEditingEmployee(null);
