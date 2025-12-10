@@ -83,7 +83,7 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                 </div>
 
                 {/* Body (This part will be captured) */}
-                <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900" ref={receiptRef}>
+                <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 thermal-receipt" ref={receiptRef}>
                     <div className="p-3 bg-white dark:bg-slate-900">
                         <div className="flex flex-col items-center mb-3">
                             {companyLogo ? (

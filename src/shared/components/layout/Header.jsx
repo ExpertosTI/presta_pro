@@ -19,9 +19,8 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
   return (
     <header className="h-16 glass z-20 sticky top-0 flex items-center justify-between px-6 transition-all print:hidden">
       <div className="md:hidden flex items-center gap-2">
-        <button onClick={() => setMobileMenuOpen(true)}><Menu className="text-slate-700 dark:text-slate-200" /></button>
         <img src={companyLogo || logoSmall} alt={companyName || "Presta Pro"} className="w-7 h-7 rounded-lg object-contain" />
-        <span className="hidden xs:inline font-bold text-slate-800 dark:text-slate-100 text-sm truncate max-w-[120px]">{companyName || "Presta Pro"}</span>
+        <span className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate max-w-[140px]">{companyName || "Presta Pro"}</span>
       </div>
       <h1 className="hidden md:block text-xl font-bold text-slate-800 dark:text-slate-100">{activeTitle}</h1>
       <div className="flex items-center gap-4 relative">

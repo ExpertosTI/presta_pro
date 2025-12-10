@@ -617,11 +617,12 @@ function App() {
           receipts={dbData.receipts}
           currentRouteLoanIds={dbData.routes || []}
           routeActive={dbData.routeActive || false}
-          toggleLoanInRoute={(loanId) => {
+          toggleLoanInRoute={(loanId, installmentId) => {
             setDbData(p => {
               const routes = p.routes || [];
-              const exists = routes.includes(loanId);
-              return { ...p, routes: exists ? routes.filter(id => id !== loanId) : [...routes, loanId] };
+              const routeKey = installmentId ? `${loanId}:${installmentId}` : loanId;
+              const exists = routes.includes(routeKey);
+              return { ...p, routes: exists ? routes.filter(id => id !== routeKey) : [...routes, routeKey] };
             });
           }}
           clearCurrentRoute={() => setDbData(p => ({ ...p, routes: [] }))}
@@ -652,7 +653,13 @@ function App() {
           }}
         />;
       case 'accounting':
-        return <AccountingView dbData={dbData} />;
+        return <AccountingView
+          loans={dbData.loans}
+          expenses={dbData.expenses}
+          receipts={dbData.receipts}
+          systemSettings={dbData.systemSettings}
+          routeClosings={dbData.routeClosings || []}
+        />;
       case 'documents':
         return <DocumentsView clients={dbData.clients} loans={dbData.loans} />;
       case 'calc':
