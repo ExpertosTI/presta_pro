@@ -1,5 +1,5 @@
 import React from 'react';
-import Card from '../shared/components/ui/Card';
+import Card from '../../../shared/components/ui/Card';
 
 const roleLabel = (role) => role || 'Empleado';
 

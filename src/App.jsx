@@ -42,7 +42,7 @@ import { calculateSchedule } from './shared/utils/amortization';
 import Sidebar from './shared/components/layout/Sidebar';
 import Header from './shared/components/layout/Header';
 import { ClientModal } from './modules/clients';
-import EmployeeModal from './components/modals/EmployeeModal';
+import { EmployeeModal } from './modules/employees';
 import PaymentTicket from './shared/components/ui/PaymentTicket';
 
 // Views (Lazy Loaded)
@@ -58,7 +58,7 @@ const ReportsView = React.lazy(() => import('./views/ReportsView'));
 const PricingView = React.lazy(() => import('./views/PricingView'));
 const SettingsView = React.lazy(() => import('./views/SettingsView'));
 const DocumentsView = React.lazy(() => import('./views/DocumentsView'));
-const HRView = React.lazy(() => import('./views/HRView'));
+const HRView = React.lazy(() => import('./modules/employees').then(module => ({ default: module.HRView })));
 const AccountingView = React.lazy(() => import('./views/AccountingView'));
 const AIView = React.lazy(() => import('./views/AIView')); // AI Helper View
 const CalculatorView = React.lazy(() => import('./views/CalculatorView'));

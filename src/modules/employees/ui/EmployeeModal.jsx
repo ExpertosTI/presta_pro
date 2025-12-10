@@ -64,7 +64,7 @@ export function EmployeeModal({ open, onClose, onSave, initialEmployee }) {
     if (file) {
       try {
         // Dynamic import to avoid issues if utils not loaded
-        const { fileToBase64, resizeImage } = await import('../../shared/utils/imageUtils.js');
+        const { fileToBase64, resizeImage } = await import('../../../shared/utils/imageUtils.js');
         const base64 = await fileToBase64(file);
         const resized = await resizeImage(base64, 300, 300);
         setForm(prev => ({ ...prev, photoUrl: resized }));
