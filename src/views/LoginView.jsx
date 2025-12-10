@@ -28,12 +28,12 @@ export function LoginView({ onLogin }) {
         setError('');
 
         try {
-            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
-            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            // Use relative URL - nginx proxies /api to backend in production
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: credentials.username, // usando username como email
+                    email: credentials.username,
                     password: credentials.password
                 })
             });
