@@ -48,7 +48,7 @@ export function ClientModal({ open, onClose, onSave, initialClient }) {
     const file = e.target.files[0];
     if (file) {
       try {
-        const { fileToBase64, resizeImage } = await import('../../shared/utils/imageUtils.js');
+        const { fileToBase64, resizeImage } = await import('../../../shared/utils/imageUtils.js');
         const base64 = await fileToBase64(file);
         const resized = await resizeImage(base64, 300, 300);
         setForm(prev => ({ ...prev, photoUrl: resized }));

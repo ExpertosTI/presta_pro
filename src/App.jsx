@@ -41,14 +41,14 @@ import { calculateSchedule } from './shared/utils/amortization';
 // Components
 import Sidebar from './shared/components/layout/Sidebar';
 import Header from './shared/components/layout/Header';
-import ClientModal from './components/modals/ClientModal';
+import { ClientModal } from './modules/clients';
 import EmployeeModal from './components/modals/EmployeeModal';
 import PaymentTicket from './components/PaymentTicket'; // Restored import
 
 // Views (Lazy Loaded)
 const DashboardView = React.lazy(() => import('./views/DashboardView'));
 const CuadreView = React.lazy(() => import('./views/CuadreView'));
-const ClientsView = React.lazy(() => import('./views/ClientsView'));
+const ClientsView = React.lazy(() => import('./modules/clients').then(module => ({ default: module.ClientsView })));
 const LoansView = React.lazy(() => import('./views/LoansView'));
 const ExpensesView = React.lazy(() => import('./views/ExpensesView'));
 const RequestsView = React.lazy(() => import('./views/RequestsView'));

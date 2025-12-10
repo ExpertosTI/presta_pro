@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import Card from '../shared/components/ui/Card';
-import { formatCurrency } from '../shared/utils/formatters';
+import Card from '../../../shared/components/ui/Card';
+import { formatCurrency } from '../../../shared/utils/formatters';
 
 const getStatusLabel = (status) => {
   const map = {
