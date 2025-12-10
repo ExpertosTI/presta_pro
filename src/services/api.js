@@ -1,31 +1,5 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-
-const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
-
-// Interceptor para agregar token
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-}, (error) => Promise.reject(error));
-
-// Response interceptor to unwrap data
-api.interceptors.response.use(
-    (response) => response.data, // Unwrap response to return only data
-    (error) => {
-        console.error('API Error:', error?.response?.data || error.message);
-        return Promise.reject(error);
-    }
-);
+import api from './axiosInstance';
+import { clientApi } from '../modules/clients/infrastructure/clientApi';
 
 // Auth Services
 export const authService = {
@@ -36,19 +10,7 @@ export const authService = {
 };
 
 // Data Services - now return data directly
-export const clientService = {
-    getAll: async () => {
-        try {
-            return await api.get('/clients');
-        } catch (e) {
-            console.error('clientService.getAll error:', e);
-            return [];
-        }
-    },
-    create: (data) => api.post('/clients', data),
-    update: (id, data) => api.put(`/clients/${id}`, data),
-    delete: (id) => api.delete(`/clients/${id}`),
-};
+export const clientService = clientApi;
 
 export const loanService = {
     getAll: async () => {
