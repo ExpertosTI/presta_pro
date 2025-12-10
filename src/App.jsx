@@ -310,6 +310,12 @@ function App() {
         date: serverReceipt?.date || new Date().toISOString(),
         loanAmount: loan?.amount,
         remainingBalance: (loan?.amount || 0) - ((loan?.totalPaid || 0) + paymentData.amount + paymentData.penaltyAmount),
+        // Add payment breakdown for ticket display
+        paymentBreakdown: installment ? [{
+          number: installment.number || paymentData.installmentNumber,
+          amount: paymentData.amount,
+          date: new Date().toISOString()
+        }] : [],
       };
 
       setDbData(prev => ({
@@ -529,6 +535,19 @@ function App() {
             }));
             showToast('Préstamo actualizado', 'success');
           }}
+          onCreateLoan={async (loanData) => {
+            try {
+              const newLoan = await loanService.create(loanData);
+              setDbData(p => ({
+                ...p,
+                loans: [...p.loans, { ...newLoan, schedule: newLoan.installments || [] }]
+              }));
+              showToast('Préstamo creado exitosamente', 'success');
+            } catch (e) {
+              console.error('Create loan error:', e);
+              showToast(e.message || 'Error al crear préstamo', 'error');
+            }
+          }}
           addClientDocument={handleAddClientDocument}
         />;
       case 'requests':
@@ -659,31 +678,31 @@ function App() {
           companyName={dbData.systemSettings?.companyName}
         >
           <MenuSection title="Principal">
-            <MenuItem id="dashboard" label="Dashboard" icon={LayoutDashboard} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="routes" label="Ruta de Cobros" icon={MapPin} activeTab={activeTab} onClick={setActiveTab} badge={dbData.loans.length > 0 ? "Activa" : null} />
-            <MenuItem id="cuadre" label="Cuadre de Caja" icon={Receipt} activeTab={activeTab} onClick={setActiveTab} />
+            <MenuItem id="dashboard" label="Dashboard" icon={LayoutDashboard} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="routes" label="Ruta de Cobros" icon={MapPin} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge={dbData.loans.length > 0 ? "Activa" : null} />
+            <MenuItem id="cuadre" label="Cuadre de Caja" icon={Receipt} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
           </MenuSection>
 
           <MenuSection title="Operaciones">
-            <MenuItem id="clients" label="Clientes" icon={Users} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="loans" label="Préstamos" icon={Receipt} activeTab={activeTab} onClick={setActiveTab} badge={activeLoansCount || null} />
-            <MenuItem id="requests" label="Solicitudes" icon={FileText} activeTab={activeTab} onClick={setActiveTab} badge={pendingRequestsCount || null} />
-            <MenuItem id="expenses" label="Gastos" icon={PieChart} activeTab={activeTab} onClick={setActiveTab} />
+            <MenuItem id="clients" label="Clientes" icon={Users} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="loans" label="Préstamos" icon={Receipt} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge={activeLoansCount || null} />
+            <MenuItem id="requests" label="Solicitudes" icon={FileText} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge={pendingRequestsCount || null} />
+            <MenuItem id="expenses" label="Gastos" icon={PieChart} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
           </MenuSection>
 
           <MenuSection title="Herramientas">
-            <MenuItem id="documents" label="Documentos" icon={FileDigit} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="calc" label="Calculadora" icon={Calculator} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="notes" label="Notas" icon={FileText} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="ai" label="Asistente IA" icon={BrainCircuit} activeTab={activeTab} onClick={setActiveTab} badge="New" />
+            <MenuItem id="documents" label="Documentos" icon={FileDigit} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="calc" label="Calculadora" icon={Calculator} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="notes" label="Notas" icon={FileText} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="ai" label="Asistente IA" icon={BrainCircuit} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge="New" />
           </MenuSection>
 
           <MenuSection title="Administración">
-            <MenuItem id="reports" label="Reportes" icon={PieChart} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="hr" label="RRHH" icon={UserCheck} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="accounting" label="Contabilidad" icon={Wallet} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="pricing" label="Planes y Precios" icon={CreditCard} activeTab={activeTab} onClick={setActiveTab} />
-            <MenuItem id="settings" label="Configuración" icon={Settings} activeTab={activeTab} onClick={setActiveTab} />
+            <MenuItem id="reports" label="Reportes" icon={PieChart} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="hr" label="RRHH" icon={UserCheck} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="accounting" label="Contabilidad" icon={Wallet} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="pricing" label="Planes y Precios" icon={CreditCard} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="settings" label="Configuración" icon={Settings} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
           </MenuSection>
         </Sidebar>
       </div>

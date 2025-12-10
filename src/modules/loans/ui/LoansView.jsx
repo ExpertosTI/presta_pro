@@ -3,10 +3,10 @@ import Card from '../../../shared/components/ui/Card.jsx';
 import Badge from '../../../shared/components/ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { calculateSchedule } from '../../../shared/utils/amortization';
-import { FileText, Sparkles, X, Printer, FileCheck } from 'lucide-react';
+import { FileText, Sparkles, X, Printer, FileCheck, Plus } from 'lucide-react';
 import { PaymentConfirmationModal } from '../../payments';
 
-export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument }) {
+export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan }) {
   const [generatingContract, setGeneratingContract] = useState(false);
   const [contractContent, setContractContent] = useState(null);
   const [showContractModal, setShowContractModal] = useState(false);
@@ -18,6 +18,11 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({ amount: '', rate: '', term: '', frequency: 'Mensual', startDate: '' });
   const [editError, setEditError] = useState('');
+
+  // Create Loan Modal
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
+  const [createError, setCreateError] = useState('');
 
   const selectedLoan = useMemo(() => loans.find(l => l.id === selectedLoanId), [loans, selectedLoanId]);
   const selectedClient = useMemo(() => {
@@ -261,7 +266,141 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
         </div>
       )}
 
-      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Préstamos y Cobros</h2>
+      {/* Create Loan Modal */}
+      {createModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Nuevo Préstamo</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+              Crea un préstamo directo para un cliente existente.
+            </p>
+            {createError && (
+              <p className="mb-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {createError}
+              </p>
+            )}
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!onCreateLoan) return;
+              const amount = parseFloat(createForm.amount || '0');
+              const rate = parseFloat(createForm.rate || '0');
+              const term = parseInt(createForm.term || '0', 10);
+              if (!createForm.clientId || !amount || !rate || !term) {
+                setCreateError('Completa todos los campos correctamente.');
+                return;
+              }
+              onCreateLoan({
+                clientId: createForm.clientId,
+                amount,
+                rate,
+                term,
+                frequency: createForm.frequency,
+                startDate: createForm.startDate,
+              });
+              setCreateModalOpen(false);
+              setCreateForm({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
+              setCreateError('');
+            }} className="space-y-3 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Cliente</label>
+                <select
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={createForm.clientId}
+                  onChange={(e) => setCreateForm({ ...createForm, clientId: e.target.value })}
+                >
+                  <option value="">Selecciona un cliente</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Monto</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    value={createForm.amount}
+                    onChange={(e) => setCreateForm({ ...createForm, amount: e.target.value })}
+                    placeholder="15000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    value={createForm.rate}
+                    onChange={(e) => setCreateForm({ ...createForm, rate: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Plazo (cuotas)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    value={createForm.term}
+                    onChange={(e) => setCreateForm({ ...createForm, term: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Frecuencia</label>
+                  <select
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    value={createForm.frequency}
+                    onChange={(e) => setCreateForm({ ...createForm, frequency: e.target.value })}
+                  >
+                    <option>Diario</option>
+                    <option>Semanal</option>
+                    <option>Quincenal</option>
+                    <option>Mensual</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Fecha inicio</label>
+                <input
+                  type="date"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={createForm.startDate}
+                  onChange={(e) => setCreateForm({ ...createForm, startDate: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                  onClick={() => { setCreateModalOpen(false); setCreateError(''); }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition-colors"
+                >
+                  Crear Préstamo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Préstamos y Cobros</h2>
+        {onCreateLoan && (
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2 transition-colors"
+          >
+            <Plus size={18} /> Nuevo Préstamo
+          </button>
+        )}
+      </div>
 
       <Card>
         <div className="overflow-x-auto">
