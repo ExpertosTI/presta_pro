@@ -18,10 +18,10 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
 
   return (
     <header className="h-16 glass z-20 sticky top-0 flex items-center justify-between px-6 transition-all print:hidden">
-      <div className="md:hidden flex items-center gap-3">
+      <div className="md:hidden flex items-center gap-2">
         <button onClick={() => setMobileMenuOpen(true)}><Menu className="text-slate-700 dark:text-slate-200" /></button>
         <img src={companyLogo || logoSmall} alt={companyName || "Presta Pro"} className="w-7 h-7 rounded-lg object-contain" />
-        <span className="font-bold text-slate-800 dark:text-slate-100">{companyName || "Presta Pro"}</span>
+        <span className="hidden xs:inline font-bold text-slate-800 dark:text-slate-100 text-sm truncate max-w-[120px]">{companyName || "Presta Pro"}</span>
       </div>
       <h1 className="hidden md:block text-xl font-bold text-slate-800 dark:text-slate-100">{activeTitle}</h1>
       <div className="flex items-center gap-4 relative">
@@ -48,7 +48,7 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 mt-2 w-80 glass rounded-xl overflow-hidden animate-fade-in z-50 shadow-2xl">
+            <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] glass rounded-xl overflow-hidden animate-fade-in z-50 shadow-2xl">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <h3 className="font-bold text-slate-800 dark:text-slate-100">Notificaciones</h3>
                 <button onClick={() => setNotifOpen(false)}>
