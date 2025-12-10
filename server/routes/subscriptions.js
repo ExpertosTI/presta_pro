@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'admin@renace.tech';
+const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
 const FROM_EMAIL = process.env.SMTP_FROM || '"PrestaPro" <noreply@renace.tech>';
 
 // Multer config for proof uploads
