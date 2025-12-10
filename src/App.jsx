@@ -52,7 +52,7 @@ const ClientsView = React.lazy(() => import('./modules/clients').then(module => 
 const LoansView = React.lazy(() => import('./modules/loans').then(module => ({ default: module.LoansView })));
 const ExpensesView = React.lazy(() => import('./views/ExpensesView'));
 const RequestsView = React.lazy(() => import('./views/RequestsView'));
-const RoutesView = React.lazy(() => import('./views/RoutesView'));
+const RoutesView = React.lazy(() => import('./modules/routes').then(module => ({ default: module.RoutesView })));
 const NotesView = React.lazy(() => import('./views/NotesView'));
 const ReportsView = React.lazy(() => import('./views/ReportsView'));
 const PricingView = React.lazy(() => import('./views/PricingView'));

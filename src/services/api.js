@@ -1,5 +1,6 @@
 import api from './axiosInstance';
 import { clientApi } from '../modules/clients/infrastructure/clientApi';
+import { loanApi } from '../modules/loans/infrastructure/loanApi';
 
 // Auth Services
 export const authService = {
@@ -11,19 +12,7 @@ export const authService = {
 
 // Data Services - now return data directly
 export const clientService = clientApi;
-
-export const loanService = {
-    getAll: async () => {
-        try {
-            return await api.get('/loans');
-        } catch (e) {
-            console.error('loanService.getAll error:', e);
-            return [];
-        }
-    },
-    create: (data) => api.post('/loans', data),
-    update: (id, data) => api.put(`/loans/${id}`, data),
-};
+export const loanService = loanApi;
 
 export const paymentService = {
     getAll: async () => {

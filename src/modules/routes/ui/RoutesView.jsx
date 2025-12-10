@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import Card from '../shared/components/ui/Card';
+import Card from '../../../shared/components/ui/Card';
 import { MapPin, CheckCircle, Printer } from 'lucide-react';
-import { formatCurrency, formatDate } from '../shared/utils/formatters';
-import DigitalReceipt from '../components/DigitalReceipt';
-import PaymentConfirmationModal from '../components/modals/PaymentConfirmationModal';
+import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
+import DigitalReceipt from '../../../components/DigitalReceipt';
+import PaymentConfirmationModal from '../../../components/modals/PaymentConfirmationModal';
 
 export function RoutesView({
   loans,
