@@ -31,7 +31,7 @@ import {
 } from 'recharts';
 
 // Services
-import { clientService, loanService, paymentService, syncService, settingsService } from './services/api';
+import { clientService, loanService, paymentService, syncService, settingsService, expenseService, collectorService } from './services/api';
 
 // Utilities
 import { generateId, generateSecurityToken } from './shared/utils/ids';
@@ -452,26 +452,58 @@ function App() {
       }
     };
 
-    const addExpense = (exp) => {
-      const newExp = { ...exp, id: generateId(), date: new Date().toISOString() };
-      setDbData(p => ({ ...p, expenses: [...p.expenses, newExp] }));
-      showToast('Gasto registrado', 'success');
+    const addExpense = async (exp) => {
+      try {
+        const newExp = await expenseService.create(exp);
+        setDbData(p => ({ ...p, expenses: [...p.expenses, newExp] }));
+        showToast('Gasto registrado', 'success');
+      } catch (e) {
+        console.error('addExpense error:', e);
+        // Fallback local
+        const localExp = { ...exp, id: generateId(), date: new Date().toISOString() };
+        setDbData(p => ({ ...p, expenses: [...p.expenses, localExp] }));
+        showToast('Gasto guardado localmente', 'warning');
+      }
     };
 
-    const addCollector = (c) => {
-      const newC = { ...c, id: generateId() };
-      setDbData(p => ({ ...p, collectors: [...p.collectors, newC] }));
+    const addCollector = async (c) => {
+      try {
+        const newC = await collectorService.create(c);
+        setDbData(p => ({ ...p, collectors: [...p.collectors, newC] }));
+        showToast('Cobrador agregado', 'success');
+      } catch (e) {
+        console.error('addCollector error:', e);
+        const localC = { ...c, id: generateId() };
+        setDbData(p => ({ ...p, collectors: [...p.collectors, localC] }));
+        showToast('Cobrador guardado localmente', 'warning');
+      }
     };
 
-    const updateCollector = (c) => {
-      setDbData(p => ({
-        ...p,
-        collectors: p.collectors.map(col => col.id === c.id ? { ...col, ...c } : col)
-      }));
+    const updateCollector = async (c) => {
+      try {
+        await collectorService.update(c.id, c);
+        setDbData(p => ({
+          ...p,
+          collectors: p.collectors.map(col => col.id === c.id ? { ...col, ...c } : col)
+        }));
+      } catch (e) {
+        console.error('updateCollector error:', e);
+        setDbData(p => ({
+          ...p,
+          collectors: p.collectors.map(col => col.id === c.id ? { ...col, ...c } : col)
+        }));
+      }
     };
 
-    const removeCollector = (id) => {
-      setDbData(p => ({ ...p, collectors: p.collectors.filter(c => c.id !== id) }));
+    const removeCollector = async (id) => {
+      try {
+        await collectorService.delete(id);
+        setDbData(p => ({ ...p, collectors: p.collectors.filter(c => c.id !== id) }));
+        showToast('Cobrador eliminado', 'success');
+      } catch (e) {
+        console.error('removeCollector error:', e);
+        setDbData(p => ({ ...p, collectors: p.collectors.filter(c => c.id !== id) }));
+      }
     };
 
     const assignCollectorToClient = (clientId, collectorId) => {
