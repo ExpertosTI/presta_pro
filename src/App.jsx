@@ -453,6 +453,18 @@ function App() {
   };
 
 
+  // If not authenticated, show login
+  if (!token) {
+    return (
+      <div className={theme === 'dark' ? 'dark' : ''}>
+        <LoginView
+          onLogin={(userData) => handleLogin(userData, userData.token)}
+          showToast={showToast}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-slate-900 overflow-hidden font-sans transition-colors duration-300">
 
@@ -469,12 +481,17 @@ function App() {
         <Sidebar
           activeTab={activeTab}
           setActiveTab={(t) => { setActiveTab(t); setSidebarOpen(false); }}
+          pendingRequestsCount={pendingRequestsCount}
+          activeLoansCount={activeLoansCount}
+          theme={theme}
+          toggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+          onLogout={handleLogout}
           companyName={dbData.systemSettings?.companyName}
         >
           <MenuSection title="Principal">
             <MenuItem id="dashboard" label="Dashboard" icon={LayoutDashboard} activeTab={activeTab} onClick={setActiveTab} />
             <MenuItem id="routes" label="Ruta de Cobros" icon={MapPin} activeTab={activeTab} onClick={setActiveTab} badge={dbData.loans.length > 0 ? "Activa" : null} />
-            <MenuItem id="cuadre" label="Cuadre Caja" icon={Wallet} activeTab={activeTab} onClick={setActiveTab} />
+            <MenuItem id="cuadre" label="Cuadre de Caja" icon={Receipt} activeTab={activeTab} onClick={setActiveTab} />
           </MenuSection>
 
           <MenuSection title="Operaciones">
