@@ -39,8 +39,8 @@ import { formatCurrency, formatDate, formatDateTime } from './shared/utils/forma
 import { calculateSchedule } from './shared/utils/amortization';
 
 // Components
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
+import Sidebar from './shared/components/layout/Sidebar';
+import Header from './shared/components/layout/Header';
 import ClientModal from './components/modals/ClientModal';
 import EmployeeModal from './components/modals/EmployeeModal';
 import PaymentTicket from './components/PaymentTicket'; // Restored import

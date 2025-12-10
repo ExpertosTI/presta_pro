@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import logoSmall from '../../../logo-small.svg';
+import logoSmall from '../../../../logo-small.svg';
 import { Bell, Menu, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, companyName, userName, onLogout, companyLogo, notifications = [], onClearNotifications }) {
