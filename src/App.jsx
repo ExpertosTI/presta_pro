@@ -386,15 +386,17 @@ function App() {
           loans={dbData.loans}
           clients={dbData.clients}
           registerPayment={registerPayment}
-          user={user}
-          showToast={showToast}
-          onCreateLoan={async (l) => {
-            try {
-              const newL = await loanService.create(l);
-              setDbData(p => ({ ...p, loans: [...p.loans, newL] }));
-            } catch (e) {
-              showToast('Error al crear préstamo', 'error');
-            }
+          selectedLoanId={null}
+          onSelectLoan={(id) => console.log('Selected loan:', id)}
+          onUpdateLoan={(loan) => {
+            setDbData(p => ({
+              ...p,
+              loans: p.loans.map(l => l.id === loan.id ? loan : l)
+            }));
+            showToast('Préstamo actualizado', 'success');
+          }}
+          addClientDocument={(clientId, doc) => {
+            console.log('Add document to client:', clientId, doc);
           }}
         />;
       case 'requests':
@@ -428,7 +430,18 @@ function App() {
       case 'reports':
         return <ReportsView loans={dbData.loans} expenses={dbData.expenses} />;
       case 'hr':
-        return <HRView employees={dbData.employees} />;
+        return <HRView
+          employees={dbData.employees}
+          onNewEmployee={() => {
+            const newEmp = { id: generateId(), name: 'Nuevo Empleado', role: 'Cobrador', phone: '' };
+            setDbData(p => ({ ...p, employees: [...p.employees, newEmp] }));
+            showToast('Empleado agregado', 'success');
+          }}
+          onEditEmployee={(emp) => {
+            console.log('Edit employee:', emp);
+            showToast('Función de editar próximamente', 'info');
+          }}
+        />;
       case 'accounting':
         return <AccountingView dbData={dbData} />;
       case 'documents':
