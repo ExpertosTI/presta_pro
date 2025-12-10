@@ -29,6 +29,11 @@ model Tenant {
   receipts   Receipt[]
   subscription Subscription?
   usages     Usage[]
+  expenses   Expense[]
+  notes      Note[]
+  loanRequests LoanRequest[]
+  employees  Employee[]
+  routeClosings RouteClosing[]
 }
 
 model User {
@@ -54,6 +59,7 @@ model Collector {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   clients   Client[]
+  routeClosings RouteClosing[]
 }
 
 model Client {
@@ -74,6 +80,8 @@ model Client {
   updatedAt   DateTime   @updatedAt
   loans       Loan[]
   receipts    Receipt[]
+  loanRequests LoanRequest[]
+  documents   ClientDocument[]
 }
 
 model Loan {
@@ -286,4 +294,103 @@ model AuditLog {
   @@index([tenantId])
   @@index([action])
   @@index([createdAt])
+}
+
+// ============================================
+// ADDITIONAL BUSINESS MODELS
+// ============================================
+
+model Expense {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  amount      Float
+  description String?
+  category    String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([tenantId])
+  @@index([date])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+  
+  @@index([tenantId])
+}
+
+model LoanRequest {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id])
+  amount    Float
+  rate      Float
+  term      Int
+  frequency String
+  startDate DateTime?
+  status    String   @default("REVIEW") // REVIEW, APPROVED, REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([tenantId])
+  @@index([status])
+}
+
+model Employee {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  email     String?
+  position  String?
+  salary    Float?
+  hireDate  DateTime?
+  photoUrl  String?
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([tenantId])
+}
+
+model RouteClosing {
+  id            String     @id @default(cuid())
+  tenantId      String
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  collectorId   String?
+  collector     Collector? @relation(fields: [collectorId], references: [id])
+  date          DateTime
+  totalAmount   Float
+  receiptsCount Int
+  notes         String?
+  createdAt     DateTime   @default(now())
+  
+  @@index([tenantId])
+  @@index([date])
+}
+
+model ClientDocument {
+  id        String   @id @default(cuid())
+  tenantId  String
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type      String   // 'UPLOAD' | 'TEMPLATE'
+  title     String
+  content   String?  @db.Text
+  fileName  String?
+  mimeType  String?
+  dataUrl   String?  @db.Text
+  createdAt DateTime @default(now())
+  
+  @@index([clientId])
+  @@index([tenantId])
 }
