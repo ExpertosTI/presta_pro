@@ -397,6 +397,10 @@ function App() {
 
     const approveRequest = async (req) => {
       try {
+        // Preguntar por gastos de cierre
+        const closingCostsInput = window.prompt('¿Desea agregar gastos de cierre? (Ingrese monto o deje vacío para 0):', '0');
+        const closingCosts = parseFloat(closingCostsInput) || 0;
+
         // Create loan from request with calculated schedule
         const amount = parseFloat(req.amount);
         const rate = parseFloat(req.rate);
@@ -404,14 +408,16 @@ function App() {
         const frequency = req.frequency || 'Mensual';
         const startDate = req.startDate || new Date().toISOString().split('T')[0];
 
-        // Calculate amortization schedule
-        const schedule = calculateSchedule(amount, rate, term, frequency, startDate);
+        // Calculate amortization schedule (amount + closingCosts for schedule)
+        const totalForSchedule = amount + closingCosts;
+        const schedule = calculateSchedule(totalForSchedule, rate, term, frequency, startDate);
         const totalInterest = schedule.reduce((acc, item) => acc + item.interest, 0);
 
         // Create loan in database
         const newLoan = await loanService.create({
           clientId: req.clientId,
           amount,
+          closingCosts,
           rate,
           term,
           frequency,
