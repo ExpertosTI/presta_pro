@@ -231,13 +231,14 @@ function App() {
     if (!token) return;
     setLoading(true);
     try {
-      // Parallel fetch for speed
-      const [clients, loans, payments, expensesRes, employeesRes, settingsRes] = await Promise.all([
+      // Parallel fetch for speed - ALL services now active
+      const [clients, loans, payments, expensesRes, employeesRes, collectorsRes, settingsRes] = await Promise.all([
         clientService.getAll(),
         loanService.getAll(),
         paymentService.getAll(),
-        Promise.resolve([]), // Expenses placeholder
-        Promise.resolve([]), // Employees placeholder
+        expenseService.getAll(),
+        employeeService.getAll(),
+        collectorService.getAll(),
         settingsService.get(),
       ]);
 
@@ -251,6 +252,7 @@ function App() {
         receipts: Array.isArray(payments) ? payments : [],
         expenses: Array.isArray(expensesRes) ? expensesRes : [],
         employees: Array.isArray(employeesRes) ? employeesRes : [],
+        collectors: Array.isArray(collectorsRes) ? collectorsRes : [],
         systemSettings: {
           ...prev.systemSettings,
           ...settings
@@ -899,45 +901,56 @@ function App() {
           setEmployeeModalOpen(false);
           setEditingEmployee(null);
         }}
-        onSave={(employeeData) => {
-          if (editingEmployee) {
-            // Update existing employee
-            setDbData(p => {
-              const updatedEmployees = p.employees.map(e => e.id === editingEmployee.id ? { ...e, ...employeeData } : e);
-              // If role changed to/from Cobrador, update collectors
-              let updatedCollectors = [...p.collectors];
-              const wasCollector = editingEmployee.role?.toLowerCase() === 'cobrador';
-              const isNowCollector = employeeData.role?.toLowerCase() === 'cobrador';
+        onSave={async (employeeData) => {
+          try {
+            if (editingEmployee) {
+              // Update existing employee via API
+              const updated = await employeeService.update(editingEmployee.id, employeeData);
+              setDbData(p => {
+                const updatedEmployees = p.employees.map(e => e.id === editingEmployee.id ? { ...e, ...updated } : e);
+                // If role changed to/from Cobrador, sync collectors
+                let updatedCollectors = [...p.collectors];
+                const wasCollector = editingEmployee.role?.toLowerCase() === 'cobrador';
+                const isNowCollector = employeeData.role?.toLowerCase() === 'cobrador';
 
-              if (!wasCollector && isNowCollector) {
-                // Add to collectors
-                updatedCollectors.push({ id: editingEmployee.id, name: employeeData.name, phone: employeeData.phone || '' });
-              } else if (wasCollector && !isNowCollector) {
-                // Remove from collectors
-                updatedCollectors = updatedCollectors.filter(c => c.id !== editingEmployee.id);
-              } else if (isNowCollector) {
-                // Update collector info
-                updatedCollectors = updatedCollectors.map(c => c.id === editingEmployee.id ? { ...c, name: employeeData.name, phone: employeeData.phone || '' } : c);
-              }
+                if (!wasCollector && isNowCollector) {
+                  // Add to collectors via API
+                  collectorService.create({ name: updated.name, phone: updated.phone || '' });
+                  updatedCollectors.push({ id: updated.id, name: updated.name, phone: updated.phone || '' });
+                } else if (wasCollector && !isNowCollector) {
+                  // Remove from collectors
+                  const collector = p.collectors.find(c => c.name === editingEmployee.name);
+                  if (collector) collectorService.delete(collector.id);
+                  updatedCollectors = updatedCollectors.filter(c => c.name !== editingEmployee.name);
+                } else if (isNowCollector) {
+                  // Update collector info
+                  updatedCollectors = updatedCollectors.map(c => c.name === editingEmployee.name ? { ...c, name: updated.name, phone: updated.phone || '' } : c);
+                }
 
-              return { ...p, employees: updatedEmployees, collectors: updatedCollectors };
-            });
-            showToast('Empleado actualizado', 'success');
-          } else {
-            // Add new employee
-            const newEmployee = { ...employeeData, id: generateId() };
-            setDbData(p => {
-              const newState = { ...p, employees: [...p.employees, newEmployee] };
-              // If role is Cobrador, also add to collectors
+                return { ...p, employees: updatedEmployees, collectors: updatedCollectors };
+              });
+              showToast('Empleado actualizado', 'success');
+            } else {
+              // Create new employee via API
+              const newEmployee = await employeeService.create(employeeData);
+              setDbData(p => {
+                const newState = { ...p, employees: [...p.employees, newEmployee] };
+                // If role is Cobrador, also add to collectors via API
+                if (employeeData.role?.toLowerCase() === 'cobrador') {
+                  collectorService.create({ name: newEmployee.name, phone: newEmployee.phone || '' }).then(newCollector => {
+                    setDbData(prev => ({ ...prev, collectors: [...prev.collectors, newCollector] }));
+                  });
+                }
+                return newState;
+              });
+              showToast('Empleado creado', 'success');
               if (employeeData.role?.toLowerCase() === 'cobrador') {
-                newState.collectors = [...p.collectors, { id: newEmployee.id, name: newEmployee.name, phone: newEmployee.phone || '' }];
+                showToast('Agregado a cobradores automáticamente', 'info');
               }
-              return newState;
-            });
-            showToast('Empleado creado', 'success');
-            if (employeeData.role?.toLowerCase() === 'cobrador') {
-              showToast('Agregado a cobradores automáticamente', 'info');
             }
+          } catch (error) {
+            console.error('Error saving employee:', error);
+            showToast('Error al guardar empleado', 'error');
           }
           setEmployeeModalOpen(false);
           setEditingEmployee(null);
