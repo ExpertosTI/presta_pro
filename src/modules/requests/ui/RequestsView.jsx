@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency } from '../../../shared/utils/formatters';
+import { X } from 'lucide-react';
 
 export function RequestsView({ requests, clients, addRequest, approveRequest, rejectRequest, onNewClient }) {
   const [form, setForm] = useState({
@@ -11,6 +12,23 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
     frequency: 'Mensual',
     startDate: new Date().toISOString().split('T')[0],
   });
+
+  // Modal para gastos de cierre
+  const [approvalModal, setApprovalModal] = useState(null);
+  const [closingCostsInput, setClosingCostsInput] = useState('0');
+
+  const handleApproveClick = (req) => {
+    setApprovalModal(req);
+    setClosingCostsInput('0');
+  };
+
+  const handleConfirmApproval = () => {
+    if (approvalModal) {
+      approveRequest(approvalModal, parseFloat(closingCostsInput) || 0);
+      setApprovalModal(null);
+      setClosingCostsInput('0');
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -63,7 +81,7 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => approveRequest(req)}
+                    onClick={() => handleApproveClick(req)}
                     className="flex-1 bg-teal-600 text-white py-1.5 rounded-lg text-sm font-bold hover:bg-teal-500 hover:shadow-lg hover:shadow-teal-900/20 transition-all"
                   >
                     Aprobar
@@ -187,6 +205,70 @@ export function RequestsView({ requests, clients, addRequest, approveRequest, re
           </Card>
         </div>
       </div>
+
+      {/* Modal de Gastos de Cierre */}
+      {approvalModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+            <div className="bg-gradient-to-r from-teal-500 to-emerald-600 p-4 text-white text-center relative">
+              <button
+                onClick={() => setApprovalModal(null)}
+                className="absolute top-3 right-3 p-1.5 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+              <h3 className="text-lg font-bold">Aprobar Solicitud</h3>
+              <p className="text-sm text-white/80">{clients.find(c => c.id === approvalModal.clientId)?.name}</p>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div className="bg-slate-100 dark:bg-slate-700/50 rounded-lg p-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400">Monto del préstamo</p>
+                <p className="text-xl font-bold text-slate-800 dark:text-slate-200">{formatCurrency(approvalModal.amount)}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Gastos de Cierre (opcional)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={closingCostsInput}
+                  onChange={(e) => setClosingCostsInput(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-teal-500 outline-none text-lg font-mono"
+                />
+                <p className="text-xs text-slate-500 mt-1">Se sumará al capital para el cálculo de cuotas</p>
+              </div>
+
+              {parseFloat(closingCostsInput) > 0 && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3 text-center">
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                    Total a financiar: <strong>{formatCurrency(parseFloat(approvalModal.amount) + parseFloat(closingCostsInput))}</strong>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 pt-0 flex gap-3">
+              <button
+                onClick={() => setApprovalModal(null)}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmApproval}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-teal-600 text-white hover:bg-teal-500"
+              >
+                Confirmar Aprobación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

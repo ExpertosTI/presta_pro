@@ -135,6 +135,7 @@ function App() {
       employees: [],
       collectors: [],
       routes: [],
+      clientDocuments: {},
       goals: { monthly: 500000, daily: 15000 },
       systemSettings: {
         companyName: parsedSettings.companyName || 'Presta Pro',
@@ -395,12 +396,8 @@ function App() {
       addNotification(`Nueva solicitud de ${client?.name || 'cliente'} por ${formatCurrency(req.amount)}`, 'info');
     };
 
-    const approveRequest = async (req) => {
+    const approveRequest = async (req, closingCosts = 0) => {
       try {
-        // Preguntar por gastos de cierre
-        const closingCostsInput = window.prompt('¿Desea agregar gastos de cierre? (Ingrese monto o deje vacío para 0):', '0');
-        const closingCosts = parseFloat(closingCostsInput) || 0;
-
         // Create loan from request with calculated schedule
         const amount = parseFloat(req.amount);
         const rate = parseFloat(req.rate);
@@ -709,7 +706,15 @@ function App() {
           routeClosings={dbData.routeClosings || []}
         />;
       case 'documents':
-        return <DocumentsView clients={dbData.clients} loans={dbData.loans} />;
+        return <DocumentsView
+          clients={dbData.clients}
+          loans={dbData.loans}
+          companyName={dbData.systemSettings?.companyName}
+          selectedClientId={selectedClientId}
+          onSelectClient={setSelectedClientId}
+          clientDocuments={dbData.clientDocuments || {}}
+          addClientDocument={handleAddClientDocument}
+        />;
       case 'calc':
         return <CalculatorView />;
       case 'ai':

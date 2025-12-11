@@ -87,7 +87,8 @@ export function RoutesView({
         const d = new Date(r.date);
         if (d >= startOfToday && d < endOfToday) {
           const amount = parseFloat(r.amount || 0) || 0;
-          collectorTodayTotal += amount;
+          const penalty = parseFloat(r.penalty || 0) || 0;
+          collectorTodayTotal += (amount + penalty);
           collectorTodayCount += 1;
         }
       });
