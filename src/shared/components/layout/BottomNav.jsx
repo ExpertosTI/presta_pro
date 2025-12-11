@@ -17,14 +17,12 @@ export function BottomNav({ activeTab, setActiveTab, setMobileMenuOpen, items })
                 setMobileMenuOpen(false);
               }
             }}
-            className={`flex flex-col items-center text-[10px] font-medium ${
-              isActive ? 'text-blue-600' : 'text-slate-400'
-            }`}
+            className={`flex flex-col items-center text-[10px] font-medium ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
+              }`}
           >
             <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center mb-1 ${
-                isActive ? 'bg-blue-50' : 'bg-slate-100'
-              }`}
+              className={`w-9 h-9 rounded-full flex items-center justify-center mb-1 ${isActive ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-slate-100 dark:bg-slate-800'
+                }`}
             >
               <Icon size={18} />
             </div>

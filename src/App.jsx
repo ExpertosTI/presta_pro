@@ -243,30 +243,18 @@ function App() {
 
       const settings = settingsRes || { companyName: 'Presta Pro' };
 
-      setDbData(prev => ({
-        ...prev,
-        clients: clients || [],
-        loans: loans || [],
-        receipts: payments || [],
-        expenses: expensesRes || [],
-        employees: employeesRes || [],
-        systemSettings: {
-          ...prev.systemSettings,
-          ...settings
-        }
-      }));
-
-      // For now, let's try to load what we can.
-      // If paymentService.getAll returns receipts, good.
-
-      // We might need to fetch 'everything' via a sync endpoint if implemented.
-      // But standard CRUD is safer for now.
-
+      // Consolidated single setDbData call to avoid double render and data loss
       setDbData(prev => ({
         ...prev,
         clients: Array.isArray(clients) ? clients : [],
         loans: Array.isArray(loans) ? loans : [],
         receipts: Array.isArray(payments) ? payments : [],
+        expenses: Array.isArray(expensesRes) ? expensesRes : [],
+        employees: Array.isArray(employeesRes) ? employeesRes : [],
+        systemSettings: {
+          ...prev.systemSettings,
+          ...settings
+        }
       }));
 
     } catch (err) {

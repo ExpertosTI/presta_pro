@@ -11,10 +11,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
   const [contractContent, setContractContent] = useState(null);
   const [showContractModal, setShowContractModal] = useState(false);
   const [paymentToConfirm, setPaymentToConfirm] = useState(null);
-  const [showPenaltyInput, setShowPenaltyInput] = useState(false);
-  const [penaltyAmount, setPenaltyAmount] = useState(0);
   const [penaltyAmountInput, setPenaltyAmountInput] = useState('');
-  const [customPaymentAmount, setCustomPaymentAmount] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({ amount: '', rate: '', term: '', frequency: 'Mensual', startDate: '' });
   const [editError, setEditError] = useState('');
