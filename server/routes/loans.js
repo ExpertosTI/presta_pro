@@ -192,8 +192,12 @@ router.post('/', async (req, res) => {
 
         res.status(201).json(mapLoanToResponse(newLoan));
     } catch (error) {
-        console.error('Error creating loan:', error);
-        res.status(500).json({ error: 'Error al crear préstamo' });
+        console.error('Error creating loan:', error.message);
+        console.error('Error details:', error.code, error.meta);
+        res.status(500).json({
+            error: 'Error al crear préstamo',
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+        });
     }
 });
 
