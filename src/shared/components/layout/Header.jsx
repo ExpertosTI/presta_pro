@@ -47,39 +47,46 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] glass rounded-xl overflow-hidden animate-fade-in z-50 shadow-2xl">
-              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                <h3 className="font-bold text-slate-800 dark:text-slate-100">Notificaciones</h3>
-                <button onClick={() => setNotifOpen(false)}>
-                  <X size={16} className="text-slate-400 hover:text-slate-600" />
-                </button>
-              </div>
-              <div className="max-h-64 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-slate-400">No hay notificaciones</p>
-                ) : (
-                  notifications.slice(0, 10).map((n) => (
-                    <div key={n.id} className={`px-4 py-3 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!n.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
-                      <div className="flex gap-2 items-start">
-                        {getNotifIcon(n.type)}
-                        <div className="flex-1">
-                          <p className="text-sm text-slate-700 dark:text-slate-200">{n.text}</p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">{new Date(n.date).toLocaleString('es-DO')}</p>
+            <>
+              {/* Overlay to close when clicking outside */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setNotifOpen(false)}
+              />
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] glass rounded-xl overflow-hidden animate-fade-in z-50 shadow-2xl">
+                <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100">Notificaciones</h3>
+                  <button onClick={() => setNotifOpen(false)}>
+                    <X size={16} className="text-slate-400 hover:text-slate-600" />
+                  </button>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="px-4 py-6 text-center text-sm text-slate-400">No hay notificaciones</p>
+                  ) : (
+                    notifications.slice(0, 10).map((n) => (
+                      <div key={n.id} className={`px-4 py-3 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${!n.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                        <div className="flex gap-2 items-start">
+                          {getNotifIcon(n.type)}
+                          <div className="flex-1">
+                            <p className="text-sm text-slate-700 dark:text-slate-200">{n.text}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{new Date(n.date).toLocaleString('es-DO')}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    ))
+                  )}
+                </div>
+                {notifications.length > 0 && onClearNotifications && (
+                  <button
+                    onClick={() => { onClearNotifications(); setNotifOpen(false); }}
+                    className="w-full px-4 py-2 text-sm text-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-medium"
+                  >
+                    Limpiar todas
+                  </button>
                 )}
               </div>
-              {notifications.length > 0 && onClearNotifications && (
-                <button
-                  onClick={() => { onClearNotifications(); setNotifOpen(false); }}
-                  className="w-full px-4 py-2 text-sm text-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-medium"
-                >
-                  Limpiar todas
-                </button>
-              )}
-            </div>
+            </>
           )}
         </div>
 

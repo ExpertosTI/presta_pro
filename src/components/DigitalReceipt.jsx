@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { X, CheckCircle, Share2, Printer } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '../shared/utils/formatters';
+import { printThermalReceipt } from '../services/thermalPrinter';
 
 const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, penaltyAmount, companyLogo }) => {
     const receiptRef = useRef(null);
@@ -195,9 +196,11 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                     </button>
 
                     <button
-                        onClick={onPrint}
+                        onClick={() => {
+                            printThermalReceipt(receipt, { companyName, companyLogo });
+                        }}
                         className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 p-3 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                        title="Imprimir Ticket"
+                        title="Imprimir Ticket 80mm"
                     >
                         <Printer size={20} />
                     </button>
