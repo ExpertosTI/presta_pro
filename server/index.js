@@ -65,6 +65,8 @@ const expensesRouter = require('./routes/expenses');
 const collectorsRouter = require('./routes/collectors');
 const employeesRouter = require('./routes/employees');
 const notesRouter = require('./routes/notes');
+const notificationsRouter = require('./routes/notifications');
+const adminRouter = require('./routes/admin');
 
 
 // Importar middleware de autenticación
@@ -232,6 +234,11 @@ app.use('/api/expenses', authMiddleware, expensesRouter);
 app.use('/api/collectors', authMiddleware, collectorsRouter);
 app.use('/api/employees', authMiddleware, employeesRouter);
 app.use('/api/notes', authMiddleware, notesRouter);
+app.use('/api/notifications', authMiddleware, notificationsRouter);
+app.use('/api/admin', authMiddleware, adminRouter);
+
+// Public endpoint for collector login (no auth required)
+app.post('/api/collectors/login', collectorsRouter);
 
 // Configurar multer para upload de comprobantes
 const uploadsDir = path.join(__dirname, 'uploads');

@@ -22,6 +22,8 @@ model Tenant {
   verificationExpiresAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  // Relaciones existentes
   users     User[]
   collectors Collector[]
   clients    Client[]
@@ -35,6 +37,18 @@ model Tenant {
   employees  Employee[]
   routeClosings RouteClosing[]
   settings   Json?
+  
+  // NUEVAS relaciones para módulos
+  notifications     Notification[]
+  emailPreference   EmailPreference?
+  scheduledReports  ScheduledReport[]
+  
+  // Campos de administración
+  suspendedAt    DateTime?
+  suspendedBy    String?
+  suspendReason  String?
+  adminNotes     String?    // Notas del admin
+  tags           String[]   // Tags para filtrar
 }
 
 model User {
@@ -55,12 +69,27 @@ model Collector {
   id        String   @id @default(cuid())
   name      String
   phone     String?
+  photoUrl  String?
+  
+  // Autenticación
+  email        String?
+  username     String?
+  passwordHash String?
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  
+  // Permisos (JSON con flags)
+  permissions  Json      @default("{}")
+  
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   tenantId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   clients   Client[]
   routeClosings RouteClosing[]
+  activities    CollectorActivity[]
+  
+  @@unique([tenantId, username])
 }
 
 model Client {
@@ -396,3 +425,151 @@ model ClientDocument {
   @@index([clientId])
   @@index([tenantId])
 }
+
+// ============================================
+// NOTIFICATION & EMAIL SYSTEM
+// ============================================
+
+model Notification {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId      String?  // null = para todos los usuarios del tenant
+  type        String   // PAYMENT_DUE, PAYMENT_RECEIVED, REPORT, SYSTEM, SUBSCRIPTION
+  title       String
+  message     String
+  read        Boolean  @default(false)
+  actionUrl   String?  // URL a donde enviar al hacer click
+  data        Json?    // Metadata adicional
+  createdAt   DateTime @default(now())
+  
+  @@index([tenantId, read])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model EmailPreference {
+  id               String   @id @default(cuid())
+  tenantId         String   @unique
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // Reportes
+  dailyReport      Boolean  @default(true)
+  weeklyReport     Boolean  @default(true)
+  monthlyReport    Boolean  @default(true)
+  reportHour       Int      @default(8)   // Hora del día para enviar (0-23)
+  reportEmail      String?  // Email alternativo para reportes
+  
+  // Alertas
+  paymentReminders Boolean  @default(true)
+  overdueAlerts    Boolean  @default(true)
+  subscriptionAlerts Boolean @default(true)
+  
+  // Configuración
+  reminderDaysBefore Int     @default(3)  // Días antes de vencimiento para recordar
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model ScheduledReport {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type        String   // DAILY, WEEKLY, MONTHLY
+  lastSentAt  DateTime?
+  nextRunAt   DateTime
+  status      String   @default("ACTIVE") // ACTIVE, PAUSED, ERROR
+  errorMessage String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([nextRunAt, status])
+  @@index([tenantId])
+}
+
+// ============================================
+// COLLECTOR ACTIVITY TRACKING
+// ============================================
+
+model CollectorActivity {
+  id           String    @id @default(cuid())
+  collectorId  String
+  collector    Collector @relation(fields: [collectorId], references: [id], onDelete: Cascade)
+  tenantId     String
+  
+  action       String    // LOGIN, LOGOUT, PAYMENT_REGISTERED, CLIENT_VISITED, ROUTE_STARTED, ROUTE_FINISHED
+  clientId     String?
+  loanId       String?
+  receiptId    String?
+  details      Json?     // Detalles adicionales
+  
+  // Tracking
+  ipAddress    String?
+  deviceInfo   String?
+  location     Json?     // { lat, lng, accuracy }
+  
+  createdAt    DateTime  @default(now())
+  
+  @@index([collectorId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([action])
+}
+
+// ============================================
+// ADMIN PANEL & AUDIT
+// ============================================
+
+model AdminLog {
+  id          String   @id @default(cuid())
+  adminId     String   // ID del admin que realizó la acción
+  adminEmail  String   // Email para referencia
+  
+  action      String   // VERIFY_PAYMENT, REJECT_PAYMENT, SUSPEND_TENANT, ACTIVATE_TENANT, UPDATE_PLAN, etc.
+  targetType  String   // TENANT, PAYMENT, USER, SUBSCRIPTION
+  targetId    String
+  
+  // Detalles
+  previousValue Json?   // Valor antes del cambio
+  newValue      Json?   // Valor después del cambio
+  reason        String? // Razón del cambio (especialmente para rechazos/suspensiones)
+  
+  // Tracking
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================
+// EMAIL TEMPLATES (Dynamic)
+// ============================================
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String?  // null = template global/sistema
+  
+  slug        String   // payment-confirmation, payment-reminder, etc.
+  name        String   // Nombre descriptivo
+  subject     String   // Asunto del email
+  htmlContent String   @db.Text  // HTML template
+  textContent String?  @db.Text  // Versión texto plano
+  
+  // Variables disponibles
+  variables   Json?    // Lista de variables que acepta el template
+  
+  isActive    Boolean  @default(true)
+  isSystem    Boolean  @default(false)  // Templates del sistema no editables
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([tenantId, slug])
+  @@index([slug])
+}
+
