@@ -1,27 +1,91 @@
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me';
 
+// Track failed auth attempts (simple in-memory, use Redis in production for multi-instance)
+const failedAttempts = new Map();
+const MAX_FAILED_ATTEMPTS = 10;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+const cleanupFailedAttempts = () => {
+    const now = Date.now();
+    for (const [key, data] of failedAttempts.entries()) {
+        if (now - data.firstAttempt > LOCKOUT_DURATION_MS) {
+            failedAttempts.delete(key);
+        }
+    }
+};
+
+// Cleanup every 5 minutes
+setInterval(cleanupFailedAttempts, 5 * 60 * 1000);
+
 const authMiddleware = (req, res, next) => {
+    const clientIP = req.ip || req.connection?.remoteAddress || 'unknown';
     const authHeader = req.headers.authorization;
+
+    // Check if IP is locked out
+    const lockoutData = failedAttempts.get(clientIP);
+    if (lockoutData && lockoutData.count >= MAX_FAILED_ATTEMPTS) {
+        const remainingLockout = LOCKOUT_DURATION_MS - (Date.now() - lockoutData.firstAttempt);
+        if (remainingLockout > 0) {
+            console.warn(`🔒 AUTH_LOCKOUT: IP ${clientIP} is locked out for ${Math.ceil(remainingLockout / 1000)}s`);
+            return res.status(429).json({
+                error: 'Demasiados intentos fallidos. Intenta más tarde.',
+                retryAfter: Math.ceil(remainingLockout / 1000)
+            });
+        }
+        // Lockout expired, reset
+        failedAttempts.delete(clientIP);
+    }
 
     if (!authHeader) {
         return res.status(401).json({ error: 'Token de autenticación no proporcionado' });
     }
 
-    const token = authHeader.split(' ')[1]; // Bearer <token>
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+        return res.status(401).json({ error: 'Formato de token inválido. Use: Bearer <token>' });
+    }
 
-    if (!token) {
-        return res.status(401).json({ error: 'Formato de token inválido' });
+    const token = parts[1];
+
+    // Basic token structure validation (JWT has 3 parts separated by dots)
+    if (!token || token.split('.').length !== 3) {
+        console.warn(`🚨 AUTH_INVALID_TOKEN_STRUCTURE: IP ${clientIP}, Path: ${req.path}`);
+        return res.status(401).json({ error: 'Estructura de token inválida' });
     }
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
+
+        // Validate required fields in token
+        if (!decoded.userId || !decoded.tenantId) {
+            console.error(`🚨 AUTH_MISSING_CLAIMS: Token missing userId or tenantId. IP: ${clientIP}`);
+            return res.status(403).json({ error: 'Token con datos incompletos. Por favor inicie sesión nuevamente.' });
+        }
+
         req.user = decoded; // { userId, tenantId, role, ... }
+        req.tenantId = decoded.tenantId; // Explicitly set for routes using req.tenantId
+
+        // Reset failed attempts on successful auth
+        failedAttempts.delete(clientIP);
+
         next();
     } catch (error) {
-        console.error('JWT Verification Error:', error.message);
-        return res.status(403).json({ error: 'Token inválido o expirado' });
+        // Track failed attempt
+        const current = failedAttempts.get(clientIP) || { count: 0, firstAttempt: Date.now() };
+        current.count++;
+        failedAttempts.set(clientIP, current);
+
+        const errorType = error.name === 'TokenExpiredError' ? 'EXPIRED' : 'INVALID';
+        console.warn(`🔐 AUTH_FAILED (${errorType}): IP ${clientIP}, Path: ${req.path}, Attempts: ${current.count}`);
+
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ error: 'Sesión expirada. Por favor inicie sesión nuevamente.' });
+        }
+
+        return res.status(403).json({ error: 'Token inválido' });
     }
 };
 
 module.exports = authMiddleware;
+

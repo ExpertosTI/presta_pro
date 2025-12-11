@@ -32,6 +32,30 @@ const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
+// --- SECURITY: Environment Variable Validation ---
+const REQUIRED_ENV_VARS = ['DATABASE_URL'];
+const RECOMMENDED_ENV_VARS = ['JWT_SECRET', 'GOOGLE_CLIENT_ID', 'SMTP_HOST', 'APP_BASE_URL'];
+
+REQUIRED_ENV_VARS.forEach(varName => {
+  if (!process.env[varName]) {
+    console.error(`❌ CRITICAL: Missing required environment variable: ${varName}`);
+    process.exit(1);
+  }
+});
+
+if (process.env.NODE_ENV === 'production') {
+  RECOMMENDED_ENV_VARS.forEach(varName => {
+    if (!process.env[varName]) {
+      console.warn(`⚠️ WARNING: Missing recommended environment variable for production: ${varName}`);
+    }
+  });
+
+  if (JWT_SECRET === 'prestapro_dev_jwt_secret_change_me') {
+    console.error('❌ CRITICAL: Using default JWT_SECRET in production is not allowed!');
+    process.exit(1);
+  }
+}
+
 // Importar rutas nuevas
 const clientsRouter = require('./routes/clients');
 const loansRouter = require('./routes/loans');
@@ -49,6 +73,7 @@ const notesRouter = require('./routes/notes');
 const authMiddleware = require('./middleware/authMiddleware');
 
 const prisma = require('./lib/prisma');
+const { validatePassword, validateEmail } = require('./lib/securityUtils');
 
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25', 10);
@@ -117,8 +142,86 @@ const registerLimiter = rateLimit({
   message: { error: 'Demasiados registros desde esta IP. Intenta en 1 hora.' },
 });
 
-app.use(cors());
-app.use(express.json());
+// --- SECURITY: Restrictive CORS for Production ---
+const corsOptions = {
+  origin: IS_PRODUCTION
+    ? [process.env.APP_BASE_URL, 'https://prestanace.renace.tech', /\.renace\.tech$/]
+    : true, // Allow all origins in development
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  maxAge: 86400, // 24 hours preflight cache
+};
+app.use(cors(corsOptions));
+
+// --- SECURITY: Request Size Limits ---
+app.use(express.json({ limit: '10mb' })); // Limit JSON body size
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// --- SECURITY: Input Sanitization Middleware ---
+const sanitizeInput = (obj) => {
+  if (typeof obj === 'string') {
+    // Remove potential XSS patterns
+    return obj
+      .replace(/<script[^>]*>.*?<\/script>/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+\s*=/gi, '');
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeInput);
+  }
+  if (obj && typeof obj === 'object') {
+    const sanitized = {};
+    for (const key of Object.keys(obj)) {
+      sanitized[key] = sanitizeInput(obj[key]);
+    }
+    return sanitized;
+  }
+  return obj;
+};
+
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    req.body = sanitizeInput(req.body);
+  }
+  next();
+});
+
+// --- SECURITY: Audit Logging ---
+const auditLog = (action, userId, tenantId, details = {}) => {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    action,
+    userId,
+    tenantId,
+    ip: details.ip || 'unknown',
+    userAgent: details.userAgent || 'unknown',
+    ...details,
+  };
+  if (!IS_PRODUCTION) {
+    console.log('📋 AUDIT:', JSON.stringify(logEntry));
+  }
+  // In production, you could send this to a logging service or database
+};
+
+// Make auditLog available to routes
+app.use((req, res, next) => {
+  req.auditLog = (action, details = {}) => {
+    auditLog(
+      action,
+      req.user?.userId || 'anonymous',
+      req.user?.tenantId || 'none',
+      {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path,
+        method: req.method,
+        ...details,
+      }
+    );
+  };
+  next();
+});
 
 // MOUNT ROUTES - MUST be after express.json() to parse req.body
 app.use('/api/clients', authMiddleware, clientsRouter);
@@ -184,13 +287,35 @@ app.post('/api/tenants/register', async (req, res) => {
     return res.status(400).json({ error: 'Faltan campos requeridos' });
   }
 
+  // SECURITY: Validate email format
+  if (!validateEmail(adminEmail)) {
+    return res.status(400).json({ error: 'Formato de correo electrónico inválido' });
+  }
+
+  // SECURITY: Validate password strength
+  const passwordValidation = validatePassword(adminPassword);
+  if (!passwordValidation.valid) {
+    return res.status(400).json({
+      error: 'Contraseña no cumple los requisitos de seguridad',
+      details: passwordValidation.errors
+    });
+  }
+
+  // SECURITY: Validate slug format (alphanumeric, lowercase, hyphens)
+  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  if (!slugRegex.test(tenantSlug) || tenantSlug.length < 3 || tenantSlug.length > 50) {
+    return res.status(400).json({ error: 'El slug debe ser alfanumérico, en minúsculas, entre 3-50 caracteres' });
+  }
+
   try {
     const existingUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (existingUser) {
       return res.status(409).json({ error: 'El correo ya está registrado' });
     }
 
-    const passwordHash = await bcrypt.hash(adminPassword, 10);
+    // SECURITY: Use higher bcrypt rounds in production (12 instead of 10)
+    const bcryptRounds = IS_PRODUCTION ? 12 : 10;
+    const passwordHash = await bcrypt.hash(adminPassword, bcryptRounds);
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas

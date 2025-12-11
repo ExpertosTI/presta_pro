@@ -16,7 +16,8 @@ import {
   UserCheck,
   Bell,
   X,
-  CreditCard
+  CreditCard,
+  Rocket
 } from 'lucide-react';
 import {
   BarChart,
@@ -45,6 +46,7 @@ import { ClientModal } from './modules/clients';
 import { EmployeeModal } from './modules/employees';
 import PaymentTicket from './shared/components/ui/PaymentTicket';
 import { BottomNav } from './shared/components/layout/BottomNav';
+import FloatingAIBot from './ai/FloatingAIBot';
 
 // Views (Lazy Loaded)
 const DashboardView = React.lazy(() => import('./modules/dashboard').then(module => ({ default: module.DashboardView })));
@@ -802,7 +804,7 @@ function App() {
             <MenuItem id="reports" label="Reportes" icon={PieChart} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
             <MenuItem id="hr" label="RRHH" icon={UserCheck} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
             <MenuItem id="accounting" label="Contabilidad" icon={Wallet} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
-            <MenuItem id="pricing" label="Planes y Precios" icon={CreditCard} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="pricing" label="Planes y Precios" icon={Rocket} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge="Pro" />
             <MenuItem id="settings" label="Configuración" icon={Settings} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
           </MenuSection>
         </Sidebar>
@@ -952,6 +954,15 @@ function App() {
           setEditingEmployee(null);
         }}
         initialEmployee={editingEmployee}
+      />
+
+      <FloatingAIBot
+        chatHistory={chatHistory}
+        setChatHistory={setChatHistory}
+        dbData={dbData}
+        showToast={showToast}
+        ownerName={dbData.systemSettings?.ownerDisplayName}
+        companyName={dbData.systemSettings?.companyName}
       />
 
       {/* Bottom Navigation for Mobile */}

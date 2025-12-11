@@ -127,9 +127,14 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
         onMouseDown={handlePointerDown}
         onTouchStart={handlePointerDown}
         onClick={handleToggle}
-        className="pointer-events-auto w-14 h-14 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 shadow-xl shadow-blue-900/40 flex items-center justify-center text-white border border-white/10 hover:scale-105 active:scale-95 transition-transform touch-none"
+        className="pointer-events-auto w-16 h-16 rounded-full bg-gradient-to-tr from-violet-600 via-indigo-600 to-blue-500 shadow-2xl shadow-indigo-500/50 flex items-center justify-center text-white border-2 border-white/20 hover:scale-110 active:scale-95 transition-all duration-300 touch-none relative group overflow-hidden"
       >
-        <Zap size={24} />
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <Zap size={28} className="drop-shadow-md animate-pulse-slow" />
+        <span className="absolute -top-1 -right-1 flex h-5 w-5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-5 w-5 bg-sky-500 border-2 border-white dark:border-slate-900"></span>
+        </span>
       </button>
     </div>
   );

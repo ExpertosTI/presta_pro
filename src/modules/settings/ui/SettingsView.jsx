@@ -226,24 +226,25 @@ export function SettingsView({
       </Card>
 
       <Card>
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Configuración del Sistema</h3>
-        <form onSubmit={handleSaveSettings} className="space-y-4">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">Configuración del Sistema</h3>
+        <form onSubmit={handleSaveSettings} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nombre de la Empresa</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Nombre de la Empresa</label>
             <input
               type="text"
-              className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
               value={form.companyName}
               onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+              placeholder="Mi Financiera"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-            <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nombre que se muestra en el encabezado</label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Nombre en Encabezado</label>
               <input
                 type="text"
-                className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
                 value={form.ownerDisplayName}
                 onChange={(e) => setForm({ ...form, ownerDisplayName: e.target.value })}
                 placeholder="Ej: Juan Pérez"
@@ -350,142 +351,96 @@ export function SettingsView({
             </div>
           </div>
 
-          <div className="mt-4 border-t border-slate-100 pt-4">
-            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Usuarios de acceso (cobradores)</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-              Crea usuarios con nombre de acceso y contraseña para que los cobradores entren al sistema.
-            </p>
-            {userError && (
-              <p className="mb-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                {userError}
-              </p>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg inline-block px-3">
+              Seguridad: Contraseña Maestra
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nombre completo</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Usuario Maestro</label>
                 <input
                   type="text"
-                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={userForm.name}
-                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                  placeholder="Ej: Juan Pérez"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Usuario</label>
-                <input
-                  type="text"
-                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={userForm.username}
-                  onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
-                  placeholder="usuario.cobrador"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Contraseña</label>
-                <input
-                  type="password"
-                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={userForm.password}
-                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                  placeholder="Mínimo 4 caracteres"
-                />
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleRegisterUser}
-              className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold text-sm"
-            >
-              Registrar usuario de acceso
-            </button>
-          </div>
-
-          <div className="mt-4 border-t border-slate-100 pt-4">
-            <h4 className="text-sm font-semibold text-slate-700 mb-2">Seguridad e inicio de sesión</h4>
-            <p className="text-xs text-slate-500 mb-3">
-              Estas credenciales se usan para acceder al panel en este dispositivo.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Usuario administrador</label>
-                <input
-                  type="text"
-                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all shadow-sm"
                   value={form.securityUser}
                   onChange={(e) => setForm({ ...form, securityUser: e.target.value })}
-                  placeholder="admin"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Contraseña / PIN</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Contraseña Maestra actual</label>
                 <input
                   type="password"
-                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all shadow-sm font-mono tracking-wider"
                   value={form.securityPassword}
                   onChange={(e) => setForm({ ...form, securityPassword: e.target.value })}
-                  placeholder="••••••"
                 />
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Protege solo este dispositivo. Usa también el bloqueo del sistema operativo.
-                </p>
               </div>
             </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 flex items-center gap-1">
+              <span className="text-amber-500">⚠️</span> Esta credencial permite eliminar registros sensibles.
+            </p>
           </div>
 
-          <div className="mt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
-            <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Notificación GPS para Rutas</p>
-              <p className="text-xs text-slate-500">Si está activo, al iniciar una ruta se mostrará alerta de GPS/navegación.</p>
-            </div>
+          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
             <button
-              type="button"
-              onClick={() =>
-                setSystemSettings({
-                  ...systemSettings,
-                  enableRouteGpsNotification: !systemSettings.enableRouteGpsNotification,
-                })
-              }
-              className={`w-11 h-6 flex items-center rounded-full px-1 transition-colors ${systemSettings.enableRouteGpsNotification ? 'bg-emerald-500' : 'bg-slate-300'
-                }`}
+              type="submit"
+              className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30 active:scale-95 transform"
             >
-              <div
-                className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${systemSettings.enableRouteGpsNotification ? 'translate-x-4' : 'translate-x-0'
-                  }`}
-              />
+              Guardar Cambios Configuración
             </button>
           </div>
-
-          <div className="mt-3 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Incluir cuotas futuras en Rutas</p>
-              <p className="text-xs text-slate-500">Si está activo, la Ruta Inteligente mostrará todas las cuotas pendientes, no solo las vencidas hoy.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                setSystemSettings({
-                  ...systemSettings,
-                  includeFutureInstallmentsInRoutes: !systemSettings.includeFutureInstallmentsInRoutes,
-                })
-              }
-              className={`w-11 h-6 flex items-center rounded-full px-1 transition-colors ${systemSettings.includeFutureInstallmentsInRoutes ? 'bg-blue-600' : 'bg-slate-300'
-                }`}
-            >
-              <div
-                className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${systemSettings.includeFutureInstallmentsInRoutes ? 'translate-x-4' : 'translate-x-0'
-                  }`}
-              />
-            </button>
-          </div>
-
-          <button
-            type="submit"
-            className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold"
-          >
-            Guardar Cambios
-          </button>
         </form>
+      </Card>
+
+      <Card>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">Usuarios de Acceso (Cobradores)</h3>
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+            Crea usuarios con nombre de acceso y contraseña para que los cobradores entren al sistema.
+          </p>
+          {userError && (
+            <p className="mb-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {userError}
+            </p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-3">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Nombre completo</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+                value={userForm.name}
+                onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                placeholder="Ej: Juan Pérez"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Usuario</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+                value={userForm.username}
+                onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                placeholder="usuario.cobrador"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Contraseña</label>
+              <input
+                type="password"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+                value={userForm.password}
+                onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                placeholder="Mínimo 4 caracteres"
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRegisterUser}
+            className="bg-slate-900 dark:bg-slate-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-lg"
+          >
+          </button>
+        </div>
       </Card>
 
       <Card>
@@ -512,26 +467,28 @@ export function SettingsView({
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nombre del Cobrador</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Nombre del Cobrador</label>
               <input
                 type="text"
-                className="w-full p-2 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
                 value={collectorForm.name}
                 onChange={(e) => setCollectorForm({ ...collectorForm, name: e.target.value })}
+                placeholder="Ej: Luis Valdés"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Teléfono</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Teléfono</label>
               <input
                 type="text"
-                className="w-full p-2 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
                 value={collectorForm.phone}
                 onChange={(e) => setCollectorForm({ ...collectorForm, phone: e.target.value })}
+                placeholder="809-555-0000"
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold shadow-md hover:bg-emerald-700 transition"
+              className="w-full bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/30 hover:bg-emerald-700 transition-all active:scale-95 mt-2"
             >
               Agregar Cobrador
             </button>
@@ -658,23 +615,23 @@ export function SettingsView({
         ) : (
           <div className="overflow-x-auto max-h-[360px]">
             <table className="w-full text-sm">
-              <thead className="bg-slate-800/50 text-slate-400">
+              <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="p-2 text-left">Cliente</th>
-                  <th className="p-2 text-left">Teléfono</th>
-                  <th className="p-2 text-left">Dirección</th>
-                  <th className="p-2 text-left">Cobrador asignado</th>
+                  <th className="p-3 text-left first:rounded-tl-lg">Cliente</th>
+                  <th className="p-3 text-left">Teléfono</th>
+                  <th className="p-3 text-left">Dirección</th>
+                  <th className="p-3 text-left last:rounded-tr-lg">Cobrador asignado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/30">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {clients.map((client) => (
-                  <tr key={client.id} className="hover:bg-slate-800/20">
-                    <td className="p-2 font-medium text-slate-200">{client.name}</td>
-                    <td className="p-2 text-slate-500">{client.phone || 'N/A'}</td>
-                    <td className="p-2 text-slate-500 truncate max-w-[220px]">{client.address || 'N/A'}</td>
-                    <td className="p-2">
+                  <tr key={client.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="p-3 font-medium text-slate-900 dark:text-slate-100">{client.name}</td>
+                    <td className="p-3 text-slate-500 dark:text-slate-400">{client.phone || 'N/A'}</td>
+                    <td className="p-3 text-slate-500 dark:text-slate-400 truncate max-w-[220px]">{client.address || 'N/A'}</td>
+                    <td className="p-3">
                       <select
-                        className="w-full p-2 border border-slate-700 rounded-lg bg-slate-900 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                         value={client.collectorId || ''}
                         onChange={(e) => assignCollectorToClient(client.id, e.target.value)}
                       >
