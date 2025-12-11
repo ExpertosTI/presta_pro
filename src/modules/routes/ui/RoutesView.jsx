@@ -170,31 +170,12 @@ export function RoutesView({
                 showToast && showToast('Selecciona un cobrador para cuadrar la ruta.', 'error');
                 return;
               }
-
-              // Primer clic: pedir confirmación dentro de la app
-              if (!confirmClosing) {
-                setConfirmClosing(true);
-                showToast && showToast('Verifica que el cobrador haya entregado todo el dinero y vuelve a presionar para confirmar el cuadre.', 'info');
-                return;
-              }
-
-              // Segundo clic: registrar cuadre
-              const total = collectorTodayTotal || 0;
-              const count = collectorTodayCount || 0;
-              const todayIso = new Date().toISOString();
-              addRouteClosing && addRouteClosing({
-                collectorId: collectorFilter,
-                date: todayIso,
-                totalAmount: total,
-                receiptsCount: count,
-              });
-              finishRoute && finishRoute();
-              setConfirmClosing(false);
-              showToast && showToast('Ruta cerrada y cuadre del cobrador registrado correctamente.', 'success');
+              // Mostrar modal de confirmación con el monto
+              setConfirmClosing(true);
             }}
             className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow-md hover:bg-blue-700"
           >
-            {confirmClosing ? 'Confirmar Cuadre' : 'Cerrar / Cuadre Cobrador'}
+            Cerrar / Cuadre Cobrador
           </button>
           <button
             type="button"
@@ -435,6 +416,76 @@ export function RoutesView({
             >
               Cerrar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación de Cuadre - Muestra monto prominente */}
+      {confirmClosing && (
+        <div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 text-center">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+              Confirmar Cuadre del Cobrador
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Cobrador: <span className="font-semibold text-slate-700 dark:text-slate-200">
+                {collectors.find(c => c.id === collectorFilter)?.name || 'Sin nombre'}
+              </span>
+            </p>
+
+            <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-xl p-6 mb-4">
+              <p className="text-sm text-emerald-700 dark:text-emerald-300 mb-1 uppercase tracking-wider font-semibold">
+                Total a Recibir
+              </p>
+              <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(collectorTodayTotal || 0)}
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-6 mb-6 text-sm">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{collectorTodayCount || 0}</p>
+                <p className="text-slate-500 dark:text-slate-400">Recibos cobrados</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatDate(new Date())}</p>
+                <p className="text-slate-500 dark:text-slate-400">Fecha</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-amber-600 dark:text-amber-400 mb-4 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg">
+              ⚠️ Verifica que el cobrador haya entregado exactamente este monto antes de confirmar.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmClosing(false)}
+                className="flex-1 px-4 py-3 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const total = collectorTodayTotal || 0;
+                  const count = collectorTodayCount || 0;
+                  const todayIso = new Date().toISOString();
+                  addRouteClosing && addRouteClosing({
+                    collectorId: collectorFilter,
+                    date: todayIso,
+                    totalAmount: total,
+                    receiptsCount: count,
+                  });
+                  finishRoute && finishRoute();
+                  setConfirmClosing(false);
+                  showToast && showToast('Ruta cerrada y cuadre registrado correctamente.', 'success');
+                }}
+                className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 shadow-lg"
+              >
+                ✓ Confirmar Cuadre
+              </button>
+            </div>
           </div>
         </div>
       )}

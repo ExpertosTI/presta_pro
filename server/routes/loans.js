@@ -127,7 +127,7 @@ router.get('/', async (req, res) => {
 // POST /api/loans - Crear préstamo
 router.post('/', async (req, res) => {
     try {
-        const { clientId, amount, rate, term, frequency, startDate, schedule: providedSchedule } = req.body;
+        const { clientId, amount, rate, term, frequency, startDate, schedule: providedSchedule, closingCosts } = req.body;
 
         if (!clientId || !amount || !rate || !term || !frequency || !startDate) {
             return res.status(400).json({ error: 'Faltan datos obligatorios (clientId, amount, rate, term, frequency, startDate)' });
@@ -142,17 +142,23 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ error: 'Cliente no encontrado o no pertenece a este tenant' });
         }
 
-        // Calculate schedule if not provided
+        // Calculate total (amount + closingCosts) for schedule calculation
+        const parsedAmount = parseFloat(amount);
+        const parsedClosingCosts = parseFloat(closingCosts) || 0;
+        const totalForSchedule = parsedAmount + parsedClosingCosts;
+
+        // Calculate schedule if not provided - use totalForSchedule
         const schedule = providedSchedule && Array.isArray(providedSchedule) && providedSchedule.length > 0
             ? providedSchedule
-            : calculateSchedule(amount, rate, term, frequency, startDate);
+            : calculateSchedule(totalForSchedule, rate, term, frequency, startDate);
 
         const totalInterest = schedule.reduce((acc, item) => acc + (item.interest || 0), 0);
 
         // Crear préstamo y sus cuotas en una transacción
         const newLoan = await prisma.loan.create({
             data: {
-                amount: parseFloat(amount),
+                amount: parsedAmount,
+                closingCosts: parsedClosingCosts,
                 rate: parseFloat(rate),
                 term: parseInt(term),
                 frequency,

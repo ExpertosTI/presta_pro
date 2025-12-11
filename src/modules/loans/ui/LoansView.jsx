@@ -18,7 +18,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
 
   // Create Loan Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
+  const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '' });
   const [createError, setCreateError] = useState('');
 
   const selectedLoan = useMemo(() => loans.find(l => l.id === selectedLoanId), [loans, selectedLoanId]);
@@ -291,6 +291,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                 setCreateError('Completa todos los campos correctamente.');
                 return;
               }
+              const closingCosts = parseFloat(createForm.closingCosts || '0');
               onCreateLoan({
                 clientId: createForm.clientId,
                 amount,
@@ -298,9 +299,10 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                 term,
                 frequency: createForm.frequency,
                 startDate: createForm.startDate,
+                closingCosts,
               });
               setCreateModalOpen(false);
-              setCreateForm({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0] });
+              setCreateForm({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '' });
               setCreateError('');
             }} className="space-y-3 text-sm">
               <div>
@@ -385,6 +387,20 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                   value={createForm.startDate}
                   onChange={(e) => setCreateForm({ ...createForm, startDate: e.target.value })}
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  Gastos de Cierre <span className="text-slate-400 font-normal">(opcional)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={createForm.closingCosts}
+                  onChange={(e) => setCreateForm({ ...createForm, closingCosts: e.target.value })}
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Se suma al capital para calcular las cuotas</p>
               </div>
               <div className="flex gap-2 pt-2">
                 <button

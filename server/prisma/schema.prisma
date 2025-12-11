@@ -92,6 +92,7 @@ model Loan {
   client        Client            @relation(fields: [clientId], references: [id])
   clientId      String
   amount        Float
+  closingCosts  Float             @default(0)
   rate          Float
   term          Int
   frequency     String
