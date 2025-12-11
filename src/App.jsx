@@ -281,21 +281,58 @@ function App() {
       // Get loan and client info for the receipt
       const loan = dbData.loans.find(l => l.id === loanId);
       const client = dbData.clients.find(c => c.id === loan?.clientId);
-      const installment = loan?.schedule?.find(s => s.id === installmentId) ||
-        loan?.installments?.find(s => s.id === installmentId);
+      const schedule = loan?.schedule || loan?.installments || [];
+
+      // Get pending installments sorted by number
+      const pendingInstallments = schedule
+        .filter(s => s.status !== 'PAID')
+        .sort((a, b) => (a.number || 0) - (b.number || 0));
+
+      const firstInstallment = pendingInstallments.find(s => s.id === installmentId) || pendingInstallments[0];
+      const paymentAmount = options?.customAmount || firstInstallment?.payment || 0;
+      const penaltyAmount = options?.penaltyAmount || 0;
+
+      // Calculate how many installments this payment covers
+      const installmentPaymentAmount = firstInstallment?.payment || paymentAmount;
+      const paymentBreakdown = [];
+      let remainingPayment = paymentAmount;
+      const paidInstallmentIds = [];
+
+      for (const inst of pendingInstallments) {
+        if (remainingPayment <= 0) break;
+
+        const amountForThisInstallment = Math.min(remainingPayment, inst.payment || installmentPaymentAmount);
+        paymentBreakdown.push({
+          number: inst.number,
+          id: inst.id,
+          amount: amountForThisInstallment,
+          date: new Date().toISOString()
+        });
+        paidInstallmentIds.push(inst.id);
+        remainingPayment -= amountForThisInstallment;
+
+        // If remaining is less than 1, consider it fully paid
+        if (remainingPayment < 1) break;
+      }
 
       // Build payment data
       const paymentData = {
         loanId,
-        installmentId,
-        installmentNumber: installment?.number || options?.installmentNumber || 0,
-        amount: options?.customAmount || installment?.payment || 0,
-        penaltyAmount: options?.penaltyAmount || 0,
+        installmentId: firstInstallment?.id || installmentId,
+        installmentNumber: firstInstallment?.number || options?.installmentNumber || 1,
+        amount: paymentAmount,
+        penaltyAmount: penaltyAmount,
+        installmentsPaid: paymentBreakdown.length,
         ...options
       };
 
       // Call API
       const serverReceipt = await paymentService.create(paymentData);
+
+      // Calculate remaining balance after this payment
+      const totalPaidBefore = loan?.totalPaid || 0;
+      const newTotalPaid = totalPaidBefore + paymentAmount + penaltyAmount;
+      const remainingBalance = Math.max(0, (loan?.amount || 0) + (loan?.totalInterest || 0) - newTotalPaid);
 
       // Enrich receipt with client/loan data for display
       const enrichedReceipt = {
@@ -305,30 +342,38 @@ function App() {
         clientName: client?.name || 'Cliente',
         clientPhone: client?.phone || '',
         loanId,
-        amount: paymentData.amount,
-        penaltyAmount: paymentData.penaltyAmount,
-        installmentNumber: paymentData.installmentNumber,
+        amount: paymentAmount,
+        penaltyAmount: penaltyAmount,
+        installmentNumber: paymentBreakdown.length > 1
+          ? `${paymentBreakdown[0].number}-${paymentBreakdown[paymentBreakdown.length - 1].number}`
+          : (firstInstallment?.number || 1),
         date: serverReceipt?.date || new Date().toISOString(),
         loanAmount: loan?.amount,
-        remainingBalance: (loan?.amount || 0) - ((loan?.totalPaid || 0) + paymentData.amount + paymentData.penaltyAmount),
-        // Add payment breakdown for ticket display
-        paymentBreakdown: installment ? [{
-          number: installment.number || paymentData.installmentNumber,
-          amount: paymentData.amount,
-          date: new Date().toISOString()
-        }] : [],
+        remainingBalance: remainingBalance,
+        // Include full breakdown for ticket display
+        paymentBreakdown: paymentBreakdown,
+        installmentsPaidCount: paymentBreakdown.length,
       };
 
+      // Update local state - mark all paid installments
       setDbData(prev => ({
         ...prev,
         receipts: [...prev.receipts, enrichedReceipt],
         loans: prev.loans.map(l => l.id === loanId ? {
           ...l,
-          totalPaid: (l.totalPaid || 0) + paymentData.amount + paymentData.penaltyAmount,
-          schedule: (l.schedule || []).map(s => s.id === installmentId ? { ...s, status: 'PAID', paidDate: new Date() } : s)
+          totalPaid: newTotalPaid,
+          schedule: (l.schedule || []).map(s =>
+            paidInstallmentIds.includes(s.id)
+              ? { ...s, status: 'PAID', paidDate: new Date() }
+              : s
+          )
         } : l)
       }));
-      showToast("Pago registrado", "success");
+
+      const cuotasMsg = paymentBreakdown.length > 1
+        ? `Pago registrado (${paymentBreakdown.length} cuotas)`
+        : "Pago registrado";
+      showToast(cuotasMsg, "success");
       return enrichedReceipt;
     } catch (e) {
       console.error('registerPayment error:', e);
