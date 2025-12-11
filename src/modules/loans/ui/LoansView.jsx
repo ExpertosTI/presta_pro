@@ -164,8 +164,13 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
       {paymentToConfirm && (
         <PaymentConfirmationModal
           paymentToConfirm={paymentToConfirm}
-          onConfirm={(loanId, installmentId, options) => {
-            registerPayment(loanId, installmentId, options);
+          onConfirm={async (loanId, installmentId, options) => {
+            const receipt = await registerPayment(loanId, installmentId, options);
+            if (receipt) {
+              // Import and print thermal receipt
+              const { printThermalReceipt } = await import('../../../services/thermalPrinter');
+              printThermalReceipt(receipt, { companyName: 'Presta Pro' });
+            }
             setPaymentToConfirm(null);
           }}
           onCancel={() => setPaymentToConfirm(null)}

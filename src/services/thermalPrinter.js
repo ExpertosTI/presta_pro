@@ -190,6 +190,22 @@ export function generateThermalReceiptHTML(receipt, companySettings = {}) {
         ${receipt.clientPhone ? `<div>${receipt.clientPhone}</div>` : ''}
     </div>
     
+    ${receipt.loanAmount ? `
+    <div class="section">
+        <div class="section-title">PRÉSTAMO</div>
+        <div class="row">
+            <span class="label">Monto Original</span>
+            <span class="value">${formatCurrency(receipt.loanAmount)}</span>
+        </div>
+        ${receipt.installmentNumber ? `
+        <div class="row">
+            <span class="label">Cuota Pagada</span>
+            <span class="value">#${receipt.installmentNumber}</span>
+        </div>
+        ` : ''}
+    </div>
+    ` : ''}
+    
     <div class="divider"></div>
     
     <div class="section">
