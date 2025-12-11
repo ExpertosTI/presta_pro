@@ -17,6 +17,7 @@ export function SettingsView({
   assignCollectorToClient,
   auth,
   showToast,
+  setActiveTab,
 }) {
   const [form, setForm] = useState({
     companyName: systemSettings.companyName || 'Presta Pro',
@@ -213,11 +214,7 @@ export function SettingsView({
             <p className="text-sm text-blue-200 mt-1">10 clientes • 5 préstamos • 1 usuario</p>
           </div>
           <button
-            onClick={() => {
-              // Navigate to pricing
-              const event = new CustomEvent('navigate-to-tab', { detail: 'pricing' });
-              window.dispatchEvent(event);
-            }}
+            onClick={() => setActiveTab && setActiveTab('pricing')}
             className="px-4 py-2 bg-white text-blue-600 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors shadow-lg"
           >
             Mejorar Plan

@@ -448,7 +448,6 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                                         </div>
                                         <p className="text-xs mt-2 text-amber-600 dark:text-amber-400">📧 adderlymarte@hotmail.com</p>
                                     </div>
-                                    <p className="text-xs mt-2 text-slate-500 italic text-center">Haz clic en un número para copiar</p>
                                 </div>
                             </div>
 

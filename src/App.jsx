@@ -733,6 +733,7 @@ function App() {
           assignCollectorToClient={assignCollectorToClient}
           auth={{ user }}
           showToast={showToast}
+          setActiveTab={setActiveTab}
         />;
       case 'pricing':
         return <PricingView showToast={showToast} />;
