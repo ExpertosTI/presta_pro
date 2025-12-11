@@ -180,7 +180,7 @@ export function generateThermalReceiptHTML(receipt, companySettings = {}) {
         ${companyLogo ? `<img src="${companyLogo}" class="logo" alt="${companyName}">` : ''}
         <div class="company-name">${companyName}</div>
         <div class="receipt-title">COMPROBANTE DE PAGO</div>
-        <div class="receipt-id">ID: ${receipt.id?.slice(0, 12) || 'N/A'}</div>
+        <div class="receipt-id">Ref: TPPR3N4${(receipt.id || '').slice(-6).toUpperCase().padStart(6, '0')}</div>
         <div class="date">${formatDate(receipt.date || new Date())}</div>
     </div>
     
@@ -194,13 +194,19 @@ export function generateThermalReceiptHTML(receipt, companySettings = {}) {
     <div class="section">
         <div class="section-title">PRÉSTAMO</div>
         <div class="row">
-            <span class="label">Monto Original</span>
+            <span class="label">Capital</span>
             <span class="value">${formatCurrency(receipt.loanAmount)}</span>
         </div>
         ${receipt.installmentNumber ? `
         <div class="row">
-            <span class="label">Cuota Pagada</span>
+            <span class="label">Cuota(s) Pagada(s)</span>
             <span class="value">#${receipt.installmentNumber}</span>
+        </div>
+        ` : ''}
+        ${receipt.remainingBalance !== undefined ? `
+        <div class="row" style="border-top: 1px solid #ccc; padding-top: 3px; margin-top: 3px;">
+            <span class="label"><strong>Saldo Restante</strong></span>
+            <span class="value"><strong>${formatCurrency(receipt.remainingBalance)}</strong></span>
         </div>
         ` : ''}
     </div>
