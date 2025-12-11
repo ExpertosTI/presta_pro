@@ -7,8 +7,9 @@ const BRAND_TAGLINE = 'by RENACE.TECH';
 const BRAND_COLOR = '#2563eb'; // Primary Blue
 const BRAND_COLOR_DARK = '#1d4ed8'; // Darker Blue for hover
 const ACCENT_COLOR = '#10b981'; // Emerald Green for success
-const GRADIENT_START = '#1e293b';
-const GRADIENT_END = '#0f172a';
+// Solid dark blue colors - gradients can fail in email clients
+const HEADER_BG = '#1e3a8a'; // Dark blue solid
+const HEADER_TEXT = '#ffffff';
 
 // Logo URL - usando data URI para garantizar que se muestre
 const LOGO_DATA_URI = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzAiIGZpbGw9IiMyNTYzZWIiLz48cGF0aCBkPSJNMjAgMjBoMjR2NEgyNHYtNHptMCA4aDIwdjRIMjB2LTR6bTAgOGgxNnY0SDIwdi00em0wIDhoMTJ2NEgyMHYtNHoiIGZpbGw9IndoaXRlIi8+PC9zdmc+';
@@ -71,29 +72,29 @@ const getEmailTemplate = (content, tenantName = 'PRESTAPRO', showTenantInHeader 
     </div>
     
     <!-- Email Body -->
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: linear-gradient(180deg, #e2e8f0 0%, #f1f5f9 100%); padding: 40px 20px;" class="email-bg">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f1f5f9; padding: 40px 20px;" class="email-bg">
       <tr>
         <td align="center" valign="top">
           
           <!-- Main Container -->
           <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; margin: 0 auto;" class="email-container">
             
-            <!-- Header with Animated Gradient -->
+            <!-- Header with Solid Blue -->
             <tr>
-              <td style="background: linear-gradient(135deg, ${GRADIENT_START} 0%, ${GRADIENT_END} 50%, ${BRAND_COLOR} 100%); padding: 48px 40px; text-align: center; border-radius: 16px 16px 0 0;">
+              <td style="background-color: ${HEADER_BG}; padding: 48px 40px; text-align: center; border-radius: 16px 16px 0 0;">
                 
                 <!-- Logo Container -->
-                <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: rgba(255,255,255,0.1); border-radius: 20px; padding: 12px; backdrop-filter: blur(10px);">
+                <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 12px;">
                   <img src="${LOGO_DATA_URI}" alt="${BRAND_NAME}" width="56" height="56" style="display: block; margin: 0 auto; border-radius: 12px;" />
                 </div>
                 
-                <!-- Brand Name with Glow Effect -->
-                <h1 style="color: #ffffff; margin: 0 0 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; text-shadow: 0 2px 20px rgba(37, 99, 235, 0.5);">
+                <!-- Brand Name -->
+                <h1 style="color: ${HEADER_TEXT}; margin: 0 0 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 32px; font-weight: 800; letter-spacing: -0.03em;">
                   ${BRAND_NAME}
                 </h1>
                 
                 <!-- Tagline -->
-                <p style="color: #94a3b8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; margin: 0; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;">
+                <p style="color: #bfdbfe; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; margin: 0; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;">
                   ${BRAND_TAGLINE}
                 </p>
                 

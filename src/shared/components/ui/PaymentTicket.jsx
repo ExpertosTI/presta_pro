@@ -80,7 +80,7 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
               </>
             ) : (
               <>
-                <p><strong>Cuota #:</strong> {receipt.installmentNumber}</p>
+                <p><strong>{receipt.concept || (receipt.isPartialPayment ? `Abono a Cuota #${receipt.installmentNumber}` : `Cuota #${receipt.installmentNumber}`)}</strong></p>
                 <div className="flex justify-between mt-1">
                   <span>Monto:</span>
                   <span>{formatCurrency(receipt.amount)}</span>

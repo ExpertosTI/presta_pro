@@ -291,23 +291,45 @@ function App() {
       const paymentBreakdown = [];
       let remainingPayment = paymentAmount;
       const paidInstallmentIds = [];
+      const partialPaymentInstallments = []; // Cuotas con abono parcial
 
       for (const inst of pendingInstallments) {
         if (remainingPayment <= 0) break;
 
-        const amountForThisInstallment = Math.min(remainingPayment, inst.payment || installmentPaymentAmount);
+        const previouslyPaid = inst.paidAmount || 0; // Monto ya abonado a esta cuota
+        const stillOwed = (inst.payment || installmentPaymentAmount) - previouslyPaid;
+        const amountForThisInstallment = Math.min(remainingPayment, stillOwed);
+
+        const isFullPayment = amountForThisInstallment >= stillOwed - 0.01; // Tolerancia de 1 centavo
+
         paymentBreakdown.push({
           number: inst.number,
           id: inst.id,
           amount: amountForThisInstallment,
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          isPartialPayment: !isFullPayment, // Indica si es abono parcial
+          previouslyPaid: previouslyPaid,
+          totalInstallmentAmount: inst.payment
         });
-        paidInstallmentIds.push(inst.id);
+
+        if (isFullPayment) {
+          paidInstallmentIds.push(inst.id);
+        } else {
+          partialPaymentInstallments.push({
+            id: inst.id,
+            amountPaid: amountForThisInstallment,
+            newTotalPaid: previouslyPaid + amountForThisInstallment
+          });
+        }
         remainingPayment -= amountForThisInstallment;
 
-        // If remaining is less than 1, consider it fully paid
+        // Si queda menos de 1 peso, consideramos que ya no hay más que distribuir
         if (remainingPayment < 1) break;
       }
+
+      // Determinar si este pago es un abono parcial
+      const hasPartialPayments = partialPaymentInstallments.length > 0;
+      const isOnlyPartialPayment = hasPartialPayments && paidInstallmentIds.length === 0;
 
       // Build payment data
       const paymentData = {
@@ -317,6 +339,7 @@ function App() {
         amount: paymentAmount,
         penaltyAmount: penaltyAmount,
         installmentsPaid: paymentBreakdown.length,
+        isPartialPayment: isOnlyPartialPayment,
         ...options
       };
 
@@ -346,21 +369,41 @@ function App() {
         remainingBalance: remainingBalance,
         // Include full breakdown for ticket display
         paymentBreakdown: paymentBreakdown,
-        installmentsPaidCount: paymentBreakdown.length,
+        installmentsPaidCount: paidInstallmentIds.length,
+        // ** NUEVO: Indicadores de abono parcial **
+        isPartialPayment: isOnlyPartialPayment,
+        partialPaymentToInstallment: isOnlyPartialPayment ? firstInstallment?.number : null,
+        concept: isOnlyPartialPayment
+          ? `Abono a Cuota #${firstInstallment?.number}`
+          : (paymentBreakdown.length > 1
+            ? `Cuotas #${paymentBreakdown[0].number}-${paymentBreakdown[paymentBreakdown.length - 1].number}`
+            : `Cuota #${firstInstallment?.number}`)
       };
 
-      // Update local state - mark all paid installments
+      // Update local state - mark fully paid installments AND update partial payments
       setDbData(prev => ({
         ...prev,
         receipts: [...prev.receipts, enrichedReceipt],
         loans: prev.loans.map(l => l.id === loanId ? {
           ...l,
           totalPaid: newTotalPaid,
-          schedule: (l.schedule || []).map(s =>
-            paidInstallmentIds.includes(s.id)
-              ? { ...s, status: 'PAID', paidDate: new Date() }
-              : s
-          )
+          schedule: (l.schedule || []).map(s => {
+            // Marcar como PAID si está completamente pagada
+            if (paidInstallmentIds.includes(s.id)) {
+              return { ...s, status: 'PAID', paidDate: new Date(), paidAmount: s.payment };
+            }
+            // Actualizar monto abonado si es pago parcial
+            const partialInfo = partialPaymentInstallments.find(p => p.id === s.id);
+            if (partialInfo) {
+              return {
+                ...s,
+                paidAmount: partialInfo.newTotalPaid,
+                // Marcar como PARTIAL si no está completo
+                status: 'PARTIAL'
+              };
+            }
+            return s;
+          })
         } : l)
       }));
 
