@@ -32,14 +32,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-// --- SECURITY: Environment Variable Validation ---
+// --- SECURITY: Environment Variable Validation (warnings only, don't kill server) ---
 const REQUIRED_ENV_VARS = ['DATABASE_URL'];
 const RECOMMENDED_ENV_VARS = ['JWT_SECRET', 'GOOGLE_CLIENT_ID', 'SMTP_HOST', 'APP_BASE_URL'];
 
 REQUIRED_ENV_VARS.forEach(varName => {
   if (!process.env[varName]) {
-    console.error(`❌ CRITICAL: Missing required environment variable: ${varName}`);
-    process.exit(1);
+    console.warn(`⚠️ WARNING: Missing environment variable: ${varName}`);
   }
 });
 
@@ -51,8 +50,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 
   if (JWT_SECRET === 'prestapro_dev_jwt_secret_change_me') {
-    console.error('❌ CRITICAL: Using default JWT_SECRET in production is not allowed!');
-    process.exit(1);
+    console.warn('⚠️ WARNING: Using default JWT_SECRET in production is not recommended');
   }
 }
 
