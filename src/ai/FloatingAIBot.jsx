@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Zap, X } from 'lucide-react';
+import { Bot, X } from 'lucide-react';
 import AIHelper from './AIHelper.jsx';
 
 export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, ownerName, companyName }) {
@@ -94,7 +94,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
           <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-950/95">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white shadow-md">
-                <Zap size={18} />
+                <Bot size={18} />
               </div>
               <div className="flex flex-col leading-tight">
                 <span className="text-xs font-semibold text-slate-50">Asistente IA</span>
@@ -130,7 +130,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
         className="pointer-events-auto w-16 h-16 rounded-full bg-gradient-to-tr from-violet-600 via-indigo-600 to-blue-500 shadow-2xl shadow-indigo-500/50 flex items-center justify-center text-white border-2 border-white/20 hover:scale-110 active:scale-95 transition-all duration-300 touch-none relative group overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        <Zap size={28} className="drop-shadow-md animate-pulse-slow" />
+        <Bot size={28} className="drop-shadow-md" />
         <span className="absolute -top-1 -right-1 flex h-5 w-5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-5 w-5 bg-sky-500 border-2 border-white dark:border-slate-900"></span>

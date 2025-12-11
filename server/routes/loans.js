@@ -154,32 +154,36 @@ router.post('/', async (req, res) => {
 
         const totalInterest = schedule.reduce((acc, item) => acc + (item.interest || 0), 0);
 
-        // Crear préstamo y sus cuotas en una transacción
+        // Build loan data - closingCosts will be added after migration runs
+        const loanData = {
+            amount: parsedAmount,
+            rate: parseFloat(rate),
+            term: parseInt(term),
+            frequency,
+            startDate: new Date(startDate),
+            status: 'ACTIVE',
+            totalInterest,
+            totalPaid: 0,
+            tenantId: req.user.tenantId,
+            clientId,
+            installments: {
+                create: schedule.map(inst => ({
+                    number: inst.number,
+                    date: new Date(inst.date),
+                    payment: parseFloat(inst.payment),
+                    interest: parseFloat(inst.interest),
+                    principal: parseFloat(inst.principal),
+                    balance: parseFloat(inst.balance),
+                    status: inst.status || 'PENDING'
+                }))
+            }
+        };
+
+        // Add closingCosts only if > 0 (comment out until migration runs)
+        // if (parsedClosingCosts > 0) loanData.closingCosts = parsedClosingCosts;
+
         const newLoan = await prisma.loan.create({
-            data: {
-                amount: parsedAmount,
-                closingCosts: parsedClosingCosts,
-                rate: parseFloat(rate),
-                term: parseInt(term),
-                frequency,
-                startDate: new Date(startDate),
-                status: 'ACTIVE',
-                totalInterest,
-                totalPaid: 0,
-                tenantId: req.user.tenantId,
-                clientId,
-                installments: {
-                    create: schedule.map(inst => ({
-                        number: inst.number,
-                        date: new Date(inst.date),
-                        payment: parseFloat(inst.payment),
-                        interest: parseFloat(inst.interest),
-                        principal: parseFloat(inst.principal),
-                        balance: parseFloat(inst.balance),
-                        status: inst.status || 'PENDING'
-                    }))
-                }
-            },
+            data: loanData,
             include: {
                 installments: true,
                 client: true
