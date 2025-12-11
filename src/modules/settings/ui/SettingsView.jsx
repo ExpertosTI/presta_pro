@@ -663,6 +663,15 @@ export function SettingsView({
           <button
             type="button"
             onClick={() => {
+              // Verify master password before export
+              const inputPassword = window.prompt('Ingresa la contraseña maestra para exportar los datos:');
+              if (!inputPassword) return;
+
+              if (inputPassword !== (systemSettings.securityPassword || '1234')) {
+                if (showToast) showToast('Contraseña incorrecta', 'error');
+                return;
+              }
+
               // Get all data from localStorage or context
               const backupData = {
                 version: '1.0',

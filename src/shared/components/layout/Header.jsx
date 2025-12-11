@@ -53,7 +53,7 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
                 className="fixed inset-0 z-40"
                 onClick={() => setNotifOpen(false)}
               />
-              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] glass rounded-xl overflow-hidden animate-fade-in z-50 shadow-2xl">
+              <div className="absolute right-0 sm:right-0 -left-48 sm:left-auto mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] glass rounded-xl overflow-hidden animate-fade-in z-50 shadow-2xl">
                 <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                   <h3 className="font-bold text-slate-800 dark:text-slate-100">Notificaciones</h3>
                   <button onClick={() => setNotifOpen(false)}>
