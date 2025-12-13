@@ -8,12 +8,19 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const emailService = require('../services/emailService');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 const SALT_ROUNDS = 12;
+const { authMiddleware } = require('../middleware/authMiddleware');
+
+// Apply auth middleware to all routes except /login
+router.use((req, res, next) => {
+    if (req.path === '/login') return next();
+    return authMiddleware(req, res, next);
+});
 
 // Default permissions for new collectors
 const DEFAULT_PERMISSIONS = {

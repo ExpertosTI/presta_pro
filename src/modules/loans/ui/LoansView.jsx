@@ -5,6 +5,7 @@ import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { calculateSchedule } from '../../../shared/utils/amortization';
 import { FileText, Sparkles, X, Printer, FileCheck, Plus } from 'lucide-react';
 import { PaymentConfirmationModal } from '../../payments';
+import { printHtmlContent } from '../../../shared/utils/printUtils';
 
 export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan, onNewClient }) {
   const [generatingContract, setGeneratingContract] = useState(false);
@@ -18,7 +19,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
 
   // Create Loan Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '' });
+  const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FRENCH' });
   const [createError, setCreateError] = useState('');
 
   const selectedLoan = useMemo(() => loans.find(l => l.id === selectedLoanId), [loans, selectedLoanId]);
@@ -45,6 +46,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
       term: String(selectedLoan.term || ''),
       frequency: selectedLoan.frequency || 'Mensual',
       startDate: selectedLoan.startDate || new Date().toISOString().split('T')[0],
+      amortizationType: selectedLoan.amortizationType || 'FRENCH'
     });
     setEditError('');
     setEditModalOpen(true);
@@ -70,6 +72,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
         term,
         editForm.frequency,
         editForm.startDate || selectedLoan.startDate,
+        editForm.amortizationType || 'FRENCH'
       );
 
       const updatedLoan = {
@@ -78,6 +81,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
         rate,
         term,
         frequency: editForm.frequency,
+        amortizationType: editForm.amortizationType,
         startDate: editForm.startDate || selectedLoan.startDate,
         schedule,
         totalInterest: schedule.reduce((acc, item) => acc + item.interest, 0),
@@ -121,28 +125,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
 
   const handlePrintContract = () => {
     if (!contractContent || !selectedClient) return;
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) return;
-    const safeContent = contractContent.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Contrato - ${selectedClient.name}</title>
-          <style>
-            body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; }
-            pre { white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; }
-            h1 { text-align: center; margin-bottom: 24px; }
-          </style>
-        </head>
-        <body>
-          <h1>Contrato de Préstamo</h1>
-          <pre>${safeContent}</pre>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+    printHtmlContent(`Contrato - ${selectedClient.name}`, contractContent);
   };
 
   const handleSaveContractToDocuments = () => {
@@ -299,7 +282,9 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                 term,
                 frequency: createForm.frequency,
                 startDate: createForm.startDate,
+                startDate: createForm.startDate,
                 closingCosts,
+                amortizationType: createForm.amortizationType
               });
               setCreateModalOpen(false);
               setCreateForm({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '' });

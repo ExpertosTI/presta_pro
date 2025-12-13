@@ -238,4 +238,39 @@ router.post('/test-email', async (req, res) => {
     }
 });
 
+// POST /api/notifications/send-report
+router.post('/send-report', async (req, res) => {
+    try {
+        const { reportHtml, subject, toEmail } = req.body;
+        // Si no se especifica email, usar el del usuario o el del request si está disponible
+        // Nota: req.user debería tener email si authMiddleware lo popula. Si no, fallback.
+        const targetEmail = toEmail || (req.user && req.user.email);
+
+        if (!targetEmail) {
+            return res.status(400).json({ error: 'No se pudo determinar el destinatario. Proporcione un email.' });
+        }
+
+        const finalSubject = subject || `Reporte Asistente - ${new Date().toLocaleDateString()}`;
+
+        // Convert simple text to HTML-ish if needed, though reportHtml usually comes formatted
+        const htmlBody = `
+            <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #2563eb;">Reporte Generado por Asistente IA</h2>
+                <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; white-space: pre-wrap;">
+                    ${reportHtml}
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #64748b; font-size: 12px;">
+                    Enviado desde <strong>Presta Pro</strong>
+                </div>
+            </div>
+        `;
+
+        await emailService.sendEmail(targetEmail, finalSubject, htmlBody);
+        res.json({ success: true, message: `Reporte enviado a ${targetEmail}` });
+    } catch (error) {
+        console.error('Error sending report email:', error);
+        res.status(500).json({ error: 'Error al enviar el reporte por correo' });
+    }
+});
+
 module.exports = router;

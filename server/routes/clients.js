@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const authMiddleware = require('../middleware/authMiddleware');
-const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger'); // Asegúrate de tener este middleware o exportarlo desde index.js
+const { authMiddleware } = require('../middleware/authMiddleware');
+const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
 
 // Middleware para asegurar autenticación en todas las rutas de clientes
 // router.use(authMiddleware); 

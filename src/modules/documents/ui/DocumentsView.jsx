@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Card from '../../../shared/components/ui/Card';
+import { printHtmlContent } from '../../../shared/utils/printUtils';
 
 const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', selectedClientId, onSelectClient, clientDocuments, addClientDocument }) => {
   const hasClients = Array.isArray(clients) && clients.length > 0;
@@ -123,31 +124,7 @@ Firma PRESTATARIO: ______________________`
   const openTextDocumentAsPrint = (doc) => {
     const rawContent = doc?.content || '';
     if (!rawContent.trim()) return;
-
-    const safeTitle = (doc.title || 'Documento').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const safeContent = rawContent.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) return;
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${safeTitle}</title>
-          <style>
-            body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; }
-            pre { white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; }
-            h1 { text-align: center; margin-bottom: 24px; }
-          </style>
-        </head>
-        <body>
-          <h1>${safeTitle}</h1>
-          <pre>${safeContent}</pre>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+    printHtmlContent(doc.title || 'Documento', rawContent);
   };
 
   const getLastLoanForClient = (clientId) => {

@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
 const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
+const emailService = require('../services/emailService');
+
 // GET /api/payments - Obtener historial de pagos
 router.get('/', async (req, res) => {
     try {
@@ -102,6 +104,34 @@ router.post('/', async (req, res) => {
             details: { loanId, amount: finalAmount, penaltyAmount: finalPenalty, installmentId: installment?.id },
             ipAddress: req.ip
         });
+
+        // Enviar recibo por correo si el cliente tiene email
+        try {
+            const client = await prisma.client.findUnique({ where: { id: loan.clientId } });
+            const tenant = await prisma.tenant.findUnique({ where: { id: req.user.tenantId } });
+
+            if (client?.email) {
+                const pendingInstallments = updatedInstallments.filter(i => i.status !== 'PAID').length;
+                const totalBalance = updatedInstallments
+                    .filter(i => i.status !== 'PAID')
+                    .reduce((sum, i) => sum + (i.payment || 0), 0);
+
+                await emailService.sendPaymentConfirmation({
+                    to: client.email,
+                    tenantName: tenant?.name || 'Presta Pro',
+                    clientName: client.name,
+                    amount: finalAmount + finalPenalty,
+                    installmentNumber: installment?.number || installmentNumber || 0,
+                    date: newReceipt.date,
+                    receiptId: newReceipt.id,
+                    pendingInstallments,
+                    balance: totalBalance
+                });
+            }
+        } catch (emailError) {
+            console.error('Error sending receipt email:', emailError.message);
+            // No fallar el pago por error de email
+        }
 
         res.status(201).json(newReceipt);
     } catch (error) {

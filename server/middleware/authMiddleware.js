@@ -87,5 +87,13 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-module.exports = authMiddleware;
+const requireAdmin = (req, res, next) => {
+    if (!req.user || req.user.role !== 'admin') {
+        console.warn(`⛔ ACCESS_DENIED: Admin required. User: ${req.user?.userId || 'unknown'}, Role: ${req.user?.role || 'none'}, Tenant: ${req.tenantId || 'unknown'}`);
+        return res.status(403).json({ error: 'Acceso denegado. Se requieren permisos de administrador.' });
+    }
+    next();
+};
+
+module.exports = { authMiddleware, requireAdmin };
 

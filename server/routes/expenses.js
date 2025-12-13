@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
+const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
 
 // Note: authMiddleware applied at mount level in index.js
 
@@ -13,7 +14,7 @@ router.get('/', async (req, res) => {
         });
         res.json(expenses);
     } catch (error) {
-        console.error('Error fetching expenses:', error);
+        if (process.env.NODE_ENV !== 'production') console.error('Error fetching expenses:', error);
         res.status(500).json({ error: 'Error fetching expenses' });
     }
 });
@@ -33,9 +34,19 @@ router.post('/', async (req, res) => {
             }
         });
 
+        logAudit({
+            action: AUDIT_ACTIONS.EXPENSE_CREATED,
+            resource: 'expense',
+            resourceId: expense.id,
+            userId: req.user?.userId,
+            tenantId: req.tenantId,
+            details: { description, amount, category },
+            ipAddress: req.ip
+        });
+
         res.status(201).json(expense);
     } catch (error) {
-        console.error('Error creating expense:', error);
+        if (process.env.NODE_ENV !== 'production') console.error('Error creating expense:', error);
         res.status(500).json({ error: 'Error creating expense' });
     }
 });
@@ -49,11 +60,21 @@ router.delete('/:id', async (req, res) => {
             where: { id, tenantId: req.tenantId }
         });
 
+        logAudit({
+            action: AUDIT_ACTIONS.EXPENSE_DELETED,
+            resource: 'expense',
+            resourceId: id,
+            userId: req.user?.userId,
+            tenantId: req.tenantId,
+            ipAddress: req.ip
+        });
+
         res.json({ success: true });
     } catch (error) {
-        console.error('Error deleting expense:', error);
+        if (process.env.NODE_ENV !== 'production') console.error('Error deleting expense:', error);
         res.status(500).json({ error: 'Error deleting expense' });
     }
 });
 
 module.exports = router;
+

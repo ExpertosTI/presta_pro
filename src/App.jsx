@@ -17,7 +17,8 @@ import {
   Bell,
   X,
   CreditCard,
-  Rocket
+  Rocket,
+  Shield
 } from 'lucide-react';
 import {
   BarChart,
@@ -65,6 +66,12 @@ const HRView = React.lazy(() => import('./modules/employees').then(module => ({ 
 const AccountingView = React.lazy(() => import('./modules/accounting').then(module => ({ default: module.AccountingView })));
 const AIView = React.lazy(() => import('./modules/ai').then(module => ({ default: module.AIView })));
 const CalculatorView = React.lazy(() => import('./modules/tools').then(module => ({ default: module.CalculatorView })));
+
+// New Modules
+const NotificationsView = React.lazy(() => import('./modules/notifications').then(module => ({ default: module.NotificationsView })));
+const CollectorsModule = React.lazy(() => import('./modules/collectors').then(module => ({ default: module.CollectorsView }))); // Renamed to avoid confusion if needed
+const AdminDashboard = React.lazy(() => import('./modules/admin').then(module => ({ default: module.AdminDashboard })));
+const SubscriptionDashboard = React.lazy(() => import('./modules/subscriptions').then(module => ({ default: module.SubscriptionDashboard })));
 
 // Login View
 import { LoginView } from './modules/auth';
@@ -784,7 +791,13 @@ function App() {
           setActiveTab={setActiveTab}
         />;
       case 'pricing':
-        return <PricingView showToast={showToast} />;
+        return <SubscriptionDashboard showToast={showToast} />;
+      case 'notifications':
+        return <NotificationsView showToast={showToast} />;
+      case 'collectors-manage':
+        return <CollectorsModule showToast={showToast} />;
+      case 'admin-panel':
+        return <AdminDashboard showToast={showToast} />;
       default:
         return <DashboardView {...commonProps} />;
     }
@@ -850,7 +863,9 @@ function App() {
             <MenuItem id="reports" label="Reportes" icon={PieChart} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
             <MenuItem id="hr" label="RRHH" icon={UserCheck} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
             <MenuItem id="accounting" label="Contabilidad" icon={Wallet} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
-            <MenuItem id="pricing" label="Planes y Precios" icon={Rocket} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge="Pro" />
+            <MenuItem id="collectors-manage" label="Cobradores" icon={Users} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge="V2" />
+            <MenuItem id="admin-panel" label="Admin Panel" icon={Shield} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            <MenuItem id="pricing" label="Suscripción" icon={Rocket} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge="Pro" />
             <MenuItem id="settings" label="Configuración" icon={Settings} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
           </MenuSection>
         </Sidebar>
@@ -886,6 +901,7 @@ function App() {
           onLogout={handleLogout}
           notifications={notifications}
           onClearNotifications={() => setNotifications([])}
+          onNavigate={setActiveTab}
         />
 
         <main className="flex-1 overflow-auto p-4 md:p-6 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
-import { Shield, Lock, User, CheckCircle, Mail, Briefcase } from 'lucide-react';
+import { Shield, Lock, User, CheckCircle, Mail, Briefcase, RefreshCw } from 'lucide-react';
 import { jwtDecode } from "jwt-decode";
 import logo from '../../../../logo-small.svg';
 
@@ -21,6 +21,13 @@ export function LoginView({ onLogin }) {
 
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+
+    // Account expired state (for resend verification)
+    const [accountExpired, setAccountExpired] = useState(false);
+    const [expiredEmail, setExpiredEmail] = useState('');
+    const [expiredTenantName, setExpiredTenantName] = useState('');
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendSuccess, setResendSuccess] = useState(false);
 
     const handleCredentialLogin = async (e) => {
         e.preventDefault();
@@ -49,15 +56,59 @@ export function LoginView({ onLogin }) {
                     role: data.user.role,
                     tenantId: data.tenant.id
                 });
+            } else if (data.accountExpired) {
+                // Account expired - offer resend option
+                setAccountExpired(true);
+                setExpiredEmail(data.email);
+                setExpiredTenantName(data.tenantName || 'tu empresa');
+                setError('');
+                setLoading(false);
             } else {
                 setError(data.error || 'Credenciales inválidas');
                 setLoading(false);
             }
         } catch (err) {
             console.error('Login error:', err);
-            setError('Error de conexión con el servidor. Verifica que esté executando.');
+            setError('Error de conexión con el servidor. Verifica que esté ejecutando.');
             setLoading(false);
         }
+    };
+
+    const handleResendVerification = async () => {
+        setResendLoading(true);
+        setError('');
+        setResendSuccess(false);
+
+        try {
+            const response = await fetch('/api/tenants/resend-verification-public', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: expiredEmail })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                setResendSuccess(true);
+                setSuccessMsg('¡Correo enviado! Revisa tu bandeja de entrada para activar tu cuenta.');
+            } else {
+                setError(data.error || 'Error al enviar el correo de verificación');
+            }
+        } catch (err) {
+            console.error('Resend verification error:', err);
+            setError('Error de conexión con el servidor.');
+        } finally {
+            setResendLoading(false);
+        }
+    };
+
+    const handleBackToLogin = () => {
+        setAccountExpired(false);
+        setExpiredEmail('');
+        setExpiredTenantName('');
+        setResendSuccess(false);
+        setError('');
+        setSuccessMsg('');
     };
 
     const handleRegister = async (e) => {
@@ -180,7 +231,69 @@ export function LoginView({ onLogin }) {
                         </div>
                     )}
 
-                    {isRegistering ? (
+                    {accountExpired ? (
+                        /* Expired Account - Resend Verification UI */
+                        <div className="space-y-4 animate-fade-in">
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 mx-auto mb-4 bg-amber-500/20 rounded-full flex items-center justify-center">
+                                    <RefreshCw className="w-8 h-8 text-amber-400" />
+                                </div>
+                                <h3 className="text-white text-lg font-semibold mb-2">Cuenta Expirada</h3>
+                                <p className="text-slate-300 text-sm leading-relaxed">
+                                    La cuenta de <span className="text-blue-400 font-medium">{expiredTenantName}</span> expiró por falta de verificación.
+                                </p>
+                            </div>
+
+                            {error && (
+                                <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-sm text-center">
+                                    {error}
+                                </div>
+                            )}
+
+                            {!resendSuccess ? (
+                                <>
+                                    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                                        <p className="text-slate-400 text-sm mb-2">Correo de la cuenta:</p>
+                                        <p className="text-white font-medium">{expiredEmail}</p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleResendVerification}
+                                        disabled={resendLoading}
+                                        className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {resendLoading ? (
+                                            <>
+                                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                Enviando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Mail size={18} />
+                                                Reenviar Correo de Verificación
+                                            </>
+                                        )}
+                                    </button>
+                                </>
+                            ) : (
+                                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center">
+                                    <CheckCircle className="w-10 h-10 mx-auto text-emerald-400 mb-2" />
+                                    <p className="text-emerald-200 text-sm">
+                                        Revisa tu bandeja de entrada y haz clic en el enlace de verificación.
+                                    </p>
+                                </div>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={handleBackToLogin}
+                                className="w-full py-2.5 text-slate-400 hover:text-white font-medium bg-transparent hover:bg-slate-800/50 rounded-xl transition-colors border border-transparent hover:border-slate-700"
+                            >
+                                ← Volver al Login
+                            </button>
+                        </div>
+                    ) : isRegistering ? (
                         <div className="space-y-4 animate-fade-in">
                             <form onSubmit={handleRegister} className="space-y-4">
                                 <h3 className="text-white text-lg font-semibold text-center mb-2">Crear Nueva Cuenta</h3>

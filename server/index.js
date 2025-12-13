@@ -15,6 +15,8 @@ const { OAuth2Client } = require('google-auth-library');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { authMiddleware, requireAdmin } = require('./middleware/authMiddleware');
+const { initScheduler } = require('./jobs/scheduler');
 
 // Email Templates
 const {
@@ -70,7 +72,7 @@ const adminRouter = require('./routes/admin');
 
 
 // Importar middleware de autenticación
-const authMiddleware = require('./middleware/authMiddleware');
+// Middleware importado arriba (L18)
 
 const prisma = require('./lib/prisma');
 const { validatePassword, validateEmail } = require('./lib/securityUtils');
@@ -140,6 +142,13 @@ const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 5, // Solo 5 registros por IP por hora
   message: { error: 'Demasiados registros desde esta IP. Intenta en 1 hora.' },
+});
+
+// Rate limiting para reenvío público de verificación (estricto, sin auth)
+const publicResendLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5, // Solo 5 reenvíos por IP por hora
+  message: { error: 'Demasiadas solicitudes de reenvío. Intenta en 1 hora.' },
 });
 
 // --- SECURITY: Restrictive CORS for Production ---
@@ -231,14 +240,14 @@ app.use('/api/sync', authMiddleware, syncRouter);
 app.use('/api/subscriptions', authMiddleware, subscriptionsRouter);
 app.use('/api/settings', authMiddleware, settingsRouter);
 app.use('/api/expenses', authMiddleware, expensesRouter);
-app.use('/api/collectors', authMiddleware, collectorsRouter);
+app.use('/api/collectors', collectorsRouter); // Auth managed internally
 app.use('/api/employees', authMiddleware, employeesRouter);
 app.use('/api/notes', authMiddleware, notesRouter);
 app.use('/api/notifications', authMiddleware, notificationsRouter);
-app.use('/api/admin', authMiddleware, adminRouter);
+app.use('/api/admin', authMiddleware, requireAdmin, adminRouter);
 
-// Public endpoint for collector login (no auth required)
-app.post('/api/collectors/login', collectorsRouter);
+// Public endpoint for collector login (redundant if handled by router, removing to avoid confusion)
+// app.post('/api/collectors/login', collectorsRouter);
 
 // Configurar multer para upload de comprobantes
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -508,6 +517,80 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
   } catch (err) {
     console.error('TENANT_RESEND_VERIFY_ERROR', err);
     return res.status(500).json({ error: 'Error al reenviar el correo de verificación' });
+  }
+});
+
+// PUBLIC resend verification - for expired accounts (no auth required)
+app.post('/api/tenants/resend-verification-public', publicResendLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'Email es requerido' });
+    }
+
+    if (!mailer) {
+      return res.status(503).json({ error: 'Servicio de correo no está configurado' });
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      include: { tenant: true },
+    });
+
+    if (!user || !user.tenant) {
+      // Don't reveal if user exists for security
+      return res.json({ success: true, message: 'Si el correo existe, recibirás un enlace de verificación.' });
+    }
+
+    const tenant = user.tenant;
+
+    // If already verified, just return success (don't reveal status)
+    if (tenant.isVerified) {
+      return res.json({ success: true, message: 'Si el correo existe, recibirás un enlace de verificación.' });
+    }
+
+    // Generate new verification token (24 hours expiry)
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    const updatedTenant = await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: {
+        verificationToken,
+        verificationExpiresAt,
+      },
+    });
+
+    const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+    const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
+
+    if (!IS_PRODUCTION) {
+      console.log('📧 Enviando correo de verificación público para:', email);
+    }
+
+    // Send verification email
+    try {
+      await mailer.sendMail({
+        from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
+        to: email,
+        subject: `Reactivación de cuenta - ${BRAND_NAME}`,
+        text: `Hola,\n\nHemos recibido tu solicitud para reactivar la cuenta de ${updatedTenant.name}.\n\nHaz clic en el siguiente enlace para activar tu cuenta (válido por 24 horas):\n${verifyUrl}\n\nSi no solicitaste este correo, puedes ignorarlo de forma segura.`,
+        html: getResendVerificationEmail(updatedTenant.name, verifyUrl),
+      });
+      if (!IS_PRODUCTION) {
+        console.log('✅ Correo de verificación público enviado exitosamente');
+      }
+    } catch (err) {
+      console.error('❌ MAIL_PUBLIC_RESEND_VERIFY_ERROR', err.message);
+      return res.status(500).json({ error: 'No se pudo enviar el correo de verificación' });
+    }
+
+    return res.json({ success: true, message: 'Se ha enviado un nuevo correo de verificación.' });
+  } catch (err) {
+    console.error('TENANT_PUBLIC_RESEND_VERIFY_ERROR', err);
+    return res.status(500).json({ error: 'Error al procesar la solicitud' });
   }
 });
 
@@ -1054,7 +1137,13 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     if (!tenant.isVerified) {
       const expiresAt = tenant.verificationExpiresAt;
       if (expiresAt && expiresAt < new Date()) {
-        return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
+        // Account expired due to lack of verification - return flag so frontend can offer resend
+        return res.status(403).json({
+          error: 'La cuenta ha expirado por falta de verificación. Puedes solicitar un nuevo correo de verificación.',
+          accountExpired: true,
+          email: user.email,
+          tenantName: tenant.name
+        });
       }
       // Si no está verificado pero no ha expirado, permitimos el login temporalmente
     }
@@ -1710,4 +1799,11 @@ app.post('/api/admin/payments/:id/reject', authMiddleware, adminMiddleware, asyn
 
 app.listen(PORT, () => {
   console.log(`API server running on port ${PORT}`);
+
+  // Initialize scheduled jobs in production
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_CRON === 'true') {
+    initScheduler();
+  } else {
+    console.log('ℹ️ Cron jobs disabled in development. Set ENABLE_CRON=true to enable.');
+  }
 });

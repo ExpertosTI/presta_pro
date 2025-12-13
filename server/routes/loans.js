@@ -4,7 +4,8 @@ const prisma = require('../lib/prisma');
 const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
 
 // --- Helper: Calculate amortization schedule ---
-function calculateSchedule(amount, rate, term, frequency, startDate) {
+// --- Helper: Calculate amortization schedule ---
+function calculateSchedule(amount, rate, term, frequency, startDate, amortizationType = 'FRENCH') {
     const schedule = [];
     const principalAmount = parseFloat(amount) || 0;
     let balance = principalAmount;
@@ -15,31 +16,40 @@ function calculateSchedule(amount, rate, term, frequency, startDate) {
     let daysPerPeriod = 30;
 
     switch (frequency) {
-        case 'Diario':
-            periodsPerYear = 365;
-            daysPerPeriod = 1;
-            break;
-        case 'Semanal':
-            periodsPerYear = 52;
-            daysPerPeriod = 7;
-            break;
-        case 'Quincenal':
-            periodsPerYear = 24;
-            daysPerPeriod = 15;
-            break;
-        case 'Mensual':
-            periodsPerYear = 12;
-            daysPerPeriod = 30;
-            break;
-        default:
-            periodsPerYear = 12;
+        case 'Diario': periodsPerYear = 365; daysPerPeriod = 1; break;
+        case 'Semanal': periodsPerYear = 52; daysPerPeriod = 7; break;
+        case 'Quincenal': periodsPerYear = 24; daysPerPeriod = 15; break;
+        case 'Mensual': periodsPerYear = 12; daysPerPeriod = 30; break;
+        default: periodsPerYear = 12;
     }
 
-    if (!principalAmount || !totalTerms) return [];
+    if (!principalAmount || (!totalTerms && amortizationType !== 'OPEN')) return [];
 
     const ratePerPeriod = annualRate / periodsPerYear;
     let pmt = 0;
+    let currentDate = new Date(startDate);
 
+    // Interest Only Logic
+    if (amortizationType === 'INTEREST_ONLY') {
+        const interestPayment = parseFloat((principalAmount * ratePerPeriod).toFixed(2));
+        pmt = interestPayment;
+
+        for (let i = 1; i <= totalTerms; i++) {
+            currentDate.setDate(currentDate.getDate() + daysPerPeriod);
+            schedule.push({
+                number: i,
+                date: new Date(currentDate),
+                payment: pmt,
+                interest: interestPayment,
+                principal: 0,
+                balance: principalAmount,
+                status: 'PENDING'
+            });
+        }
+        return schedule;
+    }
+
+    // French Logic
     if (ratePerPeriod === 0) {
         pmt = principalAmount / totalTerms;
     } else {
@@ -48,12 +58,16 @@ function calculateSchedule(amount, rate, term, frequency, startDate) {
 
     pmt = parseFloat(pmt.toFixed(2));
 
-    let currentDate = new Date(startDate);
-
     for (let i = 1; i <= totalTerms; i++) {
         const rawInterest = balance * ratePerPeriod;
         const interest = parseFloat(rawInterest.toFixed(2));
-        const principal = parseFloat((pmt - interest).toFixed(2));
+        let principal = parseFloat((pmt - interest).toFixed(2));
+
+        if (i === totalTerms) {
+            principal = balance;
+            pmt = principal + interest;
+        }
+
         balance = parseFloat((balance - principal).toFixed(2));
         if (balance < 0) balance = 0;
 
@@ -62,7 +76,7 @@ function calculateSchedule(amount, rate, term, frequency, startDate) {
         schedule.push({
             number: i,
             date: new Date(currentDate),
-            payment: pmt,
+            payment: parseFloat(pmt.toFixed(2)),
             interest,
             principal,
             balance,
@@ -127,7 +141,7 @@ router.get('/', async (req, res) => {
 // POST /api/loans - Crear préstamo
 router.post('/', async (req, res) => {
     try {
-        const { clientId, amount, rate, term, frequency, startDate, schedule: providedSchedule, closingCosts } = req.body;
+        const { clientId, amount, rate, term, frequency, startDate, schedule: providedSchedule, closingCosts, amortizationType } = req.body;
 
         if (!clientId || !amount || !rate || !term || !frequency || !startDate) {
             return res.status(400).json({ error: 'Faltan datos obligatorios (clientId, amount, rate, term, frequency, startDate)' });
@@ -150,7 +164,7 @@ router.post('/', async (req, res) => {
         // Calculate schedule if not provided - use totalForSchedule
         const schedule = providedSchedule && Array.isArray(providedSchedule) && providedSchedule.length > 0
             ? providedSchedule
-            : calculateSchedule(totalForSchedule, rate, term, frequency, startDate);
+            : calculateSchedule(totalForSchedule, rate, term, frequency, startDate, amortizationType);
 
         const totalInterest = schedule.reduce((acc, item) => acc + (item.interest || 0), 0);
 
