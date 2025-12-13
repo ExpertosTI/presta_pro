@@ -128,6 +128,9 @@ function App() {
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
 
+  // Delete confirmation modal state
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState(null); // { type: 'client'|'employee', item: object }
+
   // Data State - load systemSettings from localStorage if available
   const [dbData, setDbData] = useState(() => {
     const savedSettings = localStorage.getItem('systemSettings');
@@ -656,16 +659,8 @@ function App() {
             setClientModalOpen(true);
           }}
           addClientDocument={handleAddClientDocument}
-          onDeleteClient={async (client) => {
-            if (!window.confirm(`¿Eliminar a ${client.name}? Esta acción no se puede deshacer.`)) return;
-            try {
-              await clientService.delete(client.id);
-              setDbData(p => ({ ...p, clients: p.clients.filter(c => c.id !== client.id) }));
-              setSelectedClientId(null);
-              showToast('Cliente eliminado', 'success');
-            } catch (e) {
-              showToast(e.response?.data?.error || 'Error eliminando cliente', 'error');
-            }
+          onDeleteClient={(client) => {
+            setDeleteConfirmModal({ type: 'client', item: client });
           }}
         />;
       case 'loans':
@@ -771,15 +766,8 @@ function App() {
             setEditingEmployee(emp);
             setEmployeeModalOpen(true);
           }}
-          onDeleteEmployee={async (emp) => {
-            if (!window.confirm(`¿Eliminar a ${emp.name}? Esta acción no se puede deshacer.`)) return;
-            try {
-              await employeeService.delete(emp.id);
-              setDbData(p => ({ ...p, employees: p.employees.filter(e => e.id !== emp.id) }));
-              showToast('Empleado eliminado', 'success');
-            } catch (e) {
-              showToast(e.response?.data?.error || 'Error eliminando empleado', 'error');
-            }
+          onDeleteEmployee={(emp) => {
+            setDeleteConfirmModal({ type: 'employee', item: emp });
           }}
         />;
       case 'accounting':
@@ -1074,6 +1062,51 @@ function App() {
         ownerName={dbData.systemSettings?.ownerDisplayName}
         companyName={dbData.systemSettings?.companyName}
       />
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-3">
+              Confirmar Eliminación
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              ¿Eliminar a <strong>{deleteConfirmModal.item?.name}</strong>? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmModal(null)}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  const { type, item } = deleteConfirmModal;
+                  try {
+                    if (type === 'client') {
+                      await clientService.delete(item.id);
+                      setDbData(p => ({ ...p, clients: p.clients.filter(c => c.id !== item.id) }));
+                      setSelectedClientId(null);
+                      showToast('Cliente eliminado', 'success');
+                    } else if (type === 'employee') {
+                      await employeeService.delete(item.id);
+                      setDbData(p => ({ ...p, employees: p.employees.filter(e => e.id !== item.id) }));
+                      showToast('Empleado eliminado', 'success');
+                    }
+                  } catch (e) {
+                    showToast(e.response?.data?.error || `Error eliminando ${type === 'client' ? 'cliente' : 'empleado'}`, 'error');
+                  }
+                  setDeleteConfirmModal(null);
+                }}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-rose-600 text-white hover:bg-rose-500"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation for Mobile */}
       <BottomNav

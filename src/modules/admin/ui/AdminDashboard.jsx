@@ -56,33 +56,47 @@ export function AdminDashboard({ showToast }) {
         }
     };
 
-    const handleSuspendTenant = async (id) => {
-        const reason = prompt('Razón de suspensión:');
-        if (!reason) return;
+    // Modal states for custom dialogs
+    const [suspendModal, setSuspendModal] = useState(null);
+    const [suspendReason, setSuspendReason] = useState('');
+    const [activateModal, setActivateModal] = useState(null);
+    const [verifyModal, setVerifyModal] = useState(null);
+    const [rejectModal, setRejectModal] = useState(null);
+    const [rejectReason, setRejectReason] = useState('');
+
+    const handleSuspendTenant = (id) => {
+        setSuspendModal(id);
+        setSuspendReason('');
+    };
+
+    const confirmSuspendTenant = async () => {
+        if (!suspendModal || !suspendReason.trim()) return;
         try {
-            await adminService.suspendTenant(id, reason);
+            await adminService.suspendTenant(suspendModal, suspendReason);
             showToast?.('Empresa suspendida', 'success');
+            setSuspendModal(null);
+            setSuspendReason('');
             loadData();
         } catch (e) {
             showToast?.('Error suspendiendo', 'error');
         }
     };
 
-    const handleActivateTenant = async (id) => {
-        if (!confirm('¿Activar esta empresa?')) return;
+    const handleActivateTenant = (id) => {
+        setActivateModal(id);
+    };
+
+    const confirmActivateTenant = async () => {
+        if (!activateModal) return;
         try {
-            await adminService.activateTenant(id);
+            await adminService.activateTenant(activateModal);
             showToast?.('Empresa activada', 'success');
+            setActivateModal(null);
             loadData();
         } catch (e) {
             showToast?.('Error activando', 'error');
         }
     };
-
-    // Modal states for custom dialogs
-    const [verifyModal, setVerifyModal] = useState(null);
-    const [rejectModal, setRejectModal] = useState(null);
-    const [rejectReason, setRejectReason] = useState('');
 
     const handleVerifyPayment = async (id) => {
         setVerifyModal(id);
@@ -445,6 +459,70 @@ export function AdminDashboard({ showToast }) {
                                 className="flex-1 py-2.5 rounded-lg font-semibold bg-rose-600 text-white hover:bg-rose-500 disabled:opacity-50"
                             >
                                 Rechazar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Suspend Tenant Modal */}
+            {suspendModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
+                            Suspender Empresa
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 mb-3">
+                            Indica la razón para suspender esta empresa:
+                        </p>
+                        <input
+                            type="text"
+                            value={suspendReason}
+                            onChange={(e) => setSuspendReason(e.target.value)}
+                            placeholder="Ej: Falta de pago"
+                            className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-amber-500 outline-none mb-4"
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setSuspendModal(null); setSuspendReason(''); }}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmSuspendTenant}
+                                disabled={!suspendReason.trim()}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50"
+                            >
+                                Suspender
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Activate Tenant Modal */}
+            {activateModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
+                            Activar Empresa
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 mb-6">
+                            ¿Confirmas que deseas activar esta empresa?
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setActivateModal(null)}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmActivateTenant}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-500"
+                            >
+                                Activar
                             </button>
                         </div>
                     </div>
