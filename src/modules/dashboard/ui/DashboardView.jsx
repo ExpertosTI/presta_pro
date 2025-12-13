@@ -343,7 +343,11 @@ export default function DashboardView({
                     ) : (
                         <ul className="space-y-2 max-h-48 overflow-y-auto">
                             {overdueInstallments.slice(0, 5).map((inst, idx) => (
-                                <li key={`${inst.loanId}-${inst.id}-${idx}`} className="flex items-center justify-between p-2 bg-rose-50 dark:bg-rose-900/20 rounded-lg">
+                                <li
+                                    key={`${inst.loanId}-${inst.id}-${idx}`}
+                                    className="flex items-center justify-between p-2 bg-rose-50 dark:bg-rose-900/20 rounded-lg cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-800/30 transition-colors"
+                                    onClick={() => onNavigate && onNavigate('loans', { loanId: inst.loanId, clientId: inst.clientId })}
+                                >
                                     <div className="flex items-center gap-2">
                                         <AlertTriangle size={14} className="text-rose-500" />
                                         <div>
@@ -351,7 +355,10 @@ export default function DashboardView({
                                             <p className="text-xs text-slate-500">Cuota #{inst.number} • {inst.daysOverdue} días vencida</p>
                                         </div>
                                     </div>
-                                    <span className="text-sm font-bold text-rose-600">{formatCurrency(inst.payment)}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-rose-600">{formatCurrency(inst.payment)}</span>
+                                        <ChevronRight size={14} className="text-slate-400" />
+                                    </div>
                                 </li>
                             ))}
                         </ul>
@@ -379,12 +386,19 @@ export default function DashboardView({
                     ) : (
                         <ul className="space-y-2 max-h-48 overflow-y-auto">
                             {dueToday.map((inst, idx) => (
-                                <li key={`${inst.loanId}-${inst.id}-${idx}`} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <li
+                                    key={`${inst.loanId}-${inst.id}-${idx}`}
+                                    className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors"
+                                    onClick={() => onNavigate && onNavigate('loans', { loanId: inst.loanId, clientId: inst.clientId })}
+                                >
                                     <div>
                                         <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{inst.clientName}</p>
                                         <p className="text-xs text-slate-500">Cuota #{inst.number}</p>
                                     </div>
-                                    <span className="text-sm font-bold text-blue-600">{formatCurrency(inst.payment)}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-blue-600">{formatCurrency(inst.payment)}</span>
+                                        <ChevronRight size={14} className="text-slate-400" />
+                                    </div>
                                 </li>
                             ))}
                         </ul>
