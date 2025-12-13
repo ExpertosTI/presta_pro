@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency } from '../../../shared/utils/formatters';
+import { Users } from 'lucide-react';
 
 const getStatusLabel = (status) => {
   const map = {
@@ -25,7 +26,10 @@ export function ClientsView({ clients, loans, onNewClient, selectedClientId, onS
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Clientes</h2>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <Users className="w-6 h-6 text-blue-600" />
+          Clientes
+        </h2>
         <button onClick={onNewClient} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
           Nuevo Cliente
         </button>

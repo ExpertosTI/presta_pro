@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency, formatDateTime } from '../../../shared/utils/formatters';
+import { Wallet } from 'lucide-react';
 
 export function ExpensesView({ expenses, addExpense }) {
   const [form, setForm] = useState({ concept: '', amount: '' });
@@ -13,7 +14,10 @@ export function ExpensesView({ expenses, addExpense }) {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Gastos</h2>
+      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+        <Wallet className="w-6 h-6 text-emerald-600" />
+        Gastos
+      </h2>
 
       <Card>
         <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-slate-100">Registrar Gasto</h3>
