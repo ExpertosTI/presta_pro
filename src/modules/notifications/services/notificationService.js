@@ -10,7 +10,7 @@ import axiosInstance from '../../../services/api';
  */
 export const getNotifications = async () => {
     const response = await axiosInstance.get('/notifications');
-    return response.data;
+    return response; // axiosInstance already unwraps .data
 };
 
 /**
@@ -18,7 +18,7 @@ export const getNotifications = async () => {
  */
 export const markAsRead = async (notificationId) => {
     const response = await axiosInstance.post(`/notifications/${notificationId}/read`);
-    return response.data;
+    return response;
 };
 
 /**
@@ -26,7 +26,7 @@ export const markAsRead = async (notificationId) => {
  */
 export const markAllAsRead = async () => {
     const response = await axiosInstance.post('/notifications/read-all');
-    return response.data;
+    return response;
 };
 
 /**
@@ -34,7 +34,7 @@ export const markAllAsRead = async () => {
  */
 export const deleteNotification = async (notificationId) => {
     const response = await axiosInstance.delete(`/notifications/${notificationId}`);
-    return response.data;
+    return response;
 };
 
 /**
@@ -42,7 +42,7 @@ export const deleteNotification = async (notificationId) => {
  */
 export const getEmailPreferences = async () => {
     const response = await axiosInstance.get('/notifications/preferences');
-    return response.data;
+    return response;
 };
 
 /**
@@ -50,7 +50,7 @@ export const getEmailPreferences = async () => {
  */
 export const updateEmailPreferences = async (preferences) => {
     const response = await axiosInstance.put('/notifications/preferences', preferences);
-    return response.data;
+    return response;
 };
 
 /**
@@ -58,7 +58,7 @@ export const updateEmailPreferences = async (preferences) => {
  */
 export const sendTestEmail = async (email) => {
     const response = await axiosInstance.post('/notifications/test-email', { email });
-    return response.data;
+    return response;
 };
 
 export default {

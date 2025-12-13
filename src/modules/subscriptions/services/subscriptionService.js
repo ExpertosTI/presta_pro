@@ -10,7 +10,7 @@ import axiosInstance from '../../../services/api';
  */
 export const getMySubscription = async () => {
     const response = await axiosInstance.get('/subscriptions/my-subscription');
-    return response.data;
+    return response;
 };
 
 /**
@@ -18,7 +18,7 @@ export const getMySubscription = async () => {
  */
 export const getPlans = async () => {
     const response = await axiosInstance.get('/subscriptions/plans');
-    return response.data;
+    return response;
 };
 
 /**
@@ -26,7 +26,7 @@ export const getPlans = async () => {
  */
 export const createPaymentIntent = async (planId, interval) => {
     const response = await axiosInstance.post('/subscriptions/create-intent', { planId, interval });
-    return response.data;
+    return response;
 };
 
 /**
@@ -36,7 +36,7 @@ export const uploadPaymentProof = async (formData) => {
     const response = await axiosInstance.post('/subscriptions/upload-proof', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     });
-    return response.data;
+    return response;
 };
 
 /**
@@ -44,7 +44,7 @@ export const uploadPaymentProof = async (formData) => {
  */
 export const cancelSubscription = async () => {
     const response = await axiosInstance.post('/subscriptions/cancel');
-    return response.data;
+    return response;
 };
 
 export default {

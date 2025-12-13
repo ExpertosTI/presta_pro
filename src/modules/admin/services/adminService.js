@@ -10,7 +10,7 @@ import axiosInstance from '../../../services/api';
  */
 export const getDashboard = async () => {
     const response = await axiosInstance.get('/admin/dashboard');
-    return response.data;
+    return response;
 };
 
 /**
@@ -18,7 +18,7 @@ export const getDashboard = async () => {
  */
 export const getTenants = async (params = {}) => {
     const response = await axiosInstance.get('/admin/tenants', { params });
-    return response.data;
+    return response;
 };
 
 /**
@@ -26,7 +26,7 @@ export const getTenants = async (params = {}) => {
  */
 export const getTenantDetails = async (id) => {
     const response = await axiosInstance.get(`/admin/tenants/${id}`);
-    return response.data;
+    return response;
 };
 
 /**
@@ -34,7 +34,7 @@ export const getTenantDetails = async (id) => {
  */
 export const suspendTenant = async (id, reason) => {
     const response = await axiosInstance.post(`/admin/tenants/${id}/suspend`, { reason });
-    return response.data;
+    return response;
 };
 
 /**
@@ -42,7 +42,7 @@ export const suspendTenant = async (id, reason) => {
  */
 export const activateTenant = async (id) => {
     const response = await axiosInstance.post(`/admin/tenants/${id}/activate`);
-    return response.data;
+    return response;
 };
 
 /**
@@ -50,7 +50,7 @@ export const activateTenant = async (id) => {
  */
 export const updateTenantNotes = async (id, notes, tags) => {
     const response = await axiosInstance.put(`/admin/tenants/${id}/notes`, { notes, tags });
-    return response.data;
+    return response;
 };
 
 /**
@@ -58,7 +58,7 @@ export const updateTenantNotes = async (id, notes, tags) => {
  */
 export const getPendingPayments = async () => {
     const response = await axiosInstance.get('/admin/payments/pending');
-    return response.data;
+    return response;
 };
 
 /**
@@ -66,7 +66,7 @@ export const getPendingPayments = async () => {
  */
 export const verifyPayment = async (id, notes) => {
     const response = await axiosInstance.post(`/admin/payments/${id}/verify`, { notes });
-    return response.data;
+    return response;
 };
 
 /**
@@ -74,7 +74,7 @@ export const verifyPayment = async (id, notes) => {
  */
 export const rejectPayment = async (id, reason) => {
     const response = await axiosInstance.post(`/admin/payments/${id}/reject`, { reason });
-    return response.data;
+    return response;
 };
 
 /**
@@ -82,7 +82,7 @@ export const rejectPayment = async (id, reason) => {
  */
 export const getLogs = async (params = {}) => {
     const response = await axiosInstance.get('/admin/logs', { params });
-    return response.data;
+    return response;
 };
 
 export default {

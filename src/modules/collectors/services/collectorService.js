@@ -10,7 +10,7 @@ import axiosInstance from '../../../services/api';
  */
 export const getCollectors = async () => {
     const response = await axiosInstance.get('/collectors');
-    return response.data;
+    return response;
 };
 
 /**
@@ -18,7 +18,7 @@ export const getCollectors = async () => {
  */
 export const createCollector = async (data) => {
     const response = await axiosInstance.post('/collectors', data);
-    return response.data;
+    return response;
 };
 
 /**
@@ -26,7 +26,7 @@ export const createCollector = async (data) => {
  */
 export const updateCollector = async (id, data) => {
     const response = await axiosInstance.put(`/collectors/${id}`, data);
-    return response.data;
+    return response;
 };
 
 /**
@@ -34,7 +34,7 @@ export const updateCollector = async (id, data) => {
  */
 export const updatePermissions = async (id, permissions) => {
     const response = await axiosInstance.put(`/collectors/${id}/permissions`, { permissions });
-    return response.data;
+    return response;
 };
 
 /**
@@ -42,7 +42,7 @@ export const updatePermissions = async (id, permissions) => {
  */
 export const resetPassword = async (id) => {
     const response = await axiosInstance.post(`/collectors/${id}/reset-password`);
-    return response.data;
+    return response;
 };
 
 /**
@@ -50,7 +50,7 @@ export const resetPassword = async (id) => {
  */
 export const deleteCollector = async (id) => {
     const response = await axiosInstance.delete(`/collectors/${id}`);
-    return response.data;
+    return response;
 };
 
 /**
@@ -58,7 +58,7 @@ export const deleteCollector = async (id) => {
  */
 export const getActivity = async (id, page = 1, limit = 50) => {
     const response = await axiosInstance.get(`/collectors/${id}/activity`, { params: { page, limit } });
-    return response.data;
+    return response;
 };
 
 /**
@@ -66,7 +66,7 @@ export const getActivity = async (id, page = 1, limit = 50) => {
  */
 export const assignClients = async (collectorId, clientIds) => {
     const response = await axiosInstance.post(`/collectors/${collectorId}/assign-clients`, { clientIds });
-    return response.data;
+    return response;
 };
 
 /**
@@ -74,7 +74,7 @@ export const assignClients = async (collectorId, clientIds) => {
  */
 export const unassignClients = async (collectorId, clientIds = []) => {
     const response = await axiosInstance.post(`/collectors/${collectorId}/unassign-clients`, { clientIds });
-    return response.data;
+    return response;
 };
 
 export default {
