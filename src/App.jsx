@@ -656,6 +656,17 @@ function App() {
             setClientModalOpen(true);
           }}
           addClientDocument={handleAddClientDocument}
+          onDeleteClient={async (client) => {
+            if (!window.confirm(`¿Eliminar a ${client.name}? Esta acción no se puede deshacer.`)) return;
+            try {
+              await clientService.delete(client.id);
+              setDbData(p => ({ ...p, clients: p.clients.filter(c => c.id !== client.id) }));
+              setSelectedClientId(null);
+              showToast('Cliente eliminado', 'success');
+            } catch (e) {
+              showToast(e.response?.data?.error || 'Error eliminando cliente', 'error');
+            }
+          }}
         />;
       case 'loans':
         return <LoansView
@@ -809,7 +820,7 @@ function App() {
       case 'notifications':
         return <NotificationsView showToast={showToast} />;
       case 'collectors-manage':
-        return <CollectorsModule showToast={showToast} />;
+        return <CollectorsModule showToast={showToast} clients={dbData.clients} />;
       case 'admin-panel':
         return <AdminDashboard showToast={showToast} />;
       default:
