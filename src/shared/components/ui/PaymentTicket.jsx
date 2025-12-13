@@ -47,69 +47,78 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
 
   return (
     <>
-      {/* Print-only version (hidden on screen) */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[100] p-4 font-mono text-black text-xs leading-tight">
-        <div className="max-w-[80mm] mx-auto text-center">
-          <h1 className="text-xl font-bold mb-1">{displayCompanyName}</h1>
-          <p className="mb-2">RNC: 101-00000-1</p>
-          <p className="mb-4 border-b border-black pb-2">RECIBO DE INGRESO</p>
-
-          <div className="text-left mb-2">
-            <p><strong>Recibo #:</strong> {receipt.id.substr(0, 8).toUpperCase()}</p>
-            <p><strong>Fecha:</strong> {formatDateTime(receipt.date)}</p>
-            <p><strong>Cliente:</strong> {receipt.clientName}</p>
-            <p><strong>Préstamo ID:</strong> {receipt.loanId.substr(0, 6).toUpperCase()}</p>
+      {/* Print-only version for 58mm thermal printer (48mm printable width) */}
+      <div className="hidden print:block fixed inset-0 bg-white z-[100] p-1 font-mono text-black" style={{ fontSize: '9px', lineHeight: '1.2' }}>
+        <div style={{ maxWidth: '48mm', margin: '0 auto' }}>
+          {/* Header */}
+          <div className="text-center border-b border-black pb-1 mb-1">
+            <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{displayCompanyName}</div>
+            <div style={{ fontSize: '8px' }}>COMPROBANTE DE PAGO</div>
+            <div style={{ fontSize: '7px' }}>Ref: {receipt.id.substr(0, 12).toUpperCase()}</div>
+            <div style={{ fontSize: '7px' }}>{formatDateTime(receipt.date)}</div>
           </div>
 
-          <div className="border-y border-black py-2 my-2 text-left">
-            {hasMultipleInstallments ? (
-              <>
-                <p className="font-bold mb-1 text-center border-b border-dashed pb-1">DESGLOSE DE ABONOS</p>
-                {receipt.paidInstallments.map((inst, idx) => (
-                  <div key={idx} className="mb-1 py-1 border-b border-dotted border-gray-300">
-                    <div className="flex justify-between font-semibold">
-                      <span>Cuota #{inst.number}:</span>
-                      <span>{formatCurrency(inst.amount)}</span>
-                    </div>
-                  </div>
-                ))}
-                <div className="flex justify-between mt-2 font-bold">
-                  <span>Subtotal:</span>
-                  <span>{formatCurrency(receipt.amount)}</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <p><strong>{receipt.concept || (receipt.isPartialPayment ? `Abono a Cuota #${receipt.installmentNumber}` : `Cuota #${receipt.installmentNumber}`)}</strong></p>
-                <div className="flex justify-between mt-1">
-                  <span>Monto:</span>
-                  <span>{formatCurrency(receipt.amount)}</span>
-                </div>
-              </>
-            )}
+          {/* Client */}
+          <div style={{ borderBottom: '1px dashed #000', paddingBottom: '2px', marginBottom: '2px' }}>
+            <div style={{ fontWeight: 'bold' }}>CLIENTE</div>
+            <div>{receipt.clientName}</div>
+            <div style={{ fontSize: '8px' }}>{receipt.clientPhone || ''}</div>
+          </div>
 
-            {hasPenalty && (
-              <div className="flex justify-between text-red-600 mt-1">
-                <span>Mora:</span>
-                <span>{formatCurrency(receipt.penalty)}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between font-bold text-sm mt-2 border-t-2 border-black pt-2">
-              <span>TOTAL:</span>
-              <span>{formatCurrency(receipt.total || (receipt.amount + (receipt.penalty || 0)))}</span>
+          {/* Loan Summary */}
+          <div style={{ borderBottom: '1px dashed #000', paddingBottom: '2px', marginBottom: '2px' }}>
+            <div style={{ fontWeight: 'bold' }}>PRÉSTAMO</div>
+            <div className="flex justify-between">
+              <span>Capital</span>
+              <span>{formatCurrency(receipt.loanAmount || 0)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Cuota(s) Pagada(s)</span>
+              <span>#{receipt.installmentNumber || 1}</span>
+            </div>
+            <div className="flex justify-between" style={{ marginTop: '2px', borderTop: '1px dotted #ccc', paddingTop: '2px' }}>
+              <span>Saldo Restante</span>
+              <span style={{ fontWeight: 'bold' }}>{formatCurrency(receipt.remainingBalance || 0)}</span>
             </div>
           </div>
 
-          <div className="text-left mb-4">
-            <p><strong>Cobrador:</strong> {receipt.collectorName || 'Admin'}</p>
-            {receipt.remainingBalance !== undefined && (
-              <p><strong>Saldo:</strong> {formatCurrency(receipt.remainingBalance)}</p>
+          {/* Payment Details */}
+          <div style={{ borderBottom: '1px dashed #000', paddingBottom: '2px', marginBottom: '2px' }}>
+            <div style={{ fontWeight: 'bold' }}>DETALLE</div>
+            {hasMultipleInstallments ? (
+              <>
+                {receipt.paidInstallments.map((inst, idx) => (
+                  <div key={idx} className="flex justify-between">
+                    <span>Cuota #{inst.number}</span>
+                    <span>{formatCurrency(inst.amount)}</span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div className="flex justify-between">
+                <span>{receipt.isPartialPayment ? `Abono #${receipt.installmentNumber}` : `Cuota #${receipt.installmentNumber}`}</span>
+                <span>{formatCurrency(receipt.amount)}</span>
+              </div>
+            )}
+            {hasPenalty && (
+              <div className="flex justify-between">
+                <span>Mora</span>
+                <span>{formatCurrency(receipt.penalty)}</span>
+              </div>
             )}
           </div>
 
-          <div className="text-center mt-4">
-            <p className="text-[10px]">¡Gracias por su pago!</p>
+          {/* Total */}
+          <div className="text-center" style={{ padding: '4px 0', borderBottom: '2px solid #000', marginBottom: '4px' }}>
+            <div style={{ fontSize: '8px' }}>TOTAL PAGADO</div>
+            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{formatCurrency(receipt.total || (receipt.amount + (receipt.penalty || 0)))}</div>
+            <div style={{ fontSize: '7px' }}>{receipt.isPartialPayment ? 'ABONO A CUOTA' : 'PAGO DE PRÉSTAMO'}</div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center" style={{ fontSize: '7px' }}>
+            <div style={{ fontWeight: 'bold' }}>¡Gracias por su pago!</div>
+            <div style={{ color: '#666' }}>Conserve este comprobante</div>
           </div>
         </div>
       </div>
