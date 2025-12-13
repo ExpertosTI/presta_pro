@@ -9,7 +9,7 @@ import axiosInstance from '../../../services/api';
  * Get admin dashboard stats
  */
 export const getDashboard = async () => {
-    const response = await axiosInstance.get('/api/admin/dashboard');
+    const response = await axiosInstance.get('/admin/dashboard');
     return response.data;
 };
 
@@ -17,7 +17,7 @@ export const getDashboard = async () => {
  * Get all tenants
  */
 export const getTenants = async (params = {}) => {
-    const response = await axiosInstance.get('/api/admin/tenants', { params });
+    const response = await axiosInstance.get('/admin/tenants', { params });
     return response.data;
 };
 
@@ -25,7 +25,7 @@ export const getTenants = async (params = {}) => {
  * Get tenant details
  */
 export const getTenantDetails = async (id) => {
-    const response = await axiosInstance.get(`/api/admin/tenants/${id}`);
+    const response = await axiosInstance.get(`/admin/tenants/${id}`);
     return response.data;
 };
 
@@ -33,7 +33,7 @@ export const getTenantDetails = async (id) => {
  * Suspend tenant
  */
 export const suspendTenant = async (id, reason) => {
-    const response = await axiosInstance.post(`/api/admin/tenants/${id}/suspend`, { reason });
+    const response = await axiosInstance.post(`/admin/tenants/${id}/suspend`, { reason });
     return response.data;
 };
 
@@ -41,7 +41,7 @@ export const suspendTenant = async (id, reason) => {
  * Activate tenant
  */
 export const activateTenant = async (id) => {
-    const response = await axiosInstance.post(`/api/admin/tenants/${id}/activate`);
+    const response = await axiosInstance.post(`/admin/tenants/${id}/activate`);
     return response.data;
 };
 
@@ -49,7 +49,7 @@ export const activateTenant = async (id) => {
  * Update tenant notes
  */
 export const updateTenantNotes = async (id, notes, tags) => {
-    const response = await axiosInstance.put(`/api/admin/tenants/${id}/notes`, { notes, tags });
+    const response = await axiosInstance.put(`/admin/tenants/${id}/notes`, { notes, tags });
     return response.data;
 };
 
@@ -57,7 +57,7 @@ export const updateTenantNotes = async (id, notes, tags) => {
  * Get pending payments
  */
 export const getPendingPayments = async () => {
-    const response = await axiosInstance.get('/api/admin/payments/pending');
+    const response = await axiosInstance.get('/admin/payments/pending');
     return response.data;
 };
 
@@ -65,7 +65,7 @@ export const getPendingPayments = async () => {
  * Verify payment
  */
 export const verifyPayment = async (id, notes) => {
-    const response = await axiosInstance.post(`/api/admin/payments/${id}/verify`, { notes });
+    const response = await axiosInstance.post(`/admin/payments/${id}/verify`, { notes });
     return response.data;
 };
 
@@ -73,7 +73,7 @@ export const verifyPayment = async (id, notes) => {
  * Reject payment
  */
 export const rejectPayment = async (id, reason) => {
-    const response = await axiosInstance.post(`/api/admin/payments/${id}/reject`, { reason });
+    const response = await axiosInstance.post(`/admin/payments/${id}/reject`, { reason });
     return response.data;
 };
 
@@ -81,7 +81,7 @@ export const rejectPayment = async (id, reason) => {
  * Get audit logs
  */
 export const getLogs = async (params = {}) => {
-    const response = await axiosInstance.get('/api/admin/logs', { params });
+    const response = await axiosInstance.get('/admin/logs', { params });
     return response.data;
 };
 

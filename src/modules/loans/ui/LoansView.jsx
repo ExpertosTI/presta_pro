@@ -282,7 +282,6 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                 term,
                 frequency: createForm.frequency,
                 startDate: createForm.startDate,
-                startDate: createForm.startDate,
                 closingCosts,
                 amortizationType: createForm.amortizationType
               });

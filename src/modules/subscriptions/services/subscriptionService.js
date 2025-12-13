@@ -9,7 +9,7 @@ import axiosInstance from '../../../services/api';
  * Get current subscription status
  */
 export const getMySubscription = async () => {
-    const response = await axiosInstance.get('/api/subscriptions/my-subscription');
+    const response = await axiosInstance.get('/subscriptions/my-subscription');
     return response.data;
 };
 
@@ -17,7 +17,7 @@ export const getMySubscription = async () => {
  * Get available plans
  */
 export const getPlans = async () => {
-    const response = await axiosInstance.get('/api/subscriptions/plans');
+    const response = await axiosInstance.get('/subscriptions/plans');
     return response.data;
 };
 
@@ -25,7 +25,7 @@ export const getPlans = async () => {
  * Create upgrade/payment intent (placeholder for actual payment gateway)
  */
 export const createPaymentIntent = async (planId, interval) => {
-    const response = await axiosInstance.post('/api/subscriptions/create-intent', { planId, interval });
+    const response = await axiosInstance.post('/subscriptions/create-intent', { planId, interval });
     return response.data;
 };
 
@@ -33,7 +33,7 @@ export const createPaymentIntent = async (planId, interval) => {
  * Upload manual payment proof
  */
 export const uploadPaymentProof = async (formData) => {
-    const response = await axiosInstance.post('/api/subscriptions/upload-proof', formData, {
+    const response = await axiosInstance.post('/subscriptions/upload-proof', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     });
     return response.data;
@@ -43,7 +43,7 @@ export const uploadPaymentProof = async (formData) => {
  * Cancel subscription (downgrade to free at end of period)
  */
 export const cancelSubscription = async () => {
-    const response = await axiosInstance.post('/api/subscriptions/cancel');
+    const response = await axiosInstance.post('/subscriptions/cancel');
     return response.data;
 };
 

@@ -9,7 +9,7 @@ import axiosInstance from '../../../services/api';
  * Get all notifications
  */
 export const getNotifications = async () => {
-    const response = await axiosInstance.get('/api/notifications');
+    const response = await axiosInstance.get('/notifications');
     return response.data;
 };
 
@@ -17,7 +17,7 @@ export const getNotifications = async () => {
  * Mark notification as read
  */
 export const markAsRead = async (notificationId) => {
-    const response = await axiosInstance.post(`/api/notifications/${notificationId}/read`);
+    const response = await axiosInstance.post(`/notifications/${notificationId}/read`);
     return response.data;
 };
 
@@ -25,7 +25,7 @@ export const markAsRead = async (notificationId) => {
  * Mark all notifications as read
  */
 export const markAllAsRead = async () => {
-    const response = await axiosInstance.post('/api/notifications/read-all');
+    const response = await axiosInstance.post('/notifications/read-all');
     return response.data;
 };
 
@@ -33,7 +33,7 @@ export const markAllAsRead = async () => {
  * Delete notification
  */
 export const deleteNotification = async (notificationId) => {
-    const response = await axiosInstance.delete(`/api/notifications/${notificationId}`);
+    const response = await axiosInstance.delete(`/notifications/${notificationId}`);
     return response.data;
 };
 
@@ -41,7 +41,7 @@ export const deleteNotification = async (notificationId) => {
  * Get email preferences
  */
 export const getEmailPreferences = async () => {
-    const response = await axiosInstance.get('/api/notifications/preferences');
+    const response = await axiosInstance.get('/notifications/preferences');
     return response.data;
 };
 
@@ -49,7 +49,7 @@ export const getEmailPreferences = async () => {
  * Update email preferences
  */
 export const updateEmailPreferences = async (preferences) => {
-    const response = await axiosInstance.put('/api/notifications/preferences', preferences);
+    const response = await axiosInstance.put('/notifications/preferences', preferences);
     return response.data;
 };
 
@@ -57,7 +57,7 @@ export const updateEmailPreferences = async (preferences) => {
  * Send test email
  */
 export const sendTestEmail = async (email) => {
-    const response = await axiosInstance.post('/api/notifications/test-email', { email });
+    const response = await axiosInstance.post('/notifications/test-email', { email });
     return response.data;
 };
 
