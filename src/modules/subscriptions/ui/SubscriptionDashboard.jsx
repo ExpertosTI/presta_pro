@@ -14,6 +14,10 @@ export function SubscriptionDashboard({ showToast }) {
     const [showPlans, setShowPlans] = useState(false);
     const [uploading, setUploading] = useState(false);
 
+    // Plan selection state
+    const [selectedPlan, setSelectedPlan] = useState(null);
+    const [selectedPeriod, setSelectedPeriod] = useState('quarterly'); // monthly, quarterly, yearly
+
     useEffect(() => {
         loadData();
     }, []);
@@ -44,18 +48,34 @@ export function SubscriptionDashboard({ showToast }) {
             return;
         }
 
+        if (!selectedPlan) {
+            showToast?.('Por favor selecciona un plan primero', 'error');
+            return;
+        }
+
+        // Calculate amount based on period
+        let amount = selectedPlan.monthlyPrice;
+        let interval = 'monthly';
+        if (selectedPeriod === 'quarterly') {
+            amount = selectedPlan.quarterlyPrice || selectedPlan.monthlyPrice * 3;
+            interval = 'quarterly';
+        } else if (selectedPeriod === 'yearly') {
+            amount = selectedPlan.yearlyPrice || selectedPlan.monthlyPrice * 12;
+            interval = 'yearly';
+        }
+
         try {
             setUploading(true);
             const formData = new FormData();
             formData.append('proof', file);
-            // Default to PRO monthly for manual uploads if not specified (flow simplification)
-            formData.append('plan', 'PRO');
-            formData.append('amount', '1500');
-            formData.append('interval', 'monthly');
+            formData.append('plan', selectedPlan.id);
+            formData.append('amount', amount.toString());
+            formData.append('interval', interval);
 
             await subscriptionService.uploadPaymentProof(formData);
             showToast?.('Comprobante subido exitosamente. Esperando verificación.', 'success');
-            loadData(); // Reload to show pending status
+            setSelectedPlan(null); // Reset selection
+            loadData();
         } catch (e) {
             showToast?.('Error subiendo comprobante', 'error');
         } finally {
@@ -169,24 +189,74 @@ export function SubscriptionDashboard({ showToast }) {
                                 key={plan.id}
                                 plan={plan}
                                 isCurrent={currentPlan === plan.id}
-                                onSelect={() => {/* Implement payment flow */ }}
+                                onSelect={(plan) => setSelectedPlan(plan)}
                             />
                         ))}
                     </div>
+                </div>
+            )}
 
-                    {/* Manual Payment Upload */}
-                    <div className="mt-8 p-6 bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 text-center">
-                        <h4 className="font-bold text-slate-800 dark:text-white mb-2">¿Pagaste por transferencia?</h4>
-                        <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">Sube tu comprobante de pago para activar tu plan manualmente.</p>
+            {/* Period Selection Modal */}
+            {selectedPlan && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full">
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                            Selecciona el período para {selectedPlan.name}
+                        </h3>
 
-                        <div className="flex justify-center">
-                            <label className={`cursor-pointer flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {selectedPlan.promoLabel && (
+                            <p className="text-sm text-orange-600 dark:text-orange-400 mb-4 font-medium">
+                                {selectedPlan.promoLabel}
+                            </p>
+                        )}
+
+                        <div className="space-y-3 mb-6">
+                            {/* Monthly */}
+                            <label className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${selectedPeriod === 'monthly' ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-500' : 'bg-slate-50 dark:bg-slate-700 border-2 border-transparent'}`}>
+                                <div className="flex items-center gap-3">
+                                    <input type="radio" name="period" value="monthly" checked={selectedPeriod === 'monthly'} onChange={() => setSelectedPeriod('monthly')} className="w-4 h-4 text-indigo-600" />
+                                    <span className="font-medium">Mensual</span>
+                                </div>
+                                <span className="font-bold text-slate-800 dark:text-white">{selectedPlan.monthlyPriceFormatted}</span>
+                            </label>
+
+                            {/* Quarterly - PROMO */}
+                            <label className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all relative ${selectedPeriod === 'quarterly' ? 'bg-orange-50 dark:bg-orange-900/30 border-2 border-orange-500' : 'bg-slate-50 dark:bg-slate-700 border-2 border-transparent'}`}>
+                                <span className="absolute -top-2 left-4 px-2 py-0.5 bg-orange-500 text-white text-xs font-bold rounded-full">🔥 OFERTA</span>
+                                <div className="flex items-center gap-3">
+                                    <input type="radio" name="period" value="quarterly" checked={selectedPeriod === 'quarterly'} onChange={() => setSelectedPeriod('quarterly')} className="w-4 h-4 text-orange-600" />
+                                    <div>
+                                        <span className="font-medium">3 Meses</span>
+                                        <p className="text-xs text-slate-500">{selectedPlan.promoPriceFormatted} fijo todo el año</p>
+                                    </div>
+                                </div>
+                                <span className="font-bold text-orange-600">{selectedPlan.quarterlyPriceFormatted}</span>
+                            </label>
+
+                            {/* Yearly */}
+                            <label className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all ${selectedPeriod === 'yearly' ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-500' : 'bg-slate-50 dark:bg-slate-700 border-2 border-transparent'}`}>
+                                <div className="flex items-center gap-3">
+                                    <input type="radio" name="period" value="yearly" checked={selectedPeriod === 'yearly'} onChange={() => setSelectedPeriod('yearly')} className="w-4 h-4 text-indigo-600" />
+                                    <span className="font-medium">Anual</span>
+                                </div>
+                                <span className="font-bold text-slate-800 dark:text-white">{selectedPlan.yearlyPriceFormatted}</span>
+                            </label>
+                        </div>
+
+                        {/* Upload Proof */}
+                        <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-xl text-center mb-4">
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Sube tu comprobante de transferencia</p>
+                            <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <Upload size={18} />
                                 {uploading ? 'Subiendo...' : 'Subir Comprobante'}
                                 <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileUpload} disabled={uploading} />
                             </label>
+                            <p className="text-xs text-slate-400 mt-2">JPG, PNG, PDF (Max 5MB)</p>
                         </div>
-                        <p className="text-xs text-slate-400 mt-2">Formatos: JPG, PNG, PDF (Max 5MB)</p>
+
+                        <button onClick={() => setSelectedPlan(null)} className="w-full py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
+                            Cancelar
+                        </button>
                     </div>
                 </div>
             )}
@@ -213,7 +283,7 @@ export function SubscriptionDashboard({ showToast }) {
                                 subscription.payments.map(payment => (
                                     <tr key={payment.id} className="border-b border-slate-100 dark:border-slate-700/50">
                                         <td className="py-2 px-3 text-slate-600 dark:text-slate-400">{formatDate(payment.createdAt)}</td>
-                                        <td className="py-2 px-3 font-medium">Plan {payment.plan} ({payment.interval === 'yearly' ? 'Anual' : 'Mensual'})</td>
+                                        <td className="py-2 px-3 font-medium">Plan {payment.plan} ({payment.interval === 'yearly' ? 'Anual' : payment.interval === 'quarterly' ? 'Trimestral' : 'Mensual'})</td>
                                         <td className="py-2 px-3">${(payment.amount / 100).toFixed(2)} USD</td>
                                         <td className="py-2 px-3">
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${payment.status === 'VERIFIED' ? 'bg-green-100 text-green-700' :
@@ -224,9 +294,7 @@ export function SubscriptionDashboard({ showToast }) {
                                                     payment.status === 'REJECTED' ? 'Rechazado' : 'Pendiente'}
                                             </span>
                                         </td>
-                                        <td className="py-2 px-3 text-right">
-                                            {/* Download invoice button could go here */}
-                                        </td>
+                                        <td className="py-2 px-3 text-right"></td>
                                     </tr>
                                 ))
                             ) : (
