@@ -3,11 +3,11 @@ import Card from '../../../shared/components/ui/Card.jsx';
 import Badge from '../../../shared/components/ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { calculateSchedule } from '../../../shared/utils/amortization';
-import { FileText, Sparkles, X, Printer, FileCheck, Plus } from 'lucide-react';
+import { FileText, Sparkles, X, Printer, FileCheck, Plus, Banknote } from 'lucide-react';
 import { PaymentConfirmationModal } from '../../payments';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
 
-export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan, onNewClient }) {
+export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan, onNewClient, onNavigateToDocuments }) {
   const [generatingContract, setGeneratingContract] = useState(false);
   const [contractContent, setContractContent] = useState(null);
   const [showContractModal, setShowContractModal] = useState(false);
@@ -407,7 +407,10 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Préstamos y Cobros</h2>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <Banknote className="w-6 h-6 text-blue-600" />
+          Préstamos y Cobros
+        </h2>
         {onCreateLoan && (
           <button
             onClick={() => setCreateModalOpen(true)}
@@ -476,9 +479,21 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
           <Card className="lg:col-span-1 order-1 lg:order-1">
             <h3 className="font-bold text-lg mb-3 text-slate-800 dark:text-slate-100">Detalle del Préstamo</h3>
             {selectedClient && (
-              <p className="text-sm text-slate-700 dark:text-slate-300 mb-1">
-                <span className="font-semibold">Cliente: </span>{selectedClient.name}
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold">Cliente: </span>{selectedClient.name}
+                </p>
+                {onNavigateToDocuments && (
+                  <button
+                    onClick={() => onNavigateToDocuments(selectedClient.id)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
+                    title="Ver documentos del cliente"
+                  >
+                    <FileText size={14} />
+                    Documentos
+                  </button>
+                )}
+              </div>
             )}
             <p className="text-sm text-slate-700 dark:text-slate-300 mb-1">
               <span className="font-semibold">Monto: </span>{formatCurrency(selectedLoan.amount)}

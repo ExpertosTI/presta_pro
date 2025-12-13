@@ -685,6 +685,10 @@ function App() {
             }
           }}
           addClientDocument={handleAddClientDocument}
+          onNavigateToDocuments={(clientId) => {
+            setSelectedClientId(clientId);
+            setActiveTab('documents');
+          }}
           onNewClient={() => {
             setEditingClient(null);
             setClientModalOpen(true);
