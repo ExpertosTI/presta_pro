@@ -43,6 +43,11 @@ export function CollectorsView({ showToast, clients = [] }) {
     // Confirm dialog state
     const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
+    // Client assignment state
+    const [showAssign, setShowAssign] = useState(false);
+    const [assigningCollector, setAssigningCollector] = useState(null);
+    const [selectedClients, setSelectedClients] = useState([]);
+
     // Form state
     const [formData, setFormData] = useState({
         name: '',
@@ -167,6 +172,35 @@ export function CollectorsView({ showToast, clients = [] }) {
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
         showToast?.('Copiado al portapapeles', 'success');
+    };
+
+    const openAssignClients = (collector) => {
+        setAssigningCollector(collector);
+        // Pre-select clients already assigned to this collector
+        const assignedClientIds = collector.clients?.map(c => c.id) || [];
+        setSelectedClients(assignedClientIds);
+        setShowAssign(true);
+    };
+
+    const handleSaveAssignments = async () => {
+        if (!assigningCollector) return;
+        try {
+            await collectorService.assignClients(assigningCollector.id, selectedClients);
+            showToast?.(`Clientes asignados a ${assigningCollector.name}`, 'success');
+            setShowAssign(false);
+            setAssigningCollector(null);
+            loadCollectors(); // Reload to show updated assignments
+        } catch (e) {
+            showToast?.('Error asignando clientes', 'error');
+        }
+    };
+
+    const toggleClientSelection = (clientId) => {
+        setSelectedClients(prev =>
+            prev.includes(clientId)
+                ? prev.filter(id => id !== clientId)
+                : [...prev, clientId]
+        );
     };
 
     return (
@@ -504,6 +538,13 @@ export function CollectorsView({ showToast, clients = [] }) {
                                     Permisos
                                 </button>
                                 <button
+                                    onClick={() => openAssignClients(collector)}
+                                    className="flex items-center justify-center gap-1 py-2 px-3 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                    title="Asignar Clientes"
+                                >
+                                    <UserPlus size={14} />
+                                </button>
+                                <button
                                     onClick={() => handleViewActivity(collector)}
                                     className="flex items-center justify-center gap-1 py-2 px-3 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                 >
@@ -527,6 +568,62 @@ export function CollectorsView({ showToast, clients = [] }) {
                             </div>
                         </Card>
                     ))}
+                </div>
+            )}
+
+            {/* Client Assignment Modal */}
+            {showAssign && assigningCollector && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2">
+                            <UserPlus className="text-indigo-600" size={20} />
+                            Asignar Clientes a {assigningCollector.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 mb-4">Selecciona los clientes que este cobrador gestionará</p>
+
+                        <div className="flex-1 overflow-y-auto space-y-2 mb-4 pr-2">
+                            {clients.length === 0 ? (
+                                <p className="text-center text-slate-400 py-4">No hay clientes disponibles</p>
+                            ) : (
+                                clients.map(client => (
+                                    <label
+                                        key={client.id}
+                                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedClients.includes(client.id)
+                                                ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-500'
+                                                : 'bg-slate-50 dark:bg-slate-700 border-2 border-transparent hover:border-slate-300'
+                                            }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedClients.includes(client.id)}
+                                            onChange={() => toggleClientSelection(client.id)}
+                                            className="w-5 h-5 rounded text-indigo-600"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-slate-800 dark:text-slate-200 truncate">{client.name}</p>
+                                            <p className="text-xs text-slate-500">{client.phone || '-'}</p>
+                                        </div>
+                                    </label>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="flex gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                            <button
+                                onClick={() => { setShowAssign(false); setAssigningCollector(null); }}
+                                className="flex-1 py-2
+                                 px-4 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleSaveAssignments}
+                                className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold"
+                            >
+                                Guardar ({selectedClients.length})
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
