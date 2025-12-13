@@ -84,16 +84,18 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
       const client = clients.find(c => c.id === approvalModal.clientId);
       if (onCreateLoan) {
         const closingCosts = parseFloat(closingCostsInput) || 0;
+        const baseAmount = parseFloat(approvalModal.amount);
         onCreateLoan({
           clientId: approvalModal.clientId,
           clientName: client?.name,
-          capital: parseFloat(approvalModal.amount) + closingCosts,
-          originalCapital: parseFloat(approvalModal.amount),
+          amount: baseAmount + closingCosts, // API expects 'amount' not 'capital'
           closingCosts: closingCosts,
           rate: parseFloat(approvalModal.rate),
           term: parseInt(approvalModal.term),
-          frequency: approvalModal.frequency,
-          startDate: approvalModal.startDate || new Date().toISOString()
+          frequency: approvalModal.frequency || 'Mensual',
+          startDate: approvalModal.startDate
+            ? (typeof approvalModal.startDate === 'string' ? approvalModal.startDate.split('T')[0] : new Date(approvalModal.startDate).toISOString().split('T')[0])
+            : new Date().toISOString().split('T')[0]
         });
       }
 

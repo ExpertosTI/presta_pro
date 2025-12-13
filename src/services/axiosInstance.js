@@ -22,7 +22,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response.data, // Unwrap response to return only data
     (error) => {
-        console.error('API Error:', error?.response?.data || error.message);
+        // In production, don't log errors here - let calling code handle them
         return Promise.reject(error);
     }
 );
