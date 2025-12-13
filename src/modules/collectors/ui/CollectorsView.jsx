@@ -48,6 +48,7 @@ export function CollectorsView({ showToast, clients = [] }) {
         name: '',
         phone: '',
         email: '',
+        photoUrl: '',
         createCredentials: false,
         username: ''
     });
@@ -147,7 +148,7 @@ export function CollectorsView({ showToast, clients = [] }) {
     const resetForm = () => {
         setShowForm(false);
         setEditingCollector(null);
-        setFormData({ name: '', phone: '', email: '', createCredentials: false, username: '' });
+        setFormData({ name: '', phone: '', email: '', photoUrl: '', createCredentials: false, username: '' });
     };
 
     const openEdit = (collector) => {
@@ -156,6 +157,7 @@ export function CollectorsView({ showToast, clients = [] }) {
             name: collector.name,
             phone: collector.phone || '',
             email: collector.email || '',
+            photoUrl: collector.photoUrl || '',
             createCredentials: false,
             username: collector.username || ''
         });
@@ -285,6 +287,48 @@ export function CollectorsView({ showToast, clients = [] }) {
                                 />
                             </div>
 
+                            {/* Photo Upload */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    📷 Foto del Cobrador
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    {formData.photoUrl && (
+                                        <img
+                                            src={formData.photoUrl}
+                                            alt="Preview"
+                                            className="w-16 h-16 rounded-full object-cover border-2 border-indigo-500"
+                                        />
+                                    )}
+                                    <label className="flex-1 cursor-pointer">
+                                        <div className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg hover:border-indigo-500 transition-colors">
+                                            <span className="text-sm text-slate-600 dark:text-slate-400">
+                                                {formData.photoUrl ? 'Cambiar foto' : 'Subir foto o tomar con cámara'}
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            capture="environment"
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    try {
+                                                        const { fileToBase64, resizeImage } = await import('../../../shared/utils/imageUtils.js');
+                                                        const base64 = await fileToBase64(file);
+                                                        const resized = await resizeImage(base64, 300, 300);
+                                                        setFormData(p => ({ ...p, photoUrl: resized }));
+                                                    } catch (err) {
+                                                        console.error('Error processing photo:', err);
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+
                             {!editingCollector && (
                                 <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                                     <label className="flex items-center gap-3 cursor-pointer">
@@ -395,9 +439,17 @@ export function CollectorsView({ showToast, clients = [] }) {
 
                             {/* Collector Info */}
                             <div className="flex items-start gap-4 mb-4">
-                                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-xl font-bold text-indigo-600 dark:text-indigo-400">
-                                    {collector.name.charAt(0).toUpperCase()}
-                                </div>
+                                {collector.photoUrl ? (
+                                    <img
+                                        src={collector.photoUrl}
+                                        alt={collector.name}
+                                        className="w-12 h-12 rounded-full object-cover border-2 border-indigo-300"
+                                    />
+                                ) : (
+                                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                                        {collector.name.charAt(0).toUpperCase()}
+                                    </div>
+                                )}
                                 <div className="flex-1 min-w-0">
                                     <h3 className="font-bold text-slate-800 dark:text-slate-100 truncate">{collector.name}</h3>
                                     {collector.phone && (

@@ -1,22 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
+import { FileText } from 'lucide-react';
+import documentService from '../services/documentService';
 
-const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', selectedClientId, onSelectClient, clientDocuments, addClientDocument }) => {
+const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', selectedClientId, onSelectClient, showToast }) => {
   const hasClients = Array.isArray(clients) && clients.length > 0;
   const currentClient = hasClients
     ? clients.find((c) => c.id === selectedClientId) || clients[0]
     : null;
 
-  const documentsForClient = currentClient && clientDocuments
-    ? clientDocuments[currentClient.id] || []
-    : [];
+  // State for documents loaded from API
+  const [documentsForClient, setDocumentsForClient] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
 
   const [uploadTitle, setUploadTitle] = useState('');
   const [templateType, setTemplateType] = useState('CONTRACT_SIMPLE');
   const [templateContent, setTemplateContent] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Load documents when client changes
+  useEffect(() => {
+    if (currentClient?.id) {
+      loadDocuments(currentClient.id);
+    } else {
+      setDocumentsForClient([]);
+    }
+  }, [currentClient?.id]);
+
+  const loadDocuments = async (clientId) => {
+    setLoadingDocs(true);
+    try {
+      const docs = await documentService.getClientDocuments(clientId);
+      setDocumentsForClient(Array.isArray(docs) ? docs : []);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      setDocumentsForClient([]);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
 
   const handleChangeClient = (e) => {
     const id = e.target.value || null;
@@ -25,7 +49,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
 
   const handleUploadDocument = async (e) => {
     const file = e.target.files && e.target.files[0];
-    if (!file || !currentClient || !addClientDocument) {
+    if (!file || !currentClient) {
       return;
     }
     setIsUploading(true);
@@ -33,16 +57,21 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
       const { fileToBase64 } = await import('../../../shared/utils/imageUtils.js');
       const base64 = await fileToBase64(file);
       const title = uploadTitle.trim() || file.name;
-      addClientDocument(currentClient.id, {
+
+      const newDoc = await documentService.addDocument(currentClient.id, {
         type: 'UPLOAD',
         title,
         fileName: file.name,
         mimeType: file.type,
         dataUrl: base64,
       });
+
+      setDocumentsForClient(prev => [newDoc, ...prev]);
       setUploadTitle('');
+      showToast?.('Documento subido exitosamente', 'success');
     } catch (error) {
       console.error('Error uploading client document', error);
+      showToast?.('Error al subir documento', 'error');
     } finally {
       setIsUploading(false);
       e.target.value = '';
@@ -104,8 +133,8 @@ Firma PRESTATARIO: ______________________`
     setTemplateContent(buildTemplateForType(templateType, currentClient));
   };
 
-  const handleSaveTemplateAsDocument = () => {
-    if (!currentClient || !addClientDocument) return;
+  const handleSaveTemplateAsDocument = async () => {
+    if (!currentClient) return;
     if (!templateContent || !templateContent.trim()) return;
     const titleByType = {
       CONTRACT_SIMPLE: 'Contrato simple',
@@ -114,11 +143,19 @@ Firma PRESTATARIO: ______________________`
       OTRO: 'Documento personalizado',
     };
     const title = titleByType[templateType] || 'Documento';
-    addClientDocument(currentClient.id, {
-      type: 'TEMPLATE',
-      title,
-      content: templateContent,
-    });
+    try {
+      const newDoc = await documentService.addDocument(currentClient.id, {
+        type: 'TEMPLATE',
+        title,
+        content: templateContent,
+      });
+      setDocumentsForClient(prev => [newDoc, ...prev]);
+      setTemplateContent('');
+      showToast?.('Documento guardado', 'success');
+    } catch (error) {
+      console.error('Error saving template:', error);
+      showToast?.('Error al guardar documento', 'error');
+    }
   };
 
   const openTextDocumentAsPrint = (doc) => {
