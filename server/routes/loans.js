@@ -157,27 +157,32 @@ router.post('/', async (req, res) => {
         }
 
         // === SUBSCRIPTION LOAN LIMIT CHECK ===
-        const subscription = await prisma.subscription.findUnique({
-            where: { tenantId: req.user.tenantId }
-        });
+        // SUPER_ADMIN users (owners) bypass all limits
+        const isSuperAdmin = req.user?.role?.toUpperCase() === 'SUPER_ADMIN';
 
-        if (subscription) {
-            const limits = typeof subscription.limits === 'string'
-                ? JSON.parse(subscription.limits)
-                : subscription.limits;
+        if (!isSuperAdmin) {
+            const subscription = await prisma.subscription.findUnique({
+                where: { tenantId: req.user.tenantId }
+            });
 
-            if (limits?.maxLoans && limits.maxLoans > 0) {
-                const currentLoanCount = await prisma.loan.count({
-                    where: { tenantId: req.user.tenantId, status: 'ACTIVE' }
-                });
+            if (subscription) {
+                const limits = typeof subscription.limits === 'string'
+                    ? JSON.parse(subscription.limits)
+                    : subscription.limits;
 
-                if (currentLoanCount >= limits.maxLoans) {
-                    return res.status(403).json({
-                        error: `Has alcanzado el límite de ${limits.maxLoans} préstamos activos de tu plan. Actualiza tu suscripción para crear más.`,
-                        limitReached: true,
-                        currentCount: currentLoanCount,
-                        maxAllowed: limits.maxLoans
+                if (limits?.maxLoans && limits.maxLoans > 0) {
+                    const currentLoanCount = await prisma.loan.count({
+                        where: { tenantId: req.user.tenantId, status: 'ACTIVE' }
                     });
+
+                    if (currentLoanCount >= limits.maxLoans) {
+                        return res.status(403).json({
+                            error: `Has alcanzado el límite de ${limits.maxLoans} préstamos activos de tu plan. Actualiza tu suscripción para crear más.`,
+                            limitReached: true,
+                            currentCount: currentLoanCount,
+                            maxAllowed: limits.maxLoans
+                        });
+                    }
                 }
             }
         }
