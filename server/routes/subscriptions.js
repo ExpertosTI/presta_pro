@@ -233,24 +233,88 @@ router.post('/upload-proof', upload.single('proof'), async (req, res) => {
             }
         });
 
-        // Send email to admin
+        // Send email to admin with attachment
+        const paymentMethod = method || 'BANK_TRANSFER';
+        const methodLabels = {
+            'BANK_TRANSFER': 'Transferencia Bancaria',
+            'CASH': 'Efectivo',
+            'MOBILE_PAYMENT': 'Pago Móvil',
+            'PAYPAL': 'PayPal',
+            'CARD': 'Tarjeta de Crédito'
+        };
+
         try {
+            const proofFilePath = path.join(uploadsDir, req.file.filename);
             await transporter.sendMail({
                 from: FROM_EMAIL,
                 to: ADMIN_EMAIL,
-                subject: `[PrestaPro] Nuevo Comprobante de Pago - ${tenant?.name || tId}`,
+                subject: `[PrestaPro] ⚡ Nuevo Comprobante - ${tenant?.name || tId} - ${planDetails.name}`,
                 html: `
-                    <h2>Nuevo Comprobante de Pago Recibido</h2>
-                    <p><strong>Empresa:</strong> ${tenant?.name || 'N/A'}</p>
-                    <p><strong>Usuario:</strong> ${user?.name || user?.email || 'N/A'}</p>
-                    <p><strong>Plan:</strong> ${planDetails.name}</p>
-                    <p><strong>Monto:</strong> RD$${amount.toLocaleString()}</p>
-                    <p><strong>Método:</strong> ${method}</p>
-                    <p><strong>Intervalo:</strong> ${interval}</p>
-                    <p><strong>ID Pago:</strong> ${payment.id}</p>
-                    <hr>
-                    <p>Revisa el comprobante en el panel de administración.</p>
-                `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8fafc;">
+                        <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+                            <h1 style="margin: 0;">💰 Nuevo Comprobante de Pago</h1>
+                            <p style="margin: 10px 0 0; opacity: 0.9;">Requiere verificación</p>
+                        </div>
+                        
+                        <div style="background: white; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"><strong>🏢 Empresa:</strong></td>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">${tenant?.name || 'N/A'}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"><strong>👤 Usuario:</strong></td>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">${user?.name || user?.email || 'N/A'}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"><strong>📧 Email:</strong></td>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">${user?.email || 'N/A'}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"><strong>📋 Plan:</strong></td>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #2563eb; font-weight: bold;">${planDetails.name}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"><strong>💵 Monto:</strong></td>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #059669; font-weight: bold; font-size: 18px;">RD$${amount.toLocaleString()}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"><strong>💳 Método:</strong></td>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">${methodLabels[paymentMethod] || paymentMethod}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"><strong>📆 Intervalo:</strong></td>
+                                    <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">${interval === 'yearly' ? 'Anual' : 'Mensual'}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px 0;"><strong>🔑 ID Pago:</strong></td>
+                                    <td style="padding: 10px 0; font-family: monospace; font-size: 12px;">${payment.id}</td>
+                                </tr>
+                            </table>
+                            
+                            <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                                <p style="margin: 0; color: #92400e;">📎 <strong>El comprobante está adjunto a este correo.</strong></p>
+                            </div>
+                            
+                            <div style="margin-top: 20px; text-align: center;">
+                                <a href="${process.env.APP_BASE_URL || 'https://prestanace.renace.tech'}/#/admin?payment=${payment.id}" 
+                                   style="display: inline-block; padding: 12px 30px; background: #059669; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                    ✅ Verificar y Aprobar Pago
+                                </a>
+                            </div>
+                            
+                            <p style="margin-top: 20px; text-align: center; color: #64748b; font-size: 12px;">
+                                Tenant ID: ${tId}
+                            </p>
+                        </div>
+                    </div>
+                `,
+                attachments: [
+                    {
+                        filename: `comprobante_${payment.id}.${req.file.filename.split('.').pop()}`,
+                        path: proofFilePath
+                    }
+                ]
             });
         } catch (emailErr) {
             console.error('Admin email error:', emailErr);
@@ -469,6 +533,228 @@ router.get('/pending-payments', async (req, res) => {
     } catch (error) {
         console.error('Get pending payments error:', error);
         res.status(500).json({ error: 'Error obteniendo pagos pendientes' });
+    }
+});
+
+// POST /approve-payment/:paymentId (Admin only - Approve and activate subscription)
+router.post('/approve-payment/:paymentId', async (req, res) => {
+    try {
+        // Only SUPER_ADMIN can approve payments
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'No autorizado. Solo administradores pueden aprobar pagos.' });
+        }
+
+        const { paymentId } = req.params;
+
+        // Get payment with subscription and tenant info
+        const payment = await prisma.payment.findUnique({
+            where: { id: paymentId },
+            include: {
+                subscription: {
+                    include: {
+                        tenant: {
+                            include: { users: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!payment) {
+            return res.status(404).json({ error: 'Pago no encontrado' });
+        }
+
+        if (payment.status !== 'PENDING') {
+            return res.status(400).json({ error: `El pago ya fue procesado. Estado actual: ${payment.status}` });
+        }
+
+        const plan = payment.plan;
+        const planDetails = PLANS[plan];
+        if (!planDetails) {
+            return res.status(400).json({ error: 'Plan no válido' });
+        }
+
+        // Calculate subscription period
+        const now = new Date();
+        let periodEnd;
+        if (payment.interval === 'yearly') {
+            periodEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+        } else if (payment.interval === 'quarterly') {
+            periodEnd = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+        } else {
+            periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        }
+
+        // Update payment status
+        await prisma.payment.update({
+            where: { id: paymentId },
+            data: {
+                status: 'COMPLETED',
+                verifiedAt: now,
+                verifiedBy: req.user.userId
+            }
+        });
+
+        // Activate subscription
+        await prisma.subscription.update({
+            where: { id: payment.subscriptionId },
+            data: {
+                plan: plan,
+                status: 'ACTIVE',
+                currentPeriodStart: now,
+                currentPeriodEnd: periodEnd,
+                limits: JSON.stringify(planDetails.limits)
+            }
+        });
+
+        // Log audit
+        await prisma.auditLog.create({
+            data: {
+                userId: req.user.userId,
+                tenantId: payment.subscription.tenantId,
+                action: 'subscription.activated',
+                resource: 'subscription',
+                resourceId: payment.subscriptionId,
+                details: { plan, interval: payment.interval, approvedBy: req.user.userId },
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent']
+            }
+        });
+
+        // Send confirmation email to user
+        const tenant = payment.subscription.tenant;
+        const user = tenant?.users[0];
+
+        if (user?.email) {
+            try {
+                await transporter.sendMail({
+                    from: FROM_EMAIL,
+                    to: user.email,
+                    subject: `[PrestaPro] 🎉 ¡Tu ${planDetails.name} ha sido activado!`,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <div style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                                <h1 style="margin: 0; font-size: 28px;">🎉 ¡Felicitaciones!</h1>
+                                <p style="margin: 10px 0 0; font-size: 18px;">Tu plan ha sido activado</p>
+                            </div>
+                            
+                            <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0;">
+                                <p style="font-size: 16px; color: #334155;">Hola ${user.name || 'Usuario'},</p>
+                                
+                                <p style="font-size: 16px; color: #334155;">
+                                    Tu pago ha sido verificado y tu <strong style="color: #059669;">${planDetails.name}</strong> 
+                                    ya está activo.
+                                </p>
+                                
+                                <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 0 0 10px;"><strong>📋 Plan:</strong> ${planDetails.name}</p>
+                                    <p style="margin: 0 0 10px;"><strong>📅 Válido hasta:</strong> ${periodEnd.toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                    <p style="margin: 0;"><strong>✅ Características:</strong></p>
+                                    <ul style="margin: 10px 0 0; padding-left: 20px;">
+                                        ${planDetails.features.map(f => `<li>${f}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 25px;">
+                                    <a href="${process.env.APP_BASE_URL || 'https://prestanace.renace.tech'}" 
+                                       style="display: inline-block; padding: 14px 40px; background: #059669; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                                        Ir a la Aplicación
+                                    </a>
+                                </div>
+                                
+                                <p style="margin-top: 30px; color: #64748b; font-size: 14px; text-align: center;">
+                                    Gracias por confiar en PrestaPro 💙
+                                </p>
+                            </div>
+                        </div>
+                    `
+                });
+            } catch (emailErr) {
+                console.error('User activation email error:', emailErr);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Pago aprobado. Suscripción ${planDetails.name} activada hasta ${periodEnd.toLocaleDateString('es-DO')}.`,
+            subscription: {
+                plan,
+                status: 'ACTIVE',
+                currentPeriodEnd: periodEnd
+            }
+        });
+
+    } catch (error) {
+        console.error('Approve payment error:', error);
+        res.status(500).json({ error: 'Error al aprobar pago' });
+    }
+});
+
+// POST /reject-payment/:paymentId (Admin only - Reject payment)
+router.post('/reject-payment/:paymentId', async (req, res) => {
+    try {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'No autorizado' });
+        }
+
+        const { paymentId } = req.params;
+        const { reason } = req.body;
+
+        const payment = await prisma.payment.findUnique({
+            where: { id: paymentId },
+            include: {
+                subscription: {
+                    include: {
+                        tenant: {
+                            include: { users: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!payment) {
+            return res.status(404).json({ error: 'Pago no encontrado' });
+        }
+
+        await prisma.payment.update({
+            where: { id: paymentId },
+            data: {
+                status: 'REJECTED',
+                verifiedAt: new Date(),
+                verifiedBy: req.user.userId,
+                rejectedReason: reason || 'Sin especificar'
+            }
+        });
+
+        // Send rejection email to user
+        const user = payment.subscription.tenant?.users[0];
+        if (user?.email) {
+            try {
+                await transporter.sendMail({
+                    from: FROM_EMAIL,
+                    to: user.email,
+                    subject: `[PrestaPro] Pago no verificado`,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <h2>Pago no verificado</h2>
+                            <p>Hola ${user.name || ''},</p>
+                            <p>Lamentamos informarte que tu comprobante de pago no pudo ser verificado.</p>
+                            ${reason ? `<p><strong>Razón:</strong> ${reason}</p>` : ''}
+                            <p>Por favor sube un nuevo comprobante o contacta soporte.</p>
+                        </div>
+                    `
+                });
+            } catch (emailErr) {
+                console.error('Rejection email error:', emailErr);
+            }
+        }
+
+        res.json({ success: true, message: 'Pago rechazado' });
+
+    } catch (error) {
+        console.error('Reject payment error:', error);
+        res.status(500).json({ error: 'Error al rechazar pago' });
     }
 });
 
