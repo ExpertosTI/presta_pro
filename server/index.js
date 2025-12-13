@@ -1141,7 +1141,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       if (expiresAt && expiresAt < new Date()) {
         // Account expired due to lack of verification - return flag so frontend can offer resend
         return res.status(403).json({
-          error: 'La cuenta ha expirado por falta de verificación. Puedes solicitar un nuevo correo de verificación.',
+          error: 'Cuenta expirada',
           accountExpired: true,
           email: user.email,
           tenantName: tenant.name
@@ -1234,7 +1234,7 @@ app.post('/api/auth/google', async (req, res) => {
         const expiresAt = tenant.verificationExpiresAt;
         if (expiresAt && expiresAt < new Date()) {
           return res.status(403).json({
-            error: 'La cuenta ha expirado por falta de verificación. Puedes solicitar un nuevo correo de verificación.',
+            error: 'Cuenta expirada',
             accountExpired: true,
             email: user.email,
             tenantName: tenant.name
