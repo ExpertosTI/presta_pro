@@ -238,24 +238,46 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Cliente no encontrado' });
         }
 
-        // Opcional: Verificar si tiene préstamos activos antes de borrar
-        /*
+        // Verificar si tiene préstamos activos
         const activeLoans = await prisma.loan.count({
-          where: { clientId: id, status: 'ACTIVE' }
+            where: { clientId: id, status: 'ACTIVE' }
         });
-        if (activeLoans > 0) {
-          return res.status(400).json({ error: 'No se puede eliminar cliente con préstamos activos' });
-        }
-        */
 
-        await prisma.client.delete({
-            where: { id }
+        if (activeLoans > 0) {
+            return res.status(400).json({
+                error: 'No se puede eliminar cliente con préstamos activos',
+                details: `Este cliente tiene ${activeLoans} préstamo(s) activo(s)`
+            });
+        }
+
+        // Delete related records first (cascade manually)
+        await prisma.$transaction(async (tx) => {
+            // Delete related documents
+            await tx.clientDocument.deleteMany({ where: { clientId: id } });
+
+            // Delete related loan requests
+            await tx.loanRequest.deleteMany({ where: { clientId: id } });
+
+            // Delete loan installments and then loans
+            const clientLoans = await tx.loan.findMany({ where: { clientId: id } });
+            for (const loan of clientLoans) {
+                await tx.loanInstallment.deleteMany({ where: { loanId: loan.id } });
+                await tx.receipt.deleteMany({ where: { loanId: loan.id } });
+                await tx.freePayment.deleteMany({ where: { loanId: loan.id } });
+            }
+            await tx.loan.deleteMany({ where: { clientId: id } });
+
+            // Finally delete client
+            await tx.client.delete({ where: { id } });
         });
 
         res.json({ message: 'Cliente eliminado correctamente' });
     } catch (error) {
-        console.error('Error deleting client:', error);
-        res.status(500).json({ error: 'Error al eliminar cliente' });
+        console.error('Error deleting client:', error.message);
+        res.status(500).json({
+            error: 'Error al eliminar cliente',
+            details: error.message
+        });
     }
 });
 
