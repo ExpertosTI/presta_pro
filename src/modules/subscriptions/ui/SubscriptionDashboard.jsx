@@ -92,8 +92,9 @@ export function SubscriptionDashboard({ showToast }) {
     }
 
     const currentPlan = subscription?.plan || 'FREE';
+    const isMaster = currentPlan === 'MASTER';
     const isPro = currentPlan !== 'FREE';
-    const status = subscription?.status || 'ACTIVE';
+    const status = isMaster ? 'ACTIVE' : (subscription?.status || 'ACTIVE');
     const daysRemaining = subscription?.daysRemaining || 0;
 
     return (
@@ -129,14 +130,16 @@ export function SubscriptionDashboard({ showToast }) {
                             {currentPlan}
                         </h3>
                         <p className="text-slate-500 dark:text-slate-400">
-                            {isPro
-                                ? `Renovación: ${formatDate(subscription?.currentPeriodEnd)}`
-                                : 'Actualiza a PRO para desbloquear todas las funciones'}
+                            {isMaster
+                                ? 'Cuenta propietario - Acceso completo sin restricciones'
+                                : isPro
+                                    ? `Renovación: ${formatDate(subscription?.currentPeriodEnd)}`
+                                    : 'Actualiza a PRO para desbloquear todas las funciones'}
                         </p>
                     </div>
 
                     <div className="flex gap-3">
-                        {!isPro ? (
+                        {isMaster ? null : !isPro ? (
                             <button
                                 onClick={() => setShowPlans(!showPlans)}
                                 className="px-6 py-2.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white rounded-lg font-medium shadow-lg shadow-purple-200 dark:shadow-none hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
@@ -311,8 +314,9 @@ export function SubscriptionDashboard({ showToast }) {
 }
 
 function UsageCard({ label, used, limit, unit = '', icon: Icon }) {
-    const percentage = Math.min(100, (used / limit) * 100);
-    const color = percentage > 90 ? 'bg-red-500' : percentage > 75 ? 'bg-amber-500' : 'bg-green-500';
+    const isUnlimited = limit === -1 || limit === 999999 || limit > 100000;
+    const percentage = isUnlimited ? 0 : Math.min(100, (used / limit) * 100);
+    const color = isUnlimited ? 'bg-green-500' : (percentage > 90 ? 'bg-red-500' : percentage > 75 ? 'bg-amber-500' : 'bg-green-500');
 
     return (
         <Card className="hover:shadow-md transition-shadow">
@@ -322,7 +326,7 @@ function UsageCard({ label, used, limit, unit = '', icon: Icon }) {
             </div>
             <div className="flex items-end gap-1 mb-2">
                 <span className="text-2xl font-bold text-slate-800 dark:text-slate-100">{used}</span>
-                <span className="text-sm text-slate-400 mb-1">/ {limit === 999999 ? '∞' : limit}{unit}</span>
+                <span className="text-sm text-slate-400 mb-1">/ {isUnlimited ? '∞' : limit}{unit}</span>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
                 <div
