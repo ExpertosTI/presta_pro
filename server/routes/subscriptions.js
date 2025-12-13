@@ -657,7 +657,7 @@ router.post('/approve-payment/:paymentId', async (req, res) => {
             data: {
                 status: 'COMPLETED',
                 verifiedAt: now,
-                verifiedBy: req.user.userId
+                verifiedBy: req.user.id || req.user.userId || 'admin'
             }
         });
 
@@ -676,12 +676,12 @@ router.post('/approve-payment/:paymentId', async (req, res) => {
         // Log audit
         await prisma.auditLog.create({
             data: {
-                userId: req.user.userId,
+                userId: req.user.id || req.user.userId || 'admin',
                 tenantId: payment.subscription.tenantId,
                 action: 'subscription.activated',
                 resource: 'subscription',
                 resourceId: payment.subscriptionId,
-                details: { plan, interval: payment.interval, approvedBy: req.user.userId },
+                details: { plan, interval: payment.interval, approvedBy: req.user.id || req.user.userId },
                 ipAddress: req.ip,
                 userAgent: req.headers['user-agent']
             }
@@ -751,8 +751,9 @@ router.post('/approve-payment/:paymentId', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Approve payment error:', error);
-        res.status(500).json({ error: 'Error al aprobar pago' });
+        console.error('Approve payment error:', error.message);
+        console.error('Error details:', error.code, error.meta);
+        res.status(500).json({ error: 'Error al aprobar pago', details: error.message });
     }
 });
 
