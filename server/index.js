@@ -78,11 +78,11 @@ const loanRequestsRouter = require('./routes/loan-requests');
 const prisma = require('./lib/prisma');
 const { validatePassword, validateEmail } = require('./lib/securityUtils');
 
-const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_HOST = process.env.SMTP_HOST || '85.31.224.232';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25', 10);
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM || 'noreply@renace.tech';
+const SMTP_USER = process.env.SMTP_USER || 'noreply@prestapro.renace.tech';
+const SMTP_PASS = process.env.SMTP_PASS || '';
+const SMTP_FROM = process.env.SMTP_FROM || '"PRESTAPRO" <noreply@prestapro.renace.tech>';
 const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
 
 // ... (nodemailer setup logic unchanged)
