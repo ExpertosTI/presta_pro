@@ -79,26 +79,42 @@ export function AdminDashboard({ showToast }) {
         }
     };
 
+    // Modal states for custom dialogs
+    const [verifyModal, setVerifyModal] = useState(null);
+    const [rejectModal, setRejectModal] = useState(null);
+    const [rejectReason, setRejectReason] = useState('');
+
     const handleVerifyPayment = async (id) => {
-        if (!confirm('¿Verificar este pago y activar la suscripción?')) return;
+        setVerifyModal(id);
+    };
+
+    const confirmVerifyPayment = async () => {
+        if (!verifyModal) return;
         try {
-            await adminService.verifyPayment(id);
-            showToast?.('Pago verificado', 'success');
+            await adminService.verifyPayment(verifyModal);
+            showToast?.('Pago verificado y suscripción activada', 'success');
+            setVerifyModal(null);
             loadData();
         } catch (e) {
-            showToast?.('Error verificando', 'error');
+            showToast?.('Error verificando pago', 'error');
         }
     };
 
     const handleRejectPayment = async (id) => {
-        const reason = prompt('Razón del rechazo:');
-        if (!reason) return;
+        setRejectModal(id);
+        setRejectReason('');
+    };
+
+    const confirmRejectPayment = async () => {
+        if (!rejectModal || !rejectReason.trim()) return;
         try {
-            await adminService.rejectPayment(id, reason);
+            await adminService.rejectPayment(rejectModal, rejectReason);
             showToast?.('Pago rechazado', 'success');
+            setRejectModal(null);
+            setRejectReason('');
             loadData();
         } catch (e) {
-            showToast?.('Error rechazando', 'error');
+            showToast?.('Error rechazando pago', 'error');
         }
     };
 
@@ -369,6 +385,70 @@ export function AdminDashboard({ showToast }) {
                         </Card>
                     )}
                 </>
+            )}
+
+            {/* Verify Payment Modal */}
+            {verifyModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
+                            Verificar Pago
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 mb-6">
+                            ¿Confirmas que el pago ha sido recibido? Esto activará la suscripción del cliente.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setVerifyModal(null)}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmVerifyPayment}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-500"
+                            >
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reject Payment Modal */}
+            {rejectModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
+                            Rechazar Pago
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 mb-3">
+                            Indica la razón por la que rechazas este pago:
+                        </p>
+                        <input
+                            type="text"
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            placeholder="Ej: Comprobante no válido"
+                            className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-rose-500 outline-none mb-4"
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setRejectModal(null); setRejectReason(''); }}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmRejectPayment}
+                                disabled={!rejectReason.trim()}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-rose-600 text-white hover:bg-rose-500 disabled:opacity-50"
+                            >
+                                Rechazar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
