@@ -232,66 +232,26 @@ export function LoginView({ onLogin }) {
                     )}
 
                     {accountExpired ? (
-                        /* Expired Account - Resend Verification UI */
+                        /* Expired Account - Simple Resend UI */
                         <div className="space-y-4 animate-fade-in">
-                            <div className="text-center mb-6">
-                                <div className="w-16 h-16 mx-auto mb-4 bg-amber-500/20 rounded-full flex items-center justify-center">
-                                    <RefreshCw className="w-8 h-8 text-amber-400" />
-                                </div>
-                                <h3 className="text-white text-lg font-semibold mb-2">Cuenta Expirada</h3>
-                                <p className="text-slate-300 text-sm leading-relaxed">
-                                    La cuenta de <span className="text-blue-400 font-medium">{expiredTenantName}</span> expiró por falta de verificación.
+                            <div className="p-4 rounded-xl bg-amber-500/20 border border-amber-500/30 text-center">
+                                <p className="text-slate-200 text-sm">
+                                    Cuenta expirada. {' '}
+                                    {!resendSuccess ? (
+                                        <button
+                                            type="button"
+                                            onClick={handleResendVerification}
+                                            disabled={resendLoading}
+                                            className="text-amber-400 hover:text-amber-300 underline font-medium transition-colors"
+                                        >
+                                            {resendLoading ? 'Enviando...' : 'Reenviar verificación'}
+                                        </button>
+                                    ) : (
+                                        <span className="text-emerald-400 font-medium">✓ Correo enviado a {expiredEmail}</span>
+                                    )}
                                 </p>
+                                {error && <p className="text-red-300 text-xs mt-2">{error}</p>}
                             </div>
-
-                            {error && (
-                                <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-sm text-center">
-                                    {error}
-                                </div>
-                            )}
-
-                            {!resendSuccess ? (
-                                <>
-                                    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                                        <p className="text-slate-400 text-sm mb-2">Correo de la cuenta:</p>
-                                        <p className="text-white font-medium">{expiredEmail}</p>
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleResendVerification}
-                                        disabled={resendLoading}
-                                        className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                    >
-                                        {resendLoading ? (
-                                            <>
-                                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                Enviando...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Mail size={18} />
-                                                Reenviar Correo de Verificación
-                                            </>
-                                        )}
-                                    </button>
-                                </>
-                            ) : (
-                                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center">
-                                    <CheckCircle className="w-10 h-10 mx-auto text-emerald-400 mb-2" />
-                                    <p className="text-emerald-200 text-sm">
-                                        Revisa tu bandeja de entrada y haz clic en el enlace de verificación.
-                                    </p>
-                                </div>
-                            )}
-
-                            <button
-                                type="button"
-                                onClick={handleBackToLogin}
-                                className="w-full py-2.5 text-slate-400 hover:text-white font-medium bg-transparent hover:bg-slate-800/50 rounded-xl transition-colors border border-transparent hover:border-slate-700"
-                            >
-                                ← Volver al Login
-                            </button>
                         </div>
                     ) : isRegistering ? (
                         <div className="space-y-4 animate-fade-in">
@@ -520,7 +480,7 @@ export function LoginView({ onLogin }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 

@@ -172,6 +172,31 @@ router.post('/:id/documents', async (req, res) => {
     }
 });
 
+// DELETE /api/clients/documents/:docId - Eliminar documento
+router.delete('/documents/:docId', async (req, res) => {
+    try {
+        const { docId } = req.params;
+
+        // Verify document belongs to tenant
+        const document = await prisma.clientDocument.findFirst({
+            where: { id: docId, tenantId: req.user.tenantId }
+        });
+
+        if (!document) {
+            return res.status(404).json({ error: 'Documento no encontrado' });
+        }
+
+        await prisma.clientDocument.delete({
+            where: { id: docId }
+        });
+
+        res.json({ success: true, message: 'Documento eliminado' });
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        res.status(500).json({ error: 'Error al eliminar documento' });
+    }
+});
+
 // DELETE /api/clients/:id - Eliminar cliente
 router.delete('/:id', async (req, res) => {
     try {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../../../shared/components/ui/Card';
+import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
-import { FileText } from 'lucide-react';
+import { FileText, Trash2 } from 'lucide-react';
 import documentService from '../services/documentService';
 
 const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', selectedClientId, onSelectClient, showToast }) => {
@@ -19,6 +20,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
   const [templateContent, setTemplateContent] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [docToDelete, setDocToDelete] = useState(null);
 
   // Load documents when client changes
   useEffect(() => {
@@ -40,6 +42,18 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
     } finally {
       setLoadingDocs(false);
     }
+  };
+
+  const handleDeleteDocument = async (docId) => {
+    try {
+      await documentService.deleteDocument(docId);
+      setDocumentsForClient(prev => prev.filter(d => d.id !== docId));
+      showToast?.('Documento eliminado', 'success');
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      showToast?.('Error al eliminar documento', 'error');
+    }
+    setDocToDelete(null);
   };
 
   const handleChangeClient = (e) => {
@@ -390,6 +404,14 @@ Firma PRESTATARIO: ______________________`
                             >
                               Ver / Imprimir (PDF)
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => setDocToDelete(doc)}
+                              className="ml-3 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                              title="Eliminar documento"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         </div>
                       </li>
@@ -401,6 +423,18 @@ Firma PRESTATARIO: ______________________`
           </Card>
         </>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!docToDelete}
+        onClose={() => setDocToDelete(null)}
+        onConfirm={() => handleDeleteDocument(docToDelete?.id)}
+        title="¿Eliminar documento?"
+        message={`¿Estás seguro de que deseas eliminar "${docToDelete?.title || 'este documento'}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 };

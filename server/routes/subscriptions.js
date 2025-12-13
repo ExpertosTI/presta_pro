@@ -46,35 +46,53 @@ const upload = multer({
     }
 });
 
-// Plan definitions
+// Plan definitions - USD pricing with promotional offers
 const PLANS = {
     FREE: {
         id: 'FREE',
         name: 'Plan Gratis',
+        price: 0,
         monthlyPrice: 0,
+        quarterlyPrice: 0, // 3 months
         yearlyPrice: 0,
-        monthlyPriceFormatted: 'RD$0.00',
-        yearlyPriceFormatted: 'RD$0.00',
+        promoPrice: 0, // Promo: pay 3 months, get 1 year
+        monthlyPriceFormatted: '$0.00',
+        quarterlyPriceFormatted: '$0.00',
+        yearlyPriceFormatted: '$0.00',
+        promoPriceFormatted: '$0.00',
+        promoLabel: null,
         features: ['10 clientes', '5 préstamos activos', '1 usuario', 'Sin acceso a IA', 'Expira en 30 días'],
         limits: { maxClients: 10, maxLoans: 5, maxUsers: 1, aiQueries: 0 }
     },
     PRO: {
         id: 'PRO',
         name: 'Plan Profesional',
-        monthlyPrice: 800,
-        yearlyPrice: 8000,
-        monthlyPriceFormatted: 'RD$800.00',
-        yearlyPriceFormatted: 'RD$8,000.00',
+        price: 15, // USD
+        monthlyPrice: 1500, // $15.00 in cents
+        quarterlyPrice: 2700, // $27.00 (3 months = $9/month promo)
+        yearlyPrice: 10800, // $108.00 ($9/month for 12 months - promo applied)
+        promoPrice: 2700, // $27 for 3 months = locked at $9/month for 1 year
+        monthlyPriceFormatted: '$15.00 USD',
+        quarterlyPriceFormatted: '$27.00 USD',
+        yearlyPriceFormatted: '$108.00 USD',
+        promoPriceFormatted: '$9.00 USD/mes',
+        promoLabel: '🔥 OFERTA: Paga 3 meses a $9/mes y queda fijo por 1 año',
         features: ['100 clientes', '50 préstamos activos', '5 usuarios', '100 consultas AI/mes'],
         limits: { maxClients: 100, maxLoans: 50, maxUsers: 5, aiQueries: 100 }
     },
     ENTERPRISE: {
         id: 'ENTERPRISE',
         name: 'Plan Empresarial',
-        monthlyPrice: 1400,
-        yearlyPrice: 14000,
-        monthlyPriceFormatted: 'RD$1,400.00',
-        yearlyPriceFormatted: 'RD$14,000.00',
+        price: 27, // USD
+        monthlyPrice: 2700, // $27.00 in cents
+        quarterlyPrice: 4500, // $45.00 (3 months = $15/month promo)
+        yearlyPrice: 18000, // $180.00 ($15/month for 12 months - promo applied)
+        promoPrice: 4500, // $45 for 3 months = locked at $15/month for 1 year
+        monthlyPriceFormatted: '$27.00 USD',
+        quarterlyPriceFormatted: '$45.00 USD',
+        yearlyPriceFormatted: '$180.00 USD',
+        promoPriceFormatted: '$15.00 USD/mes',
+        promoLabel: '🔥 OFERTA: Paga 3 meses a $15/mes y queda fijo por 1 año',
         features: ['Clientes ilimitados', 'Préstamos ilimitados', 'Usuarios ilimitados', 'AI ilimitado', 'Soporte prioritario'],
         limits: { maxClients: -1, maxLoans: -1, maxUsers: -1, aiQueries: -1 }
     }
