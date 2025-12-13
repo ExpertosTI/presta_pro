@@ -214,7 +214,7 @@ export function SubscriptionDashboard({ showToast }) {
                                     <tr key={payment.id} className="border-b border-slate-100 dark:border-slate-700/50">
                                         <td className="py-2 px-3 text-slate-600 dark:text-slate-400">{formatDate(payment.createdAt)}</td>
                                         <td className="py-2 px-3 font-medium">Plan {payment.plan} ({payment.interval === 'yearly' ? 'Anual' : 'Mensual'})</td>
-                                        <td className="py-2 px-3">{formatCurrency(payment.amount)}</td>
+                                        <td className="py-2 px-3">${(payment.amount / 100).toFixed(2)} USD</td>
                                         <td className="py-2 px-3">
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${payment.status === 'VERIFIED' ? 'bg-green-100 text-green-700' :
                                                 payment.status === 'REJECTED' ? 'bg-red-100 text-red-700' :

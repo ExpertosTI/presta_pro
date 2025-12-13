@@ -146,9 +146,20 @@ router.get('/my-subscription', async (req, res) => {
 
         const plan = PLANS[subscription.plan] || PLANS.FREE;
 
+        // Get actual counts for usage display
+        const [clientCount, loanCount] = await Promise.all([
+            prisma.client.count({ where: { tenantId: tId } }),
+            prisma.loan.count({ where: { tenantId: tId } })
+        ]);
+
         res.json({
             ...subscription,
             planDetails: plan,
+            limits: plan.limits,
+            _count: {
+                clients: clientCount,
+                loans: loanCount
+            },
             isExpired: subscription.status === 'EXPIRED' ||
                 (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date()),
             isTrial: subscription.plan === 'FREE' && subscription.trialEndsAt,

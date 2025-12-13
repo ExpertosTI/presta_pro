@@ -388,59 +388,7 @@ export function SettingsView({
         </form>
       </Card>
 
-      <Card>
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">Usuarios de Acceso (Cobradores)</h3>
-        <div className="space-y-4">
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-            Crea usuarios con nombre de acceso y contraseña para que los cobradores entren al sistema.
-          </p>
-          {userError && (
-            <p className="mb-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {userError}
-            </p>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-3">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Nombre completo</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-                value={userForm.name}
-                onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                placeholder="Ej: Juan Pérez"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Usuario</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-                value={userForm.username}
-                onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
-                placeholder="usuario.cobrador"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Contraseña</label>
-              <input
-                type="password"
-                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-                value={userForm.password}
-                onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                placeholder="Mínimo 4 caracteres"
-              />
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleRegisterUser}
-            className="bg-slate-900 dark:bg-slate-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-lg"
-          >
-          </button>
-        </div>
-      </Card>
-
-      {/* Collectors management has been moved to the dedicated Cobradores module */}
+      {/* Collectors management has been moved to the dedicated Cobradores module - Access via main menu "Cobradores" */}
 
       {/* Backup Section */}
       <Card className="mt-6">
