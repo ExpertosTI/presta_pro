@@ -8,6 +8,8 @@ export function NotesView({ showToast }) {
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
 
   useEffect(() => {
     loadNotes();
@@ -43,6 +45,19 @@ export function NotesView({ showToast }) {
     }
   };
 
+  const updateNote = async (id) => {
+    if (!editText.trim()) return;
+    try {
+      const updated = await api.put(`/notes/${id}`, { text: editText.trim() });
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, text: editText.trim() } : n));
+      setEditingId(null);
+      showToast?.('Nota actualizada', 'success');
+    } catch (error) {
+      console.error('Error updating note:', error);
+      showToast?.('Error actualizando nota', 'error');
+    }
+  };
+
   const deleteNote = async (id) => {
     try {
       await api.delete(`/notes/${id}`);
@@ -59,6 +74,11 @@ export function NotesView({ showToast }) {
       e.preventDefault();
       addNote();
     }
+  };
+
+  const startEdit = (n) => {
+    setEditingId(n.id);
+    setEditText(n.text);
   };
 
   return (
@@ -91,7 +111,26 @@ export function NotesView({ showToast }) {
           <div className="space-y-3">
             {notes.map(n => (
               <div key={n.id} className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-xl relative group">
-                <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{n.text}</p>
+                {editingId === n.id ? (
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 p-2 border border-blue-400 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                      value={editText}
+                      onChange={e => setEditText(e.target.value)}
+                      onBlur={() => updateNote(n.id)}
+                      onKeyDown={e => e.key === 'Enter' && updateNote(n.id)}
+                      autoFocus
+                    />
+                    <button onClick={() => updateNote(n.id)} className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm">✓</button>
+                    <button onClick={() => setEditingId(null)} className="px-3 py-1 bg-slate-400 text-white rounded-lg text-sm">✕</button>
+                  </div>
+                ) : (
+                  <p
+                    className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-800/30 p-1 rounded transition-colors"
+                    onClick={() => startEdit(n)}
+                    title="Click para editar"
+                  >{n.text}</p>
+                )}
                 <p className="text-xs text-slate-400 mt-2">{formatDateTime(n.createdAt || n.date)}</p>
                 <button
                   onClick={() => deleteNote(n.id)}

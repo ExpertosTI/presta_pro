@@ -771,6 +771,16 @@ function App() {
             setEditingEmployee(emp);
             setEmployeeModalOpen(true);
           }}
+          onDeleteEmployee={async (emp) => {
+            if (!window.confirm(`¿Eliminar a ${emp.name}? Esta acción no se puede deshacer.`)) return;
+            try {
+              await employeeService.delete(emp.id);
+              setDbData(p => ({ ...p, employees: p.employees.filter(e => e.id !== emp.id) }));
+              showToast('Empleado eliminado', 'success');
+            } catch (e) {
+              showToast(e.response?.data?.error || 'Error eliminando empleado', 'error');
+            }
+          }}
         />;
       case 'accounting':
         return <AccountingView

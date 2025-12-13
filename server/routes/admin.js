@@ -12,8 +12,9 @@ const emailService = require('../services/emailService');
 
 // Admin middleware - check if user is system admin
 const requireAdmin = (req, res, next) => {
-    const role = req.user?.role?.toLowerCase();
-    if (role !== 'admin') {
+    const role = req.user?.role?.toUpperCase();
+    const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
+    if (!allowedRoles.includes(role)) {
         return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de administrador.' });
     }
     next();

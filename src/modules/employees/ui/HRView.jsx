@@ -3,7 +3,7 @@ import Card from '../../../shared/components/ui/Card';
 
 const roleLabel = (role) => role || 'Empleado';
 
-export function HRView({ employees, onNewEmployee, onEditEmployee }) {
+export function HRView({ employees, onNewEmployee, onEditEmployee, onDeleteEmployee }) {
   const list = employees || [];
 
   const countByRole = (roleName) => list.filter(e => (e.role || '').toLowerCase() === roleName.toLowerCase()).length;
@@ -78,6 +78,14 @@ export function HRView({ employees, onNewEmployee, onEditEmployee }) {
                       className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
                     >
                       Editar
+                    </button>
+                  )}
+                  {onDeleteEmployee && (
+                    <button
+                      onClick={() => onDeleteEmployee(emp)}
+                      className="text-xs text-red-600 dark:text-red-400 font-semibold hover:underline"
+                    >
+                      Eliminar
                     </button>
                   )}
                 </div>

@@ -144,7 +144,28 @@ router.get('/my-subscription', async (req, res) => {
             });
         }
 
-        const plan = PLANS[subscription.plan] || PLANS.FREE;
+        // MASTER plan for SUPER_ADMIN users (owner accounts)
+        const isSuperAdmin = req.user?.role?.toUpperCase() === 'SUPER_ADMIN';
+
+        let plan;
+        let displayPlan;
+
+        if (isSuperAdmin) {
+            // Owner gets MASTER plan with unlimited everything
+            displayPlan = 'MASTER';
+            plan = {
+                id: 'MASTER',
+                name: 'Plan Master',
+                description: 'Acceso completo del propietario',
+                price: 0,
+                monthlyPrice: 0,
+                features: ['Clientes ilimitados', 'Préstamos ilimitados', 'Usuarios ilimitados', 'AI ilimitado', 'Acceso Admin Panel', 'Sin restricciones'],
+                limits: { maxClients: -1, maxLoans: -1, maxUsers: -1, aiQueries: -1 }
+            };
+        } else {
+            displayPlan = subscription.plan;
+            plan = PLANS[subscription.plan] || PLANS.FREE;
+        }
 
         // Get actual counts for usage display
         const [clientCount, loanCount] = await Promise.all([
@@ -154,20 +175,21 @@ router.get('/my-subscription', async (req, res) => {
 
         res.json({
             ...subscription,
+            plan: displayPlan,
             planDetails: plan,
             limits: plan.limits,
             _count: {
                 clients: clientCount,
                 loans: loanCount
             },
-            isExpired: subscription.status === 'EXPIRED' ||
-                (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date()),
-            isTrial: subscription.plan === 'FREE' && subscription.trialEndsAt,
-            daysRemaining: subscription.currentPeriodEnd
+            isExpired: isSuperAdmin ? false : (subscription.status === 'EXPIRED' ||
+                (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date())),
+            isTrial: isSuperAdmin ? false : (subscription.plan === 'FREE' && subscription.trialEndsAt),
+            daysRemaining: isSuperAdmin ? 9999 : (subscription.currentPeriodEnd
                 ? Math.max(0, Math.ceil((new Date(subscription.currentPeriodEnd) - new Date()) / (1000 * 60 * 60 * 24)))
                 : subscription.trialEndsAt
                     ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24)))
-                    : 0
+                    : 0)
         });
 
     } catch (error) {
