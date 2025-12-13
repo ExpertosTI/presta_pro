@@ -730,7 +730,7 @@ function App() {
           systemSettings={dbData.systemSettings}
         />;
       case 'notes':
-        return <NotesView notes={dbData.notes} setNotes={(n) => setDbData(p => ({ ...p, notes: typeof n === 'function' ? n(p.notes) : n }))} />;
+        return <NotesView showToast={showToast} />;
       case 'expenses':
         return <ExpensesView expenses={dbData.expenses} addExpense={addExpense} />;
       case 'reports':

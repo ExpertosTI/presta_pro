@@ -5,6 +5,7 @@ import {
     Copy, Eye, EyeOff, UserPlus
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
+import ConfirmDialog from '../../../shared/components/ui/ConfirmDialog';
 import { formatDateTime } from '../../../shared/utils/formatters';
 import collectorService from '../services/collectorService';
 
@@ -38,6 +39,9 @@ export function CollectorsView({ showToast, clients = [] }) {
     const [showActivity, setShowActivity] = useState(null);
     const [activityData, setActivityData] = useState([]);
     const [tempPassword, setTempPassword] = useState(null);
+
+    // Confirm dialog state
+    const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
     // Form state
     const [formData, setFormData] = useState({
@@ -86,25 +90,37 @@ export function CollectorsView({ showToast, clients = [] }) {
     };
 
     const handleDelete = async (id) => {
-        if (!confirm('¿Eliminar este cobrador? Los clientes asignados serán desasignados.')) return;
-        try {
-            await collectorService.deleteCollector(id);
-            setCollectors(prev => prev.filter(c => c.id !== id));
-            showToast?.('Cobrador eliminado', 'success');
-        } catch (e) {
-            showToast?.('Error eliminando cobrador', 'error');
-        }
+        setConfirmDialog({
+            open: true,
+            title: 'Eliminar cobrador',
+            message: '¿Eliminar este cobrador? Los clientes asignados serán desasignados.',
+            onConfirm: async () => {
+                try {
+                    await collectorService.deleteCollector(id);
+                    setCollectors(prev => prev.filter(c => c.id !== id));
+                    showToast?.('Cobrador eliminado', 'success');
+                } catch (e) {
+                    showToast?.('Error eliminando cobrador', 'error');
+                }
+            }
+        });
     };
 
     const handleResetPassword = async (id) => {
-        if (!confirm('¿Generar nueva contraseña? La anterior dejará de funcionar.')) return;
-        try {
-            const result = await collectorService.resetPassword(id);
-            setTempPassword(result.newPassword);
-            showToast?.(result.message || 'Contraseña reseteada', 'success');
-        } catch (e) {
-            showToast?.('Error reseteando contraseña', 'error');
-        }
+        setConfirmDialog({
+            open: true,
+            title: 'Resetear contraseña',
+            message: '¿Generar nueva contraseña? La anterior dejará de funcionar.',
+            onConfirm: async () => {
+                try {
+                    const result = await collectorService.resetPassword(id);
+                    setTempPassword(result.newPassword);
+                    showToast?.(result.message || 'Contraseña reseteada', 'success');
+                } catch (e) {
+                    showToast?.('Error reseteando contraseña', 'error');
+                }
+            }
+        });
     };
 
     const handleSavePermissions = async (id, permissions) => {
@@ -175,6 +191,17 @@ export function CollectorsView({ showToast, clients = [] }) {
                     Nuevo Cobrador
                 </button>
             </div>
+
+            {/* Confirm Dialog */}
+            <ConfirmDialog
+                isOpen={confirmDialog.open}
+                onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+                onConfirm={confirmDialog.onConfirm}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                confirmText="Eliminar"
+                variant="danger"
+            />
 
             {/* Temp Password Modal */}
             {tempPassword && (

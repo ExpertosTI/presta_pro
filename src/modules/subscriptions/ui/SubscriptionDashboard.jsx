@@ -279,9 +279,9 @@ function PlanCard({ plan, isCurrent, onSelect }) {
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
             <div className="mb-4">
                 <span className="text-3xl font-extrabold text-slate-900 dark:text-white">
-                    {plan.price === 0 ? 'Gratis' : formatCurrency(plan.price)}
+                    {plan.price === 0 ? 'Gratis' : `$${plan.price}`}
                 </span>
-                {plan.price > 0 && <span className="text-slate-500">/mes</span>}
+                {plan.price > 0 && <span className="text-slate-500"> USD/mes</span>}
             </div>
 
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 min-h-[40px]">

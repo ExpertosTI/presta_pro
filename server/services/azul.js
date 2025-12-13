@@ -120,6 +120,7 @@ const PLANS = {
     FREE: {
         id: 'FREE',
         name: 'Plan Gratis',
+        price: 0, // USD
         monthlyPrice: 0,
         yearlyPrice: 0,
         expiresInDays: 30, // Trial expires in 30 days
@@ -134,8 +135,9 @@ const PLANS = {
     PRO: {
         id: 'PRO',
         name: 'Plan Profesional',
-        monthlyPrice: 80000, // RD$800.00
-        yearlyPrice: 800000, // RD$8,000.00 (2 meses gratis)
+        price: 15, // USD $15/month
+        monthlyPrice: 1500, // $15.00 in cents
+        yearlyPrice: 15000, // $150.00 in cents (2 months free)
         limits: {
             maxClients: 100,
             maxLoans: 50,
@@ -147,8 +149,9 @@ const PLANS = {
     ENTERPRISE: {
         id: 'ENTERPRISE',
         name: 'Plan Empresarial',
-        monthlyPrice: 140000, // RD$1,400.00
-        yearlyPrice: 1400000, // RD$14,000.00 (2 meses gratis)
+        price: 27, // USD $27/month
+        monthlyPrice: 2700, // $27.00 in cents
+        yearlyPrice: 27000, // $270.00 in cents (2 months free)
         limits: {
             maxClients: -1, // Unlimited
             maxLoans: -1,
