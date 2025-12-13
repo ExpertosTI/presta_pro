@@ -11,25 +11,25 @@ const SMTP_HOST = process.env.SMTP_HOST || '85.31.224.232';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25');
 const SMTP_USER = process.env.SMTP_USER || 'noreply@prestapro.renace.tech';
 const SMTP_PASS = process.env.SMTP_PASS || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || '"PRESTAPRO" <noreply@prestapro.renace.tech>';
+const FROM_EMAIL = process.env.FROM_EMAIL || '"PRESTA PRO" <noreply@prestapro.renace.tech>';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@renace.tech';
 
 // Brand constants
-const BRAND_NAME = 'PRESTAPRO';
+const BRAND_NAME = 'PRESTA PRO';
 const BRAND_TAGLINE = 'by RENACE.TECH';
 const BRAND_COLOR = '#2563eb';
-const HEADER_BG = '#1e3a8a';
+const HEADER_BG = '#3b82f6'; // Lighter blue for better contrast
 
 // Create transporter
 const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_PORT === 465,
-    auth: SMTP_USER && SMTP_PASS ? {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-    } : undefined,
-    tls: { rejectUnauthorized: false }
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_PORT === 465,
+  auth: SMTP_USER && SMTP_PASS ? {
+    user: SMTP_USER,
+    pass: SMTP_PASS,
+  } : undefined,
+  tls: { rejectUnauthorized: false }
 });
 
 /**
@@ -89,20 +89,20 @@ const wrapEmailTemplate = (content, tenantName = BRAND_NAME) => `
  * Send email with error handling
  */
 const sendEmail = async ({ to, subject, html, text }) => {
-    try {
-        const result = await transporter.sendMail({
-            from: FROM_EMAIL,
-            to,
-            subject: `[${BRAND_NAME}] ${subject}`,
-            html,
-            text: text || subject
-        });
-        console.log(`Email sent to ${to}: ${subject}`);
-        return { success: true, messageId: result.messageId };
-    } catch (error) {
-        console.error(`Email error to ${to}:`, error.message);
-        return { success: false, error: error.message };
-    }
+  try {
+    const result = await transporter.sendMail({
+      from: FROM_EMAIL,
+      to,
+      subject: `[${BRAND_NAME}] ${subject}`,
+      html,
+      text: text || subject
+    });
+    console.log(`Email sent to ${to}: ${subject}`);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error(`Email error to ${to}:`, error.message);
+    return { success: false, error: error.message };
+  }
 };
 
 // ============================================
@@ -113,7 +113,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
  * Payment confirmation email
  */
 const sendPaymentConfirmation = async ({ to, tenantName, clientName, amount, installmentNumber, date, receiptId }) => {
-    const content = `
+  const content = `
     <div style="text-align: center; margin-bottom: 24px;">
       <div style="display: inline-block; width: 64px; height: 64px; background: #d1fae5; border-radius: 50%; line-height: 64px; font-size: 32px;">✅</div>
     </div>
@@ -130,18 +130,18 @@ const sendPaymentConfirmation = async ({ to, tenantName, clientName, amount, ins
     <p style="color: #64748b; font-size: 14px; text-align: center;">Recibo: ${receiptId?.slice(0, 8).toUpperCase() || 'N/A'}</p>
   `;
 
-    return sendEmail({
-        to,
-        subject: `Pago Registrado - ${clientName}`,
-        html: wrapEmailTemplate(content, tenantName)
-    });
+  return sendEmail({
+    to,
+    subject: `Pago Registrado - ${clientName}`,
+    html: wrapEmailTemplate(content, tenantName)
+  });
 };
 
 /**
  * Payment reminder email (before due date)
  */
 const sendPaymentReminder = async ({ to, tenantName, clientName, amount, dueDate, daysUntilDue }) => {
-    const content = `
+  const content = `
     <div style="text-align: center; margin-bottom: 24px;">
       <div style="display: inline-block; width: 64px; height: 64px; background: #fef3c7; border-radius: 50%; line-height: 64px; font-size: 32px;">⏰</div>
     </div>
@@ -156,18 +156,18 @@ const sendPaymentReminder = async ({ to, tenantName, clientName, amount, dueDate
     </div>
   `;
 
-    return sendEmail({
-        to,
-        subject: `Recordatorio: Pago próximo a vencer - ${clientName}`,
-        html: wrapEmailTemplate(content, tenantName)
-    });
+  return sendEmail({
+    to,
+    subject: `Recordatorio: Pago próximo a vencer - ${clientName}`,
+    html: wrapEmailTemplate(content, tenantName)
+  });
 };
 
 /**
  * Overdue notice email
  */
 const sendOverdueNotice = async ({ to, tenantName, clientName, amount, dueDate, daysOverdue, penaltyAmount }) => {
-    const content = `
+  const content = `
     <div style="text-align: center; margin-bottom: 24px;">
       <div style="display: inline-block; width: 64px; height: 64px; background: #fee2e2; border-radius: 50%; line-height: 64px; font-size: 32px;">⚠️</div>
     </div>
@@ -183,11 +183,11 @@ const sendOverdueNotice = async ({ to, tenantName, clientName, amount, dueDate, 
     </div>
   `;
 
-    return sendEmail({
-        to,
-        subject: `⚠️ Cuota Vencida - ${clientName}`,
-        html: wrapEmailTemplate(content, tenantName)
-    });
+  return sendEmail({
+    to,
+    subject: `⚠️ Cuota Vencida - ${clientName}`,
+    html: wrapEmailTemplate(content, tenantName)
+  });
 };
 
 // ============================================
@@ -198,9 +198,9 @@ const sendOverdueNotice = async ({ to, tenantName, clientName, amount, dueDate, 
  * Daily report email
  */
 const sendDailyReport = async ({ to, tenantName, date, stats }) => {
-    const { totalCollected, totalExpenses, receiptsCount, overdueCount, balance } = stats;
+  const { totalCollected, totalExpenses, receiptsCount, overdueCount, balance } = stats;
 
-    const content = `
+  const content = `
     <h2 style="color: #0f172a; text-align: center; margin: 0 0 8px;">📊 Reporte Diario</h2>
     <p style="color: #64748b; text-align: center; margin: 0 0 24px;">${new Date(date).toLocaleDateString('es-DO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
     
@@ -235,11 +235,11 @@ const sendDailyReport = async ({ to, tenantName, date, stats }) => {
     ` : ''}
   `;
 
-    return sendEmail({
-        to,
-        subject: `Reporte Diario - ${new Date(date).toLocaleDateString('es-DO')}`,
-        html: wrapEmailTemplate(content, tenantName)
-    });
+  return sendEmail({
+    to,
+    subject: `Reporte Diario - ${new Date(date).toLocaleDateString('es-DO')}`,
+    html: wrapEmailTemplate(content, tenantName)
+  });
 };
 
 // ============================================
@@ -250,7 +250,7 @@ const sendDailyReport = async ({ to, tenantName, date, stats }) => {
  * Subscription expiring soon email
  */
 const sendSubscriptionExpiringEmail = async ({ to, tenantName, plan, expiresAt, daysRemaining }) => {
-    const content = `
+  const content = `
     <div style="text-align: center; margin-bottom: 24px;">
       <div style="display: inline-block; width: 64px; height: 64px; background: #fef3c7; border-radius: 50%; line-height: 64px; font-size: 32px;">💳</div>
     </div>
@@ -271,11 +271,11 @@ const sendSubscriptionExpiringEmail = async ({ to, tenantName, plan, expiresAt, 
     </div>
   `;
 
-    return sendEmail({
-        to,
-        subject: `⏰ Tu suscripción vence en ${daysRemaining} días`,
-        html: wrapEmailTemplate(content, tenantName)
-    });
+  return sendEmail({
+    to,
+    subject: `⏰ Tu suscripción vence en ${daysRemaining} días`,
+    html: wrapEmailTemplate(content, tenantName)
+  });
 };
 
 // ============================================
@@ -286,7 +286,7 @@ const sendSubscriptionExpiringEmail = async ({ to, tenantName, plan, expiresAt, 
  * Welcome collector email with credentials
  */
 const sendCollectorWelcomeEmail = async ({ to, tenantName, collectorName, username, temporaryPassword }) => {
-    const content = `
+  const content = `
     <div style="text-align: center; margin-bottom: 24px;">
       <div style="display: inline-block; width: 64px; height: 64px; background: #dbeafe; border-radius: 50%; line-height: 64px; font-size: 32px;">👋</div>
     </div>
@@ -314,11 +314,11 @@ const sendCollectorWelcomeEmail = async ({ to, tenantName, collectorName, userna
     </div>
   `;
 
-    return sendEmail({
-        to,
-        subject: `Bienvenido al equipo de ${tenantName}`,
-        html: wrapEmailTemplate(content, tenantName)
-    });
+  return sendEmail({
+    to,
+    subject: `Bienvenido al equipo de ${tenantName}`,
+    html: wrapEmailTemplate(content, tenantName)
+  });
 };
 
 // ============================================
@@ -329,97 +329,97 @@ const sendCollectorWelcomeEmail = async ({ to, tenantName, collectorName, userna
  * Create in-app notification
  */
 const createNotification = async ({ tenantId, userId, type, title, message, actionUrl, data }) => {
-    try {
-        const notification = await prisma.notification.create({
-            data: {
-                tenantId,
-                userId,
-                type,
-                title,
-                message,
-                actionUrl,
-                data
-            }
-        });
-        return notification;
-    } catch (error) {
-        console.error('Error creating notification:', error);
-        return null;
-    }
+  try {
+    const notification = await prisma.notification.create({
+      data: {
+        tenantId,
+        userId,
+        type,
+        title,
+        message,
+        actionUrl,
+        data
+      }
+    });
+    return notification;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    return null;
+  }
 };
 
 /**
  * Get unread notifications for tenant/user
  */
 const getUnreadNotifications = async (tenantId, userId = null) => {
-    const where = {
-        tenantId,
-        read: false
-    };
+  const where = {
+    tenantId,
+    read: false
+  };
 
-    if (userId) {
-        where.OR = [
-            { userId: null }, // Notifications for all users
-            { userId }
-        ];
-    }
+  if (userId) {
+    where.OR = [
+      { userId: null }, // Notifications for all users
+      { userId }
+    ];
+  }
 
-    return prisma.notification.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        take: 50
-    });
+  return prisma.notification.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    take: 50
+  });
 };
 
 /**
  * Mark notification as read
  */
 const markAsRead = async (notificationId) => {
-    return prisma.notification.update({
-        where: { id: notificationId },
-        data: { read: true }
-    });
+  return prisma.notification.update({
+    where: { id: notificationId },
+    data: { read: true }
+  });
 };
 
 /**
  * Mark all notifications as read
  */
 const markAllAsRead = async (tenantId, userId = null) => {
-    const where = { tenantId };
-    if (userId) {
-        where.OR = [
-            { userId: null },
-            { userId }
-        ];
-    }
+  const where = { tenantId };
+  if (userId) {
+    where.OR = [
+      { userId: null },
+      { userId }
+    ];
+  }
 
-    return prisma.notification.updateMany({
-        where,
-        data: { read: true }
-    });
+  return prisma.notification.updateMany({
+    where,
+    data: { read: true }
+  });
 };
 
 module.exports = {
-    // Email sending
-    sendEmail,
-    sendPaymentConfirmation,
-    sendPaymentReminder,
-    sendOverdueNotice,
-    sendDailyReport,
-    sendSubscriptionExpiringEmail,
-    sendCollectorWelcomeEmail,
+  // Email sending
+  sendEmail,
+  sendPaymentConfirmation,
+  sendPaymentReminder,
+  sendOverdueNotice,
+  sendDailyReport,
+  sendSubscriptionExpiringEmail,
+  sendCollectorWelcomeEmail,
 
-    // Notifications
-    createNotification,
-    getUnreadNotifications,
-    markAsRead,
-    markAllAsRead,
+  // Notifications
+  createNotification,
+  getUnreadNotifications,
+  markAsRead,
+  markAllAsRead,
 
-    // Constants
-    BRAND_NAME,
-    BRAND_TAGLINE,
-    ADMIN_EMAIL,
+  // Constants
+  BRAND_NAME,
+  BRAND_TAGLINE,
+  ADMIN_EMAIL,
 
-    // Template helper
-    wrapEmailTemplate
+  // Template helper
+  wrapEmailTemplate
 };
