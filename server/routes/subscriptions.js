@@ -56,7 +56,8 @@ const upload = multer({
 const PLANS = {
     FREE: {
         id: 'FREE',
-        name: 'Plan Gratis',
+        name: 'Gratis',
+        description: 'Ideal para probar la plataforma',
         price: 0,
         monthlyPrice: 0,
         quarterlyPrice: 0, // 3 months
@@ -73,6 +74,7 @@ const PLANS = {
     PRO: {
         id: 'PRO',
         name: 'Plan Profesional',
+        description: 'Para prestamistas en crecimiento',
         price: 15, // USD
         monthlyPrice: 1500, // $15.00 in cents
         quarterlyPrice: 2700, // $27.00 (3 months = $9/month promo)
@@ -89,6 +91,7 @@ const PLANS = {
     ENTERPRISE: {
         id: 'ENTERPRISE',
         name: 'Plan Empresarial',
+        description: 'Máxima potencia sin límites',
         price: 27, // USD
         monthlyPrice: 2700, // $27.00 in cents
         quarterlyPrice: 4500, // $45.00 (3 months = $15/month promo)
