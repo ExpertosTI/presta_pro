@@ -195,6 +195,13 @@ export function LoginView({ onLogin }) {
                         tenantId: data.tenant.id,
                         photoUrl: data.user.photoUrl
                     });
+                } else if (data.accountExpired) {
+                    // Account expired - offer resend option
+                    setAccountExpired(true);
+                    setExpiredEmail(data.email);
+                    setExpiredTenantName(data.tenantName || 'tu empresa');
+                    setError('');
+                    setLoading(false);
                 } else {
                     setError(data.error || 'Error al autenticar con Google');
                     setLoading(false);
