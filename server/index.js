@@ -69,6 +69,7 @@ const employeesRouter = require('./routes/employees');
 const notesRouter = require('./routes/notes');
 const notificationsRouter = require('./routes/notifications');
 const adminRouter = require('./routes/admin');
+const loanRequestsRouter = require('./routes/loan-requests');
 
 
 // Importar middleware de autenticación
@@ -244,6 +245,7 @@ app.use('/api/collectors', collectorsRouter); // Auth managed internally
 app.use('/api/employees', authMiddleware, employeesRouter);
 app.use('/api/notes', authMiddleware, notesRouter);
 app.use('/api/notifications', authMiddleware, notificationsRouter);
+app.use('/api/loan-requests', authMiddleware, loanRequestsRouter);
 app.use('/api/admin', authMiddleware, requireAdmin, adminRouter);
 
 // Public endpoint for collector login (redundant if handled by router, removing to avoid confusion)

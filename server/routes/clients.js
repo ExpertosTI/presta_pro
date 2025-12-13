@@ -108,6 +108,31 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+// GET /api/clients/:id/documents - Obtener documentos del cliente
+router.get('/:id/documents', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const client = await prisma.client.findFirst({
+            where: { id, tenantId: req.user.tenantId }
+        });
+
+        if (!client) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+
+        const documents = await prisma.clientDocument.findMany({
+            where: { clientId: id, tenantId: req.user.tenantId },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json(documents);
+    } catch (error) {
+        console.error('Error fetching documents:', error);
+        res.status(500).json({ error: 'Error al obtener documentos' });
+    }
+});
+
 // POST /api/clients/:id/documents - Agregar documento
 router.post('/:id/documents', async (req, res) => {
     try {

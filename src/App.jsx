@@ -692,15 +692,25 @@ function App() {
         />;
       case 'requests':
         return <RequestsView
-          requests={dbData.requests}
           clients={dbData.clients}
-          addRequest={addRequest}
-          approveRequest={approveRequest}
-          rejectRequest={rejectRequest}
+          showToast={showToast}
           onNewClient={(callback) => {
             setClientCreatedCallback(() => callback);
             setEditingClient(null);
             setClientModalOpen(true);
+          }}
+          onCreateLoan={async (loanData) => {
+            try {
+              const newLoan = await loanService.create(loanData);
+              setDbData(p => ({
+                ...p,
+                loans: [...p.loans, { ...newLoan, schedule: newLoan.installments || [] }]
+              }));
+              showToast('Préstamo creado desde solicitud', 'success');
+            } catch (e) {
+              console.error('Create loan error:', e);
+              showToast(e.message || 'Error al crear préstamo', 'error');
+            }
           }}
         />;
       case 'routes':
