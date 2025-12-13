@@ -16,6 +16,7 @@ services:
       - ADMIN_NOTIFY_EMAIL=${ADMIN_NOTIFY_EMAIL:-adderlymarte@hotmail.com}
       - APP_BASE_URL=https://prestanace.renace.tech
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-AIzaSyDzL55DYAIxDgsSaP6PSHILGydukdqIIY4}
     restart: unless-stopped
 
   prestapro_db:
