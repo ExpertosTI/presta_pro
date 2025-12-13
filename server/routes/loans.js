@@ -88,7 +88,15 @@ function calculateSchedule(amount, rate, term, frequency, startDate, amortizatio
 
 // --- Helper: Map loan to response format ---
 function mapLoanToResponse(loanWithRelations) {
-    const { installments, client, ...loan } = loanWithRelations;
+    const { installments, client, freePayments, ...loan } = loanWithRelations;
+
+    // Para préstamos abiertos, calcular el saldo actual
+    let currentBalance = loan.amount + (loan.closingCosts || 0);
+    if (loan.loanType === 'OPEN' && freePayments) {
+        const totalPaidToPrincipal = freePayments.reduce((sum, p) => sum + (p.toPrincipal || 0), 0);
+        currentBalance = currentBalance - totalPaidToPrincipal;
+    }
+
     return {
         id: loan.id,
         clientId: loan.clientId,
@@ -102,6 +110,24 @@ function mapLoanToResponse(loanWithRelations) {
         totalPaid: loan.totalPaid,
         startDate: loan.startDate,
         createdAt: loan.createdAt,
+        // Campos para préstamos abiertos
+        loanType: loan.loanType || 'FIXED',
+        interestAccrued: loan.interestAccrued || 0,
+        dailyRate: loan.dailyRate || null,
+        lastInterestCalc: loan.lastInterestCalc || null,
+        currentBalance: currentBalance,
+        closingCosts: loan.closingCosts || 0,
+        // Historial de pagos libres (para préstamos abiertos)
+        freePayments: (freePayments || []).sort((a, b) => new Date(b.date) - new Date(a.date)).map(p => ({
+            id: p.id,
+            amount: p.amount,
+            toPrincipal: p.toPrincipal,
+            toInterest: p.toInterest,
+            balanceAfter: p.balanceAfter,
+            date: p.date,
+            notes: p.notes
+        })),
+        // Cuotas (para préstamos fijos)
         schedule: (installments || [])
             .sort((a, b) => a.number - b.number)
             .map((inst) => ({
@@ -126,7 +152,8 @@ router.get('/', async (req, res) => {
             where: { tenantId: req.user.tenantId },
             include: {
                 installments: true,
-                client: true
+                client: true,
+                freePayments: true
             },
             orderBy: { createdAt: 'desc' }
         });
@@ -141,10 +168,17 @@ router.get('/', async (req, res) => {
 // POST /api/loans - Crear préstamo
 router.post('/', async (req, res) => {
     try {
-        const { clientId, amount, rate, term, frequency, startDate, schedule: providedSchedule, closingCosts, amortizationType } = req.body;
+        const { clientId, amount, rate, term, frequency, startDate, schedule: providedSchedule, closingCosts, amortizationType, loanType, dailyRate } = req.body;
 
-        if (!clientId || !amount || !rate || !term || !frequency || !startDate) {
-            return res.status(400).json({ error: 'Faltan datos obligatorios (clientId, amount, rate, term, frequency, startDate)' });
+        // Para préstamos abiertos, term no es obligatorio
+        const isOpenLoan = loanType === 'OPEN';
+
+        if (!clientId || !amount || !rate || !startDate) {
+            return res.status(400).json({ error: 'Faltan datos obligatorios (clientId, amount, rate, startDate)' });
+        }
+
+        if (!isOpenLoan && (!term || !frequency)) {
+            return res.status(400).json({ error: 'Para préstamos con cuotas fijas se requiere term y frequency' });
         }
 
         // Verificar que el cliente existe y pertenece al tenant
@@ -200,39 +234,64 @@ router.post('/', async (req, res) => {
 
         const totalInterest = schedule.reduce((acc, item) => acc + (item.interest || 0), 0);
 
-        // Build loan data - closingCosts will be added after migration runs
-        const loanData = {
-            amount: parsedAmount,
-            rate: parseFloat(rate),
-            term: parseInt(term),
-            frequency,
-            startDate: new Date(startDate),
-            status: 'ACTIVE',
-            totalInterest,
-            totalPaid: 0,
-            tenantId: req.user.tenantId,
-            clientId,
-            installments: {
-                create: schedule.map(inst => ({
-                    number: inst.number,
-                    date: new Date(inst.date),
-                    payment: parseFloat(inst.payment),
-                    interest: parseFloat(inst.interest),
-                    principal: parseFloat(inst.principal),
-                    balance: parseFloat(inst.balance),
-                    status: inst.status || 'PENDING'
-                }))
-            }
-        };
+        // Build loan data
+        let loanData;
 
-        // Add closingCosts only if > 0 (comment out until migration runs)
-        // if (parsedClosingCosts > 0) loanData.closingCosts = parsedClosingCosts;
+        if (isOpenLoan) {
+            // Préstamo abierto - sin cuotas fijas
+            const parsedDailyRate = parseFloat(dailyRate) || (parseFloat(rate) / 365); // Tasa diaria
+            loanData = {
+                amount: parsedAmount,
+                rate: parseFloat(rate),
+                term: 0, // Sin término fijo
+                frequency: 'Libre',
+                startDate: new Date(startDate),
+                status: 'ACTIVE',
+                totalInterest: 0,
+                totalPaid: 0,
+                loanType: 'OPEN',
+                dailyRate: parsedDailyRate,
+                interestAccrued: 0,
+                lastInterestCalc: new Date(startDate),
+                tenantId: req.user.tenantId,
+                clientId,
+                closingCosts: parsedClosingCosts
+            };
+        } else {
+            // Préstamo tradicional con cuotas fijas
+            loanData = {
+                amount: parsedAmount,
+                rate: parseFloat(rate),
+                term: parseInt(term),
+                frequency,
+                startDate: new Date(startDate),
+                status: 'ACTIVE',
+                totalInterest,
+                totalPaid: 0,
+                loanType: 'FIXED',
+                tenantId: req.user.tenantId,
+                clientId,
+                closingCosts: parsedClosingCosts,
+                installments: {
+                    create: schedule.map(inst => ({
+                        number: inst.number,
+                        date: new Date(inst.date),
+                        payment: parseFloat(inst.payment),
+                        interest: parseFloat(inst.interest),
+                        principal: parseFloat(inst.principal),
+                        balance: parseFloat(inst.balance),
+                        status: inst.status || 'PENDING'
+                    }))
+                }
+            };
+        }
 
         const newLoan = await prisma.loan.create({
             data: loanData,
             include: {
                 installments: true,
-                client: true
+                client: true,
+                freePayments: true
             }
         });
 
@@ -446,6 +505,151 @@ router.post('/:id/payments', async (req, res) => {
     } catch (error) {
         console.error('Error registering payment:', error);
         res.status(500).json({ error: 'Error al registrar pago' });
+    }
+});
+
+// POST /api/loans/:id/free-payment - Registrar abono libre (préstamos abiertos)
+router.post('/:id/free-payment', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { amount, notes, collectorId } = req.body;
+
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ error: 'El monto del abono debe ser mayor a 0' });
+        }
+
+        // Obtener préstamo
+        const loan = await prisma.loan.findFirst({
+            where: { id, tenantId: req.user.tenantId },
+            include: { freePayments: true, client: true }
+        });
+
+        if (!loan) {
+            return res.status(404).json({ error: 'Préstamo no encontrado' });
+        }
+
+        if (loan.loanType !== 'OPEN') {
+            return res.status(400).json({ error: 'Este endpoint solo es para préstamos abiertos' });
+        }
+
+        // Calcular interés acumulado desde última fecha de cálculo
+        const lastCalc = loan.lastInterestCalc || loan.startDate;
+        const now = new Date();
+        const daysSinceLastCalc = Math.floor((now - new Date(lastCalc)) / (1000 * 60 * 60 * 24));
+
+        // Calcular saldo actual (principal - pagos a capital)
+        const totalPaidToPrincipal = loan.freePayments.reduce((sum, p) => sum + (p.toPrincipal || 0), 0);
+        const currentPrincipal = loan.amount + (loan.closingCosts || 0) - totalPaidToPrincipal;
+
+        // Calcular nuevo interés acumulado
+        const dailyRate = loan.dailyRate || (loan.rate / 365 / 100);
+        const newInterest = currentPrincipal * dailyRate * daysSinceLastCalc;
+        const totalInterestAccrued = (loan.interestAccrued || 0) + newInterest;
+
+        // Aplicar pago: primero a interés, luego a capital
+        const paymentAmount = parseFloat(amount);
+        let toInterest = Math.min(paymentAmount, totalInterestAccrued);
+        let toPrincipal = paymentAmount - toInterest;
+
+        // Si queda más del capital disponible, limitar
+        if (toPrincipal > currentPrincipal) {
+            toPrincipal = currentPrincipal;
+        }
+
+        const balanceAfter = currentPrincipal - toPrincipal;
+        const remainingInterest = totalInterestAccrued - toInterest;
+
+        // Crear pago libre
+        const freePayment = await prisma.freePayment.create({
+            data: {
+                loanId: id,
+                amount: paymentAmount,
+                toPrincipal,
+                toInterest,
+                balanceAfter,
+                date: now,
+                collectorId: collectorId || null,
+                notes: notes || null,
+                tenantId: req.user.tenantId
+            }
+        });
+
+        // Actualizar préstamo
+        const newStatus = balanceAfter <= 0 ? 'COMPLETED' : 'ACTIVE';
+        await prisma.loan.update({
+            where: { id },
+            data: {
+                totalPaid: loan.totalPaid + paymentAmount,
+                totalInterest: loan.totalInterest + toInterest,
+                interestAccrued: remainingInterest,
+                lastInterestCalc: now,
+                status: newStatus
+            }
+        });
+
+        // Obtener préstamo actualizado
+        const updatedLoan = await prisma.loan.findUnique({
+            where: { id },
+            include: { installments: true, client: true, freePayments: true }
+        });
+
+        // Audit log
+        await logAudit({
+            userId: req.user.id,
+            action: AUDIT_ACTIONS.LOAN_PAYMENT,
+            tenantId: req.user.tenantId,
+            details: {
+                loanId: id,
+                amount: paymentAmount,
+                toPrincipal,
+                toInterest,
+                balanceAfter,
+                type: 'FREE_PAYMENT'
+            },
+            ipAddress: req.ip
+        });
+
+        res.json({
+            success: true,
+            payment: freePayment,
+            loan: mapLoanToResponse(updatedLoan),
+            summary: {
+                paidToInterest: toInterest,
+                paidToPrincipal: toPrincipal,
+                remainingBalance: balanceAfter,
+                remainingInterest: remainingInterest,
+                loanStatus: newStatus
+            }
+        });
+
+    } catch (error) {
+        console.error('Error registering free payment:', error);
+        res.status(500).json({ error: 'Error al registrar abono' });
+    }
+});
+
+// GET /api/loans/:id/free-payments - Obtener historial de abonos libres
+router.get('/:id/free-payments', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const loan = await prisma.loan.findFirst({
+            where: { id, tenantId: req.user.tenantId }
+        });
+
+        if (!loan) {
+            return res.status(404).json({ error: 'Préstamo no encontrado' });
+        }
+
+        const payments = await prisma.freePayment.findMany({
+            where: { loanId: id },
+            orderBy: { date: 'desc' }
+        });
+
+        res.json(payments);
+    } catch (error) {
+        console.error('Error fetching free payments:', error);
+        res.status(500).json({ error: 'Error al obtener abonos' });
     }
 });
 
