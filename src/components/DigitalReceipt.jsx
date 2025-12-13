@@ -135,11 +135,11 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                                 <div className="space-y-2">
                                     <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                        Cuotas Pagadas
+                                        {receipt.isPartialPayment ? 'Abonos Realizados' : 'Cuotas Pagadas'}
                                     </p>
                                     {receipt.paymentBreakdown.map((item, idx) => (
                                         <div key={idx} className="flex justify-between text-sm bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg">
-                                            <span className="text-slate-700 dark:text-slate-300">Cuota #{item.number}</span>
+                                            <span className="text-slate-700 dark:text-slate-300">{item.isPartialPayment ? `Abono a Cuota #${item.number}` : `Cuota #${item.number}`}</span>
                                             <span className="font-semibold text-emerald-600">{formatCurrency(item.amount)}</span>
                                         </div>
                                     ))}
@@ -158,7 +158,7 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                                     <div>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">Detalle</p>
                                         <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">
-                                            Cuota #{receipt.installmentNumber}
+                                            {receipt.isPartialPayment ? `Abono a Cuota #${receipt.installmentNumber}` : `Cuota #${receipt.installmentNumber}`}
                                         </p>
                                         {finalPenaltyAmount > 0 && (
                                             <p className="text-xs text-amber-600 font-semibold">Incluye mora: {formatCurrency(finalPenaltyAmount)}</p>
