@@ -267,6 +267,10 @@ function UsageCard({ label, used, limit, unit = '', icon: Icon }) {
 }
 
 function PlanCard({ plan, isCurrent, onSelect }) {
+    // Calculate price with fallback: use price field, or monthlyPrice/100, default to 0
+    const displayPrice = plan.price ?? (plan.monthlyPrice != null ? plan.monthlyPrice / 100 : 0);
+    const isFreePlan = displayPrice === 0 || plan.id === 'FREE';
+
     return (
         <div className={`relative p-6 rounded-2xl bg-white dark:bg-slate-800 border-2 transition-all ${isCurrent ? 'border-fuchsia-500 shadow-xl scale-105 z-10' : 'border-slate-100 dark:border-slate-700 hover:border-fuchsia-200 dark:hover:border-slate-600'
             }`}>
@@ -279,9 +283,9 @@ function PlanCard({ plan, isCurrent, onSelect }) {
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
             <div className="mb-4">
                 <span className="text-3xl font-extrabold text-slate-900 dark:text-white">
-                    {plan.price === 0 ? 'Gratis' : `$${plan.price}`}
+                    {isFreePlan ? 'Gratis' : `$${displayPrice}`}
                 </span>
-                {plan.price > 0 && <span className="text-slate-500"> USD/mes</span>}
+                {!isFreePlan && <span className="text-slate-500"> USD/mes</span>}
             </div>
 
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 min-h-[40px]">
