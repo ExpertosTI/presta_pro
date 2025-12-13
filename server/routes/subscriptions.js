@@ -198,6 +198,36 @@ router.get('/my-subscription', async (req, res) => {
     }
 });
 
+// GET /pending-payments - Admin: Get all pending payments for verification
+router.get('/pending-payments', async (req, res) => {
+    try {
+        // Only SUPER_ADMIN and ADMIN can access
+        const role = req.user?.role?.toUpperCase();
+        if (!['ADMIN', 'SUPER_ADMIN'].includes(role)) {
+            return res.status(403).json({ error: 'Acceso denegado. Se requieren permisos de administrador.' });
+        }
+
+        const payments = await prisma.payment.findMany({
+            where: { status: 'PENDING' },
+            include: {
+                subscription: {
+                    include: {
+                        tenant: {
+                            select: { id: true, name: true, slug: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { createdAt: 'asc' }
+        });
+
+        res.json(payments);
+    } catch (error) {
+        console.error('Get pending payments error:', error);
+        res.status(500).json({ error: 'Error obteniendo pagos pendientes' });
+    }
+});
+
 // POST /upload-proof (Manual payments)
 router.post('/upload-proof', upload.single('proof'), async (req, res) => {
     try {
