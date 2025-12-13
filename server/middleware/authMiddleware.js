@@ -3,8 +3,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me
 
 // Track failed auth attempts (simple in-memory, use Redis in production for multi-instance)
 const failedAttempts = new Map();
-const MAX_FAILED_ATTEMPTS = 10;
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_FAILED_ATTEMPTS = 100; // Increased for shared proxy IPs
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes (reduced)
 
 const cleanupFailedAttempts = () => {
     const now = Date.now();
@@ -19,7 +19,8 @@ const cleanupFailedAttempts = () => {
 setInterval(cleanupFailedAttempts, 5 * 60 * 1000);
 
 const authMiddleware = (req, res, next) => {
-    const clientIP = req.ip || req.connection?.remoteAddress || 'unknown';
+    // Get real client IP (check X-Forwarded-For for proxied requests)
+    const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.connection?.remoteAddress || 'unknown';
     const authHeader = req.headers.authorization;
 
     // Check if IP is locked out
