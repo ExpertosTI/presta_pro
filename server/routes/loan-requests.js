@@ -8,7 +8,7 @@ const prisma = require('../lib/prisma');
 router.get('/', async (req, res) => {
     try {
         const requests = await prisma.loanRequest.findMany({
-            where: { tenantId: req.tenantId },
+            where: { tenantId: req.user?.tenantId || req.tenantId },
             include: {
                 client: {
                     select: { id: true, name: true, phone: true }
@@ -29,7 +29,7 @@ router.get('/:id', async (req, res) => {
         const request = await prisma.loanRequest.findFirst({
             where: {
                 id: req.params.id,
-                tenantId: req.tenantId
+                tenantId: req.user?.tenantId || req.tenantId
             },
             include: {
                 client: true
@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
 
         const request = await prisma.loanRequest.create({
             data: {
-                tenantId: req.tenantId,
+                tenantId: req.user?.tenantId || req.tenantId,
                 clientId,
                 amount: parseFloat(amount),
                 rate: parseFloat(rate),
