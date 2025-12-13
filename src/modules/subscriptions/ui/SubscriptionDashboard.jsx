@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     CreditCard, CheckCircle, AlertTriangle, Package, Calendar,
-    Upload, FileText, ChevronRight, Star, Shield
+    Upload, FileText, ChevronRight, Star, Shield, Users
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
@@ -217,8 +217,8 @@ export function SubscriptionDashboard({ showToast }) {
                                         <td className="py-2 px-3">{formatCurrency(payment.amount)}</td>
                                         <td className="py-2 px-3">
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${payment.status === 'VERIFIED' ? 'bg-green-100 text-green-700' :
-                                                    payment.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                                                        'bg-amber-100 text-amber-700'
+                                                payment.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                                                    'bg-amber-100 text-amber-700'
                                                 }`}>
                                                 {payment.status === 'VERIFIED' ? 'Completado' :
                                                     payment.status === 'REJECTED' ? 'Rechazado' : 'Pendiente'}
@@ -311,8 +311,8 @@ function PlanCard({ plan, isCurrent, onSelect }) {
                 <button
                     onClick={() => onSelect(plan)}
                     className={`w-full py-2.5 rounded-lg font-bold transition-colors ${plan.price > 0
-                            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90'
-                            : 'border border-slate-300 text-slate-600 hover:bg-slate-50'
+                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90'
+                        : 'border border-slate-300 text-slate-600 hover:bg-slate-50'
                         }`}
                 >
                     {plan.price > 0 ? 'Seleccionar Plan' : 'Plan Básico'}
