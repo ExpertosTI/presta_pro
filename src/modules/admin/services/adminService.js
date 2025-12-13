@@ -57,15 +57,15 @@ export const updateTenantNotes = async (id, notes, tags) => {
  * Get pending payments
  */
 export const getPendingPayments = async () => {
-    const response = await axiosInstance.get('/admin/payments/pending');
+    const response = await axiosInstance.get('/subscriptions/pending-payments');
     return response;
 };
 
 /**
- * Verify payment
+ * Verify payment (approve and activate subscription)
  */
 export const verifyPayment = async (id, notes) => {
-    const response = await axiosInstance.post(`/admin/payments/${id}/verify`, { notes });
+    const response = await axiosInstance.post(`/subscriptions/approve-payment/${id}`, { notes });
     return response;
 };
 
@@ -73,7 +73,7 @@ export const verifyPayment = async (id, notes) => {
  * Reject payment
  */
 export const rejectPayment = async (id, reason) => {
-    const response = await axiosInstance.post(`/admin/payments/${id}/reject`, { reason });
+    const response = await axiosInstance.post(`/subscriptions/reject-payment/${id}`, { reason });
     return response;
 };
 

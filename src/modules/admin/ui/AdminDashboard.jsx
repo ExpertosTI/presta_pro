@@ -122,8 +122,8 @@ export function AdminDashboard({ showToast }) {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 px-4 py-3 font-medium whitespace-nowrap transition-colors border-b-2 ${activeTab === tab.id
-                                ? 'border-purple-600 text-purple-600 dark:text-purple-400'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                            ? 'border-purple-600 text-purple-600 dark:text-purple-400'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
                             }`}
                     >
                         <tab.icon size={18} />
@@ -300,9 +300,9 @@ export function AdminDashboard({ showToast }) {
                                                     <p className="font-medium text-slate-700 dark:text-slate-300">{formatDateTime(payment.createdAt)}</p>
                                                 </div>
                                             </div>
-                                            {payment.proofUrl && (
+                                            {payment.proofImageUrl && (
                                                 <a
-                                                    href={payment.proofUrl}
+                                                    href={payment.proofImageUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="inline-flex items-center gap-1 mt-3 text-sm text-blue-600 hover:underline"
