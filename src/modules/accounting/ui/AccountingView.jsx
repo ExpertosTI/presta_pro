@@ -220,7 +220,7 @@ export function AccountingView({ loans = [], expenses = [], receipts = [], syste
                 <li key={r.id || i} className="py-2 flex justify-between items-center">
                   <div>
                     <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{r.clientName}</p>
-                    <p className="text-xs text-slate-500">{formatDate(r.date)} • Cuota #{r.installmentNumber}</p>
+                    <p className="text-xs text-slate-500">{formatDate(r.date)} • {r.isPartialPayment ? `Abono a Cuota #${r.installmentNumber}` : `Cuota #${r.installmentNumber}`}</p>
                   </div>
                   <span className="font-bold text-emerald-600">{formatCurrency(parseFloat(r.amount || 0))}</span>
                 </li>

@@ -167,6 +167,7 @@ model Receipt {
   totalPaidAfter    Float?
   remainingBalance  Float?
   withPenalty       Boolean  @default(false)
+  isPartialPayment  Boolean  @default(false)
   date              DateTime @default(now())
   createdAt         DateTime @default(now())
 }

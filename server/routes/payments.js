@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         // Frontend sends: loanId, installmentId (or installmentNumber), amount, penaltyAmount, customAmount
-        const { loanId, installmentId, installmentNumber, amount, penaltyAmount, customAmount, date, notes } = req.body;
+        const { loanId, installmentId, installmentNumber, amount, penaltyAmount, customAmount, date, notes, isPartialPayment } = req.body;
 
         if (!loanId) {
             return res.status(400).json({ error: 'Se requiere ID de préstamo' });
@@ -59,6 +59,7 @@ router.post('/', async (req, res) => {
                 amount: finalAmount,
                 penaltyAmount: finalPenalty,
                 installmentNumber: installment?.number || installmentNumber || 0,
+                isPartialPayment: isPartialPayment || false,
                 date: date ? new Date(date) : new Date()
             }
         });
