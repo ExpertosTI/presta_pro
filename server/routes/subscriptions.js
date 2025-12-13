@@ -6,19 +6,25 @@ const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
 
-// Email config
+// Email config - use same defaults as server/index.js and emailService.js
+const SMTP_HOST = process.env.SMTP_HOST || '85.31.224.232';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25');
+const SMTP_USER = process.env.SMTP_USER || 'noreply@prestapro.renace.tech';
+const SMTP_PASS = process.env.SMTP_PASS || '';
+
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    }
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    auth: SMTP_USER && SMTP_PASS ? {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+    } : undefined,
+    tls: { rejectUnauthorized: false }
 });
 
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
-const FROM_EMAIL = process.env.SMTP_FROM || '"PrestaPro" <noreply@renace.tech>';
+const FROM_EMAIL = process.env.SMTP_FROM || '"PRESTAPRO" <noreply@prestapro.renace.tech>';
 
 // Multer config for proof uploads
 const uploadsDir = path.join(__dirname, '../uploads/proofs');
