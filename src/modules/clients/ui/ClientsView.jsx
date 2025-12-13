@@ -16,7 +16,7 @@ const getStatusLabel = (status) => {
   return map[status] || status;
 };
 
-export function ClientsView({ clients, loans, onNewClient, selectedClientId, onSelectClient, onSelectLoan, onEditClient }) {
+export function ClientsView({ clients, loans, onNewClient, selectedClientId, onSelectClient, onSelectLoan, onEditClient, onDeleteClient }) {
   const selectedClient = clients.find(c => c.id === selectedClientId) || null;
   const clientLoans = useMemo(
     () => (selectedClient ? loans.filter(l => l.clientId === selectedClient.id) : []),
@@ -115,13 +115,21 @@ export function ClientsView({ clients, loans, onNewClient, selectedClientId, onS
             {selectedClient.notes && (
               <p className="text-sm text-slate-700 dark:text-slate-300 mt-2"><span className="font-semibold">Notas: </span>{selectedClient.notes}</p>
             )}
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
               <button
                 type="button"
                 onClick={() => onEditClient && onEditClient(selectedClient)}
                 className="px-4 py-2 rounded-lg bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white text-sm font-semibold transition-colors"
               >
                 Editar cliente
+              </button>
+              <button
+                type="button"
+                onClick={() => onDeleteClient && onDeleteClient(selectedClient)}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Eliminar
               </button>
             </div>
           </Card>

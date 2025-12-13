@@ -156,6 +156,33 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ error: 'Cliente no encontrado o no pertenece a este tenant' });
         }
 
+        // === SUBSCRIPTION LOAN LIMIT CHECK ===
+        const subscription = await prisma.subscription.findUnique({
+            where: { tenantId: req.user.tenantId }
+        });
+
+        if (subscription) {
+            const limits = typeof subscription.limits === 'string'
+                ? JSON.parse(subscription.limits)
+                : subscription.limits;
+
+            if (limits?.maxLoans && limits.maxLoans > 0) {
+                const currentLoanCount = await prisma.loan.count({
+                    where: { tenantId: req.user.tenantId, status: 'ACTIVE' }
+                });
+
+                if (currentLoanCount >= limits.maxLoans) {
+                    return res.status(403).json({
+                        error: `Has alcanzado el límite de ${limits.maxLoans} préstamos activos de tu plan. Actualiza tu suscripción para crear más.`,
+                        limitReached: true,
+                        currentCount: currentLoanCount,
+                        maxAllowed: limits.maxLoans
+                    });
+                }
+            }
+        }
+        // === END LOAN LIMIT CHECK ===
+
         // Calculate total (amount + closingCosts) for schedule calculation
         const parsedAmount = parseFloat(amount);
         const parsedClosingCosts = parseFloat(closingCosts) || 0;

@@ -39,6 +39,33 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'El nombre es obligatorio' });
         }
 
+        // === SUBSCRIPTION LIMIT CHECK ===
+        const subscription = await prisma.subscription.findUnique({
+            where: { tenantId: req.user.tenantId }
+        });
+
+        if (subscription) {
+            const limits = typeof subscription.limits === 'string'
+                ? JSON.parse(subscription.limits)
+                : subscription.limits;
+
+            if (limits?.maxClients && limits.maxClients > 0) {
+                const currentClientCount = await prisma.client.count({
+                    where: { tenantId: req.user.tenantId }
+                });
+
+                if (currentClientCount >= limits.maxClients) {
+                    return res.status(403).json({
+                        error: `Has alcanzado el límite de ${limits.maxClients} clientes de tu plan. Actualiza tu suscripción para agregar más.`,
+                        limitReached: true,
+                        currentCount: currentClientCount,
+                        maxAllowed: limits.maxClients
+                    });
+                }
+            }
+        }
+        // === END LIMIT CHECK ===
+
         const newClient = await prisma.client.create({
             data: {
                 name,

@@ -75,16 +75,16 @@ const PLANS = {
         id: 'PRO',
         name: 'Plan Profesional',
         description: 'Para prestamistas en crecimiento',
-        price: 15, // USD
+        price: 15, // USD normal price
         monthlyPrice: 1500, // $15.00 in cents
-        quarterlyPrice: 2700, // $27.00 (3 months = $9/month promo)
-        yearlyPrice: 10800, // $108.00 ($9/month for 12 months - promo applied)
-        promoPrice: 2700, // $27 for 3 months = locked at $9/month for 1 year
+        quarterlyPrice: 2997, // $29.97 (3 months at $9.99)
+        yearlyPrice: 11988, // $119.88 ($9.99/month for 12 months)
+        promoPrice: 2997, // $29.97 for 3 months = locked at $9.99/month for 1 year
         monthlyPriceFormatted: '$15.00 USD',
-        quarterlyPriceFormatted: '$27.00 USD',
-        yearlyPriceFormatted: '$108.00 USD',
-        promoPriceFormatted: '$9.00 USD/mes',
-        promoLabel: '🔥 OFERTA: Paga 3 meses a $9/mes y queda fijo por 1 año',
+        quarterlyPriceFormatted: '$29.97 USD',
+        yearlyPriceFormatted: '$119.88 USD',
+        promoPriceFormatted: '$9.99 USD/mes',
+        promoLabel: '🔥 OFERTA: Paga 3 meses a $9.99/mes y queda fijo todo el año',
         features: ['100 clientes', '50 préstamos activos', '5 usuarios', '100 consultas AI/mes'],
         limits: { maxClients: 100, maxLoans: 50, maxUsers: 5, aiQueries: 100 }
     },
@@ -92,16 +92,16 @@ const PLANS = {
         id: 'ENTERPRISE',
         name: 'Plan Empresarial',
         description: 'Máxima potencia sin límites',
-        price: 27, // USD
+        price: 27, // USD normal price
         monthlyPrice: 2700, // $27.00 in cents
-        quarterlyPrice: 4500, // $45.00 (3 months = $15/month promo)
-        yearlyPrice: 18000, // $180.00 ($15/month for 12 months - promo applied)
-        promoPrice: 4500, // $45 for 3 months = locked at $15/month for 1 year
+        quarterlyPrice: 5697, // $56.97 (3 months at $18.99)
+        yearlyPrice: 22788, // $227.88 ($18.99/month for 12 months)
+        promoPrice: 5697, // $56.97 for 3 months = locked at $18.99/month for 1 year
         monthlyPriceFormatted: '$27.00 USD',
-        quarterlyPriceFormatted: '$45.00 USD',
-        yearlyPriceFormatted: '$180.00 USD',
-        promoPriceFormatted: '$15.00 USD/mes',
-        promoLabel: '🔥 OFERTA: Paga 3 meses a $15/mes y queda fijo por 1 año',
+        quarterlyPriceFormatted: '$56.97 USD',
+        yearlyPriceFormatted: '$227.88 USD',
+        promoPriceFormatted: '$18.99 USD/mes',
+        promoLabel: '🔥 OFERTA: Paga 3 meses a $18.99/mes y queda fijo todo el año',
         features: ['Clientes ilimitados', 'Préstamos ilimitados', 'Usuarios ilimitados', 'AI ilimitado', 'Soporte prioritario'],
         limits: { maxClients: -1, maxLoans: -1, maxUsers: -1, aiQueries: -1 }
     }
