@@ -2,7 +2,7 @@ import React from 'react';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { X, Share2, Printer, Download, CheckCircle } from 'lucide-react';
 
-export function PaymentTicket({ receipt, companyName = 'Renace.tech', systemSettings = {}, onClose }) {
+export function PaymentTicket({ receipt, companyName = 'Renace.tech', systemSettings = {}, onClose, isCopy = false }) {
   if (!receipt) return null;
 
   const displayCompanyName = systemSettings.companyName || companyName;
@@ -11,7 +11,7 @@ export function PaymentTicket({ receipt, companyName = 'Renace.tech', systemSett
 
   const handleShare = async () => {
     const text = `
-✅ RECIBO DE PAGO
+✅ RECIBO DE PAGO${isCopy ? ' (COPIA)' : ''}
 ${displayCompanyName}
 
 📋 Recibo #: ${receipt.id.substr(0, 8).toUpperCase()}
@@ -50,10 +50,16 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
       {/* Print-only version for 58mm thermal printer (48mm printable width) */}
       <div className="hidden print:block fixed inset-0 bg-white z-[100] p-1 font-mono text-black" style={{ fontSize: '9px', lineHeight: '1.2' }}>
         <div style={{ maxWidth: '48mm', margin: '0 auto' }}>
+          {/* COPIA Label for reprints */}
+          {isCopy && (
+            <div className="text-center font-bold border-2 border-black mb-1 py-0.5" style={{ fontSize: '12px' }}>
+              *** COPIA ***
+            </div>
+          )}
           {/* Header */}
           <div className="text-center border-b border-black pb-1 mb-1">
             <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{displayCompanyName}</div>
-            <div style={{ fontSize: '8px' }}>COMPROBANTE DE PAGO</div>
+            <div style={{ fontSize: '8px' }}>COMPROBANTE DE PAGO{isCopy ? ' (REIMPRESO)' : ''}</div>
             <div style={{ fontSize: '7px' }}>Ref: {receipt.id.substr(0, 12).toUpperCase()}</div>
             <div style={{ fontSize: '7px' }}>{formatDateTime(receipt.date)}</div>
           </div>

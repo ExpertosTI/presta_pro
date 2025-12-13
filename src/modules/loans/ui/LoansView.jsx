@@ -6,6 +6,7 @@ import { calculateSchedule } from '../../../shared/utils/amortization';
 import { FileText, Sparkles, X, Printer, FileCheck, Plus, Banknote } from 'lucide-react';
 import { PaymentConfirmationModal } from '../../payments';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
+import PaymentTicket from '../../../shared/components/ui/PaymentTicket';
 
 export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan, onNewClient, onNavigateToDocuments }) {
   const [generatingContract, setGeneratingContract] = useState(false);
@@ -22,6 +23,8 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
   const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FRENCH' });
   const [createError, setCreateError] = useState('');
 
+  // Reprint Receipt
+  const [reprintReceipt, setReprintReceipt] = useState(null);
   const selectedLoan = useMemo(() => loans.find(l => l.id === selectedLoanId), [loans, selectedLoanId]);
   const selectedClient = useMemo(() => {
     if (!selectedLoan) return null;
@@ -577,6 +580,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                     <th className="p-2 text-right">Capital</th>
                     <th className="p-2 text-right">Saldo</th>
                     <th className="p-2 text-right">Estado</th>
+                    <th className="p-2 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -591,6 +595,27 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                       <td className="p-2 text-right">
                         <Badge status={inst.status === 'PAID' ? 'PAID' : 'PENDING'} />
                       </td>
+                      <td className="p-2 text-center">
+                        {inst.status === 'PAID' && (
+                          <button
+                            onClick={() => setReprintReceipt({
+                              id: inst.id || `inst-${inst.number}`,
+                              date: inst.paidAt || inst.date,
+                              clientName: selectedClient?.name || 'Cliente',
+                              amount: inst.payment,
+                              installmentNumber: inst.number,
+                              remainingBalance: inst.balance,
+                              loanId: selectedLoan.id,
+                              penalty: 0,
+                              total: inst.payment
+                            })}
+                            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1 mx-auto"
+                            title="Reimprimir recibo"
+                          >
+                            <Printer size={14} /> Copia
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -600,7 +625,16 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
         </div>
       )
       }
-    </div >
+
+      {/* Reprint Receipt Modal */}
+      {reprintReceipt && (
+        <PaymentTicket
+          receipt={reprintReceipt}
+          onClose={() => setReprintReceipt(null)}
+          isCopy={true}
+        />
+      )}
+    </div>
   );
 }
 
