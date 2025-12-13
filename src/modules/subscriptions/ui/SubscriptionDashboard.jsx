@@ -293,18 +293,8 @@ function PlanCard({ plan, isCurrent, onSelect }) {
             </p>
 
             <ul className="space-y-3 mb-8">
-                {Object.entries(plan.limits || {}).map(([key, val]) => (
-                    <li key={key} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                        <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
-                        <span>
-                            {key === 'maxClients' ? `${val} Clientes` :
-                                key === 'maxLoans' ? `${val} Préstamos` :
-                                    key === 'storageLimit' ? `${val}MB Espacio` : val}
-                        </span>
-                    </li>
-                ))}
-                {plan.features?.map(feature => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                {(plan.features || []).map((feature, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                         <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
                         <span>{feature}</span>
                     </li>

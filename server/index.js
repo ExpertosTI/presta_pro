@@ -1233,7 +1233,12 @@ app.post('/api/auth/google', async (req, res) => {
       if (!tenant.isVerified) {
         const expiresAt = tenant.verificationExpiresAt;
         if (expiresAt && expiresAt < new Date()) {
-          return res.status(403).json({ error: 'La cuenta ha expirado por falta de verificación' });
+          return res.status(403).json({
+            error: 'La cuenta ha expirado por falta de verificación. Puedes solicitar un nuevo correo de verificación.',
+            accountExpired: true,
+            email: user.email,
+            tenantName: tenant.name
+          });
         }
       }
 
