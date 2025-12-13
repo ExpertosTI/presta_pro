@@ -25,7 +25,7 @@ export const addDocument = async (clientId, documentData) => {
  * Delete a document
  */
 export const deleteDocument = async (documentId) => {
-    const response = await api.delete(`/documents/${documentId}`);
+    const response = await api.delete(`/clients/documents/${documentId}`);
     return response;
 };
 
