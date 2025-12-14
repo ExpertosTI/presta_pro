@@ -45,6 +45,38 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * POST /api/notifications - Create a new notification
+ */
+router.post('/', async (req, res) => {
+    try {
+        const tenantId = req.tenantId;
+        const userId = req.user?.userId;
+        const { title, message, type = 'SYSTEM', actionUrl, data } = req.body;
+
+        if (!title || !message) {
+            return res.status(400).json({ error: 'Título y mensaje son requeridos' });
+        }
+
+        const notification = await prisma.notification.create({
+            data: {
+                tenantId,
+                userId: null, // Send to all users of tenant
+                type,
+                title,
+                message,
+                actionUrl,
+                data: data || null
+            }
+        });
+
+        res.status(201).json(notification);
+    } catch (error) {
+        console.error('Create notification error:', error);
+        res.status(500).json({ error: 'Error creando notificación' });
+    }
+});
+
+/**
  * POST /api/notifications/:id/read - Mark notification as read
  */
 router.post('/:id/read', async (req, res) => {
