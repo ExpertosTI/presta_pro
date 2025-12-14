@@ -656,7 +656,7 @@ router.post('/approve-payment/:paymentId', async (req, res) => {
         await prisma.payment.update({
             where: { id: paymentId },
             data: {
-                status: 'COMPLETED',
+                status: 'VERIFIED',
                 verifiedAt: now,
                 verifiedBy: req.user.id || req.user.userId || 'admin'
             }
