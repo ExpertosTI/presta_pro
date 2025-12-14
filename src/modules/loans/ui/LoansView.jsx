@@ -860,12 +860,12 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                   setActionLoading(true);
                   try {
                     await loanApi.cancel(selectedLoan.id, cancelReason || 'Cancelado por usuario');
-                    onUpdateLoan?.({ ...selectedLoan, status: 'CANCELLED' });
                     setCancelModal(false);
                     setCancelReason('');
+                    // Reload to sync with server
+                    window.location.reload();
                   } catch (e) {
                     alert(e.message || 'Error al cancelar');
-                  } finally {
                     setActionLoading(false);
                   }
                 }}
@@ -904,15 +904,14 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                   try {
                     if (selectedLoan.archived) {
                       await loanApi.unarchive(selectedLoan.id);
-                      onUpdateLoan?.({ ...selectedLoan, archived: false });
                     } else {
                       await loanApi.archive(selectedLoan.id);
-                      onUpdateLoan?.({ ...selectedLoan, archived: true });
                     }
                     setArchiveModal(false);
+                    // Reload to sync with server
+                    window.location.reload();
                   } catch (e) {
                     alert(e.message || 'Error');
-                  } finally {
                     setActionLoading(false);
                   }
                 }}
