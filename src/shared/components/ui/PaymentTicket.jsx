@@ -40,8 +40,21 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    // Use thermal printer service for proper 80mm formatting
+    const { printThermalReceipt } = await import('../../../services/thermalPrinter');
+    printThermalReceipt({
+      id: receipt.id,
+      date: receipt.date,
+      clientName: receipt.clientName,
+      clientPhone: receipt.clientPhone,
+      amount: receipt.amount,
+      penaltyAmount: receipt.penalty || 0,
+      loanAmount: receipt.loanAmount,
+      installmentNumber: receipt.installmentNumber,
+      remainingBalance: receipt.remainingBalance,
+      paymentBreakdown: receipt.paidInstallments
+    }, { companyName: displayCompanyName });
     setTimeout(() => onClose?.(), 500);
   };
 

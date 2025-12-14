@@ -18,7 +18,7 @@ const cleanupFailedAttempts = () => {
 // Cleanup every 5 minutes
 setInterval(cleanupFailedAttempts, 5 * 60 * 1000);
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     // Get real client IP (check X-Forwarded-For for proxied requests)
     const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.connection?.remoteAddress || 'unknown';
     const authHeader = req.headers.authorization;
@@ -66,6 +66,22 @@ const authMiddleware = (req, res, next) => {
 
         req.user = decoded; // { userId, tenantId, role, ... }
         req.tenantId = decoded.tenantId; // Explicitly set for routes using req.tenantId
+
+        // Check if tenant is suspended (skip for super admins)
+        if (decoded.tenantId && decoded.role?.toUpperCase() !== 'SUPER_ADMIN') {
+            const prisma = require('../lib/prisma');
+            const tenant = await prisma.tenant.findUnique({
+                where: { id: decoded.tenantId },
+                select: { suspendedAt: true }
+            });
+            if (tenant?.suspendedAt) {
+                console.warn(`⛔ SUSPENDED_TENANT: Tenant ${decoded.tenantId} attempted access`);
+                return res.status(403).json({
+                    error: 'Tu cuenta ha sido suspendida. Contacta soporte.',
+                    suspended: true
+                });
+            }
+        }
 
         // Reset failed attempts on successful auth
         failedAttempts.delete(clientIP);
