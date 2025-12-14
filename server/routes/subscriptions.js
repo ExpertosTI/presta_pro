@@ -605,8 +605,9 @@ router.get('/pending-payments', async (req, res) => {
 // POST /approve-payment/:paymentId (Admin only - Approve and activate subscription)
 router.post('/approve-payment/:paymentId', async (req, res) => {
     try {
-        // Only SUPER_ADMIN can approve payments
-        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN' && req.user.role !== 'admin') {
+        // Only SUPER_ADMIN or ADMIN can approve payments (case-insensitive)
+        const role = req.user?.role?.toUpperCase();
+        if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
             return res.status(403).json({ error: 'No autorizado. Solo administradores pueden aprobar pagos.' });
         }
 
