@@ -1,80 +1,73 @@
+/**
+ * AI Service - Presta Pro
+ * Uses official @google/genai SDK per Google documentation
+ * Model: gemini-2.5-flash
+ */
 
-export const sendMessageToAI = async (chatHistory, userMessage, systemInstruction, apiKey) => {
-    const effectiveKey = apiKey;
-    if (!effectiveKey) {
+import { GoogleGenAI } from "@google/genai";
+
+// Cache del cliente para evitar recrearlo
+let aiClient = null;
+const MODEL = "gemini-2.5-flash";
+
+const getClient = (apiKey) => {
+    if (!apiKey) {
         throw new Error('API Key missing');
     }
+    if (!aiClient) {
+        aiClient = new GoogleGenAI({ apiKey });
+    }
+    return aiClient;
+};
 
-    // Modelo Gemini 2.0 Flash (confirmado disponible con nueva API key)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveKey}`;
+export const sendMessageToAI = async (chatHistory, userMessage, systemInstruction, apiKey) => {
+    const client = getClient(apiKey);
 
-    // Construir el contenido de la conversación: siempre reinyectar instrucciones + resumen de datos
-    const historyContents = chatHistory.map(msg => ({
+    // Construir historial de conversación
+    const history = chatHistory.map(msg => ({
         role: msg.role === 'user' ? 'user' : 'model',
         parts: [{ text: msg.text }],
     }));
 
-    const finalContents = [
-        ...historyContents,
-        {
-            role: 'user',
-            parts: [{ text: `${systemInstruction}\n\nConsulta del usuario: ${userMessage}` }],
-        },
-    ];
+    // Agregar instrucciones del sistema al mensaje
+    const fullMessage = `${systemInstruction}\n\nConsulta del usuario: ${userMessage}`;
 
-    const payload = {
-        contents: finalContents,
-    };
-
-    let responseData = null;
     let attempts = 0;
     const maxAttempts = 3;
 
     while (attempts < maxAttempts) {
         try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            const response = await client.models.generateContent({
+                model: MODEL,
+                contents: [
+                    ...history,
+                    { role: 'user', parts: [{ text: fullMessage }] }
+                ],
             });
 
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error('Gemini API Error Body:', errorBody);
-
-                if (response.status === 429) {
-                    const delay = Math.pow(2, attempts) * 1000;
-                    console.warn(`Rate limit hit. Retrying in ${delay / 1000}s...`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    attempts++;
-                    continue;
-                }
-                throw new Error(`HTTP error! status: ${response.status} - Details: ${errorBody}`);
-            }
-
-            responseData = await response.json();
-            break;
+            return response.text || 'Lo siento, no pude obtener una respuesta del modelo.';
 
         } catch (error) {
-            console.error("Error fetching AI response:", error);
+            console.error('Gemini API Error:', error);
+
+            // Check for rate limit
+            if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('RESOURCE_EXHAUSTED')) {
+                const delay = Math.pow(2, attempts) * 1000;
+                console.warn(`Rate limit hit. Retrying in ${delay / 1000}s...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                attempts++;
+                continue;
+            }
+
             throw error;
         }
     }
 
-    // If we exhausted all retries without success, throw rate limit error
-    if (!responseData) {
-        throw new Error('QUOTA_EXCEEDED: El asistente IA está ocupado. Por favor espera 1-2 minutos y vuelve a intentar. 💡 Tip: escribe mensajes más cortos para ahorrar cuota.');
-    }
-
-    const candidate = responseData?.candidates?.[0];
-    const text = candidate?.content?.parts?.[0]?.text || 'Lo siento, no pude obtener una respuesta del modelo.';
-
-    return text;
+    throw new Error('QUOTA_EXCEEDED: El asistente IA está ocupado. Por favor espera 1-2 minutos y vuelve a intentar. 💡 Tip: escribe mensajes más cortos para ahorrar cuota.');
 };
 
 export const generateLoanContract = async (loan, client, companyName, apiKey) => {
-    const effectiveKey = apiKey;
-    if (!effectiveKey) throw new Error('API Key missing');
+    const ai = getClient(apiKey);
 
     const prompt = `
       Genera un contrato de préstamo legal y formal en formato texto plano (sin markdown, sin negritas) para la siguiente transacción:
@@ -98,51 +91,28 @@ export const generateLoanContract = async (loan, client, companyName, apiKey) =>
       Redacta el contrato de manera profesional, listo para imprimir y firmar.
     `;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveKey}`;
-
-    const payload = {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    };
-
     try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        const response = await ai.models.generateContent({
+            model: MODEL,
+            contents: prompt,
         });
 
-        if (!response.ok) {
-            const body = await response.text().catch(() => '');
-            console.error('Gemini contract API error:', response.status, body);
+        return response.text || "Error generando contrato.";
+    } catch (e) {
+        console.error('generateLoanContract error:', e);
 
-            if (response.status === 429) {
-                const err = new Error('RATE_LIMIT');
-                err.status = 429;
-                throw err;
-            }
-
-            if (response.status === 401 || response.status === 403) {
-                const err = new Error('INVALID_API_KEY');
-                err.status = response.status;
-                throw err;
-            }
-
-            const err = new Error('CONTRACT_HTTP_ERROR');
-            err.status = response.status;
+        if (e.message?.includes('429') || e.message?.includes('quota')) {
+            const err = new Error('RATE_LIMIT');
+            err.status = 429;
             throw err;
         }
 
-        const data = await response.json();
-        return data?.candidates?.[0]?.content?.parts?.[0]?.text || "Error generando contrato.";
-    } catch (e) {
-        console.error('generateLoanContract error:', e);
         throw e;
     }
 };
 
 export const generateClientDocument = async (docType, client, loan, companyName, apiKey) => {
-    const effectiveKey = apiKey;
-    if (!effectiveKey) throw new Error('API Key missing');
+    const ai = getClient(apiKey);
 
     const name = client?.name || 'CLIENTE';
     const idNumber = client?.idNumber || 'N/A';
@@ -206,23 +176,13 @@ ${instrucciones}
 
 Devuelve únicamente el texto del documento listo para imprimir.`;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveKey}`;
-
-    const payload = {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    };
-
     try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        const response = await ai.models.generateContent({
+            model: MODEL,
+            contents: prompt,
         });
 
-        if (!response.ok) throw new Error('Error generating client document');
-
-        const data = await response.json();
-        return data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Error generando documento.';
+        return response.text || 'Error generando documento.';
     } catch (e) {
         console.error(e);
         throw e;
