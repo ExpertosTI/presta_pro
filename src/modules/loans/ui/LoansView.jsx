@@ -151,6 +151,93 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
     printHtmlContent(`Contrato - ${selectedClient.name}`, contractContent);
   };
 
+  const handlePrintAmortization = () => {
+    if (!selectedLoan || !selectedClient) return;
+
+    const schedule = selectedLoan.schedule || [];
+    const totalPayment = schedule.reduce((acc, s) => acc + (s.payment || 0), 0);
+    const totalInterest = schedule.reduce((acc, s) => acc + (s.interest || 0), 0);
+    const totalPrincipal = schedule.reduce((acc, s) => acc + (s.principal || 0), 0);
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2563eb; padding-bottom: 15px;">
+          <h1 style="margin: 0; color: #1e40af; font-size: 24px;">HOJA DE AMORTIZACIÓN</h1>
+          <p style="margin: 5px 0 0; color: #64748b; font-size: 12px;">Presta Pro by Renace.tech</p>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px;">
+          <div>
+            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Cliente:</strong> ${selectedClient.name}</p>
+            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Cédula/ID:</strong> ${selectedClient.idNumber || 'N/A'}</p>
+            <p style="margin: 0; font-size: 14px;"><strong>Teléfono:</strong> ${selectedClient.phone || 'N/A'}</p>
+          </div>
+          <div style="text-align: right;">
+            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Monto:</strong> ${formatCurrency(selectedLoan.amount)}</p>
+            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Tasa:</strong> ${selectedLoan.rate}%</p>
+            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Plazo:</strong> ${selectedLoan.term} cuotas (${selectedLoan.frequency})</p>
+            <p style="margin: 0; font-size: 14px;"><strong>Inicio:</strong> ${formatDate(selectedLoan.startDate)}</p>
+          </div>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <thead>
+            <tr style="background: #1e40af; color: white;">
+              <th style="padding: 10px; text-align: center; border: 1px solid #1e3a8a;">#</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #1e3a8a;">Fecha</th>
+              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Cuota</th>
+              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Interés</th>
+              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Capital</th>
+              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Saldo</th>
+              <th style="padding: 10px; text-align: center; border: 1px solid #1e3a8a;">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${schedule.map((inst, idx) => `
+              <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                <td style="padding: 8px; text-align: center; border: 1px solid #e2e8f0;">${inst.number}</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${formatDate(inst.date)}</td>
+                <td style="padding: 8px; text-align: right; border: 1px solid #e2e8f0; font-weight: bold;">${formatCurrency(inst.payment || 0)}</td>
+                <td style="padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: #dc2626;">${formatCurrency(inst.interest || 0)}</td>
+                <td style="padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: #16a34a;">${formatCurrency(inst.principal || 0)}</td>
+                <td style="padding: 8px; text-align: right; border: 1px solid #e2e8f0;">${formatCurrency(inst.balance || 0)}</td>
+                <td style="padding: 8px; text-align: center; border: 1px solid #e2e8f0;">
+                  <span style="padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: bold; background: ${inst.status === 'PAID' ? '#dcfce7' : '#fef3c7'}; color: ${inst.status === 'PAID' ? '#166534' : '#92400e'};">
+                    ${inst.status === 'PAID' ? 'PAGADO' : 'PENDIENTE'}
+                  </span>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background: #1e40af; color: white; font-weight: bold;">
+              <td colspan="2" style="padding: 10px; border: 1px solid #1e3a8a;">TOTALES</td>
+              <td style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">${formatCurrency(totalPayment)}</td>
+              <td style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">${formatCurrency(totalInterest)}</td>
+              <td style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">${formatCurrency(totalPrincipal)}</td>
+              <td colspan="2" style="padding: 10px; border: 1px solid #1e3a8a;"></td>
+            </tr>
+          </tfoot>
+        </table>
+        
+        <div style="margin-top: 30px; display: flex; justify-content: space-between;">
+          <div style="width: 45%; border-top: 1px solid #000; padding-top: 5px; text-align: center;">
+            <p style="margin: 0; font-size: 12px;">Firma del Cliente</p>
+          </div>
+          <div style="width: 45%; border-top: 1px solid #000; padding-top: 5px; text-align: center;">
+            <p style="margin: 0; font-size: 12px;">Firma Empresa</p>
+          </div>
+        </div>
+        
+        <p style="margin-top: 20px; text-align: center; font-size: 10px; color: #94a3b8;">
+          Generado el ${new Date().toLocaleString('es-DO')} • Presta Pro
+        </p>
+      </div>
+    `;
+
+    printHtmlContent(`Amortización - ${selectedClient.name}`, htmlContent);
+  };
+
   const handleSaveContractToDocuments = () => {
     if (!contractContent || !selectedClient || !addClientDocument) return;
     addClientDocument(selectedClient.id, {
@@ -614,7 +701,17 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
           </Card>
 
           <Card className="lg:col-span-2 order-2 lg:order-2">
-            <h3 className="font-bold text-lg mb-3 text-slate-800 dark:text-slate-100">Hoja de amortización</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">Hoja de amortización</h3>
+              <button
+                onClick={handlePrintAmortization}
+                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                title="Imprimir hoja de amortización"
+              >
+                <Printer size={16} />
+                Imprimir
+              </button>
+            </div>
             <div className="overflow-x-auto max-h-[360px]">
               <table className="w-full text-xs md:text-sm">
                 <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 sticky top-0">
