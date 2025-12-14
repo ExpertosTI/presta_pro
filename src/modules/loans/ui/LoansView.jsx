@@ -156,13 +156,12 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
 
     const schedule = selectedLoan.schedule || [];
     const totalPayment = schedule.reduce((acc, s) => acc + (s.payment || 0), 0);
-    const totalInterest = schedule.reduce((acc, s) => acc + (s.interest || 0), 0);
-    const totalPrincipal = schedule.reduce((acc, s) => acc + (s.principal || 0), 0);
 
+    // NOTA: No mostramos tasa, desglose de interés/capital - son datos sensibles internos
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2563eb; padding-bottom: 15px;">
-          <h1 style="margin: 0; color: #1e40af; font-size: 24px;">HOJA DE AMORTIZACIÓN</h1>
+          <h1 style="margin: 0; color: #1e40af; font-size: 24px;">CALENDARIO DE PAGOS</h1>
           <p style="margin: 5px 0 0; color: #64748b; font-size: 12px;">Presta Pro by Renace.tech</p>
         </div>
         
@@ -173,9 +172,9 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
             <p style="margin: 0; font-size: 14px;"><strong>Teléfono:</strong> ${selectedClient.phone || 'N/A'}</p>
           </div>
           <div style="text-align: right;">
-            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Monto:</strong> ${formatCurrency(selectedLoan.amount)}</p>
-            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Tasa:</strong> ${selectedLoan.rate}%</p>
-            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Plazo:</strong> ${selectedLoan.term} cuotas (${selectedLoan.frequency})</p>
+            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Monto financiado:</strong> ${formatCurrency(selectedLoan.amount)}</p>
+            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Plazo:</strong> ${selectedLoan.term} cuotas</p>
+            <p style="margin: 0 0 5px; font-size: 14px;"><strong>Frecuencia:</strong> ${selectedLoan.frequency}</p>
             <p style="margin: 0; font-size: 14px;"><strong>Inicio:</strong> ${formatDate(selectedLoan.startDate)}</p>
           </div>
         </div>
@@ -183,13 +182,12 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
           <thead>
             <tr style="background: #1e40af; color: white;">
-              <th style="padding: 10px; text-align: center; border: 1px solid #1e3a8a;">#</th>
-              <th style="padding: 10px; text-align: left; border: 1px solid #1e3a8a;">Fecha</th>
-              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Cuota</th>
-              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Interés</th>
-              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Capital</th>
-              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Saldo</th>
+              <th style="padding: 10px; text-align: center; border: 1px solid #1e3a8a;">No.</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #1e3a8a;">Fecha de Pago</th>
+              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Monto a Pagar</th>
+              <th style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">Saldo Restante</th>
               <th style="padding: 10px; text-align: center; border: 1px solid #1e3a8a;">Estado</th>
+              <th style="padding: 10px; text-align: center; border: 1px solid #1e3a8a;">Firma</th>
             </tr>
           </thead>
           <tbody>
@@ -198,24 +196,21 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                 <td style="padding: 8px; text-align: center; border: 1px solid #e2e8f0;">${inst.number}</td>
                 <td style="padding: 8px; border: 1px solid #e2e8f0;">${formatDate(inst.date)}</td>
                 <td style="padding: 8px; text-align: right; border: 1px solid #e2e8f0; font-weight: bold;">${formatCurrency(inst.payment || 0)}</td>
-                <td style="padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: #dc2626;">${formatCurrency(inst.interest || 0)}</td>
-                <td style="padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: #16a34a;">${formatCurrency(inst.principal || 0)}</td>
                 <td style="padding: 8px; text-align: right; border: 1px solid #e2e8f0;">${formatCurrency(inst.balance || 0)}</td>
                 <td style="padding: 8px; text-align: center; border: 1px solid #e2e8f0;">
                   <span style="padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: bold; background: ${inst.status === 'PAID' ? '#dcfce7' : '#fef3c7'}; color: ${inst.status === 'PAID' ? '#166534' : '#92400e'};">
                     ${inst.status === 'PAID' ? 'PAGADO' : 'PENDIENTE'}
                   </span>
                 </td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0; min-width: 60px;"></td>
               </tr>
             `).join('')}
           </tbody>
           <tfoot>
             <tr style="background: #1e40af; color: white; font-weight: bold;">
-              <td colspan="2" style="padding: 10px; border: 1px solid #1e3a8a;">TOTALES</td>
+              <td colspan="2" style="padding: 10px; border: 1px solid #1e3a8a;">TOTAL A PAGAR</td>
               <td style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">${formatCurrency(totalPayment)}</td>
-              <td style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">${formatCurrency(totalInterest)}</td>
-              <td style="padding: 10px; text-align: right; border: 1px solid #1e3a8a;">${formatCurrency(totalPrincipal)}</td>
-              <td colspan="2" style="padding: 10px; border: 1px solid #1e3a8a;"></td>
+              <td colspan="3" style="padding: 10px; border: 1px solid #1e3a8a;"></td>
             </tr>
           </tfoot>
         </table>
@@ -235,7 +230,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
       </div>
     `;
 
-    printHtmlContent(`Amortización - ${selectedClient.name}`, htmlContent);
+    printHtmlContent(`Calendario de pagos - ${selectedClient.name}`, htmlContent);
   };
 
   const handleSaveContractToDocuments = () => {
