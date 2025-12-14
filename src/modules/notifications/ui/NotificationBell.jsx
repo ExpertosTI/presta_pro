@@ -78,9 +78,9 @@ export function NotificationBell({ onNavigateToNotifications }) {
                 )}
             </button>
 
-            {/* Dropdown */}
+            {/* Dropdown - centered on mobile, right-aligned on desktop */}
             {isOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 animate-fade-in">
+                <div className="fixed inset-x-4 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 animate-fade-in">
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
                         <h3 className="font-bold text-slate-800 dark:text-slate-100">Notificaciones</h3>
