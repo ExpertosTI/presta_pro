@@ -199,7 +199,7 @@ router.post('/tenants/:id/suspend', async (req, res) => {
             where: { id },
             data: {
                 suspendedAt: new Date(),
-                suspendedBy: req.user.userId,
+                suspendedBy: req.user?.id || req.user?.userId,
                 suspendReason: reason || 'Suspendido por administrador'
             }
         });
@@ -207,7 +207,7 @@ router.post('/tenants/:id/suspend', async (req, res) => {
         // Log action
         await prisma.adminLog.create({
             data: {
-                adminId: req.user.userId,
+                adminId: req.user?.id || req.user?.userId,
                 adminEmail: req.user.email || 'admin',
                 action: 'SUSPEND_TENANT',
                 targetType: 'TENANT',
@@ -243,7 +243,7 @@ router.post('/tenants/:id/activate', async (req, res) => {
         // Log action
         await prisma.adminLog.create({
             data: {
-                adminId: req.user.userId,
+                adminId: req.user?.id || req.user?.userId,
                 adminEmail: req.user.email || 'admin',
                 action: 'ACTIVATE_TENANT',
                 targetType: 'TENANT',
