@@ -217,6 +217,58 @@ router.post('/tenants/:id/suspend', async (req, res) => {
             }
         });
 
+        // Get tenant owner/admin email and send suspension notification
+        const tenantOwner = await prisma.user.findFirst({
+            where: {
+                tenantId: id,
+                role: { in: ['ADMIN', 'OWNER', 'admin', 'owner'] }
+            },
+            select: { email: true, name: true }
+        });
+
+        if (tenantOwner?.email) {
+            const suspensionReason = reason || 'Suspendido por administrador';
+            await emailService.sendEmail({
+                to: tenantOwner.email,
+                subject: '⚠️ Tu cuenta ha sido suspendida - Presta Pro',
+                html: emailService.wrapEmailTemplate(`
+                    <h2 style="color: #dc2626; margin-bottom: 20px;">Cuenta Suspendida</h2>
+                    <p>Hola ${tenantOwner.name || 'Usuario'},</p>
+                    <p>Tu cuenta en <strong>Presta Pro</strong> ha sido suspendida.</p>
+                    
+                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                        <p style="margin: 0; color: #991b1b;"><strong>Motivo:</strong></p>
+                        <p style="margin: 5px 0 0; color: #7f1d1d;">${suspensionReason}</p>
+                    </div>
+                    
+                    <p>Mientras tu cuenta esté suspendida, no podrás acceder al sistema.</p>
+                    <p>Si crees que esto es un error o deseas resolver esta situación, por favor contacta a soporte:</p>
+                    <p><a href="mailto:soporte@renace.tech" style="color: #2563eb;">soporte@renace.tech</a></p>
+                `)
+            }).catch(err => console.error('Error sending suspension email:', err));
+        }
+
+        // Create in-app notification for the suspended tenant
+        await prisma.notification.create({
+            data: {
+                tenantId: id,
+                type: 'SYSTEM',
+                title: '⚠️ Cuenta Suspendida',
+                message: `Tu cuenta ha sido suspendida. Motivo: ${reason || 'Suspendido por administrador'}. Contacta soporte para más información.`
+            }
+        }).catch(err => console.error('Error creating tenant notification:', err));
+
+        // Create in-app notification for super admin (you)
+        await prisma.notification.create({
+            data: {
+                tenantId: null, // System-wide notification
+                userId: req.user?.id || req.user?.userId,
+                type: 'ADMIN',
+                title: '🔴 Cuenta Suspendida',
+                message: `Has suspendido la cuenta de "${tenant.name}". Motivo: ${reason || 'Suspendido por administrador'}`
+            }
+        }).catch(err => console.error('Error creating admin notification:', err));
+
         res.json({ success: true, tenant });
     } catch (error) {
         console.error('Suspend tenant error:', error);
