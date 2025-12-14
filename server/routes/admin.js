@@ -604,4 +604,101 @@ router.get('/logs', async (req, res) => {
     }
 });
 
+// ============================================
+// BROADCAST NOTIFICATIONS
+// ============================================
+
+/**
+ * POST /api/admin/broadcast - Send notification to all tenants
+ * Body: { title, message, type, sendEmail }
+ */
+router.post('/broadcast', async (req, res) => {
+    try {
+        const { title, message, type = 'SYSTEM', sendEmail = false } = req.body;
+
+        if (!title || !message) {
+            return res.status(400).json({ error: 'Se requiere título y mensaje' });
+        }
+
+        // Get all active tenants
+        const tenants = await prisma.tenant.findMany({
+            where: { suspendedAt: null },
+            select: { id: true, name: true }
+        });
+
+        console.log(`[BROADCAST] Starting broadcast to ${tenants.length} tenants`);
+        console.log(`[BROADCAST] Title: ${title}`);
+        console.log(`[BROADCAST] SendEmail: ${sendEmail}`);
+
+        let notificationsCreated = 0;
+        let emailsSent = 0;
+        let emailsFailed = 0;
+
+        for (const tenant of tenants) {
+            // Create in-app notification for each tenant
+            await prisma.notification.create({
+                data: {
+                    tenantId: tenant.id,
+                    type,
+                    title,
+                    message
+                }
+            });
+            notificationsCreated++;
+
+            // Optionally send email to tenant owner
+            if (sendEmail) {
+                const tenantUser = await prisma.user.findFirst({
+                    where: { tenantId: tenant.id },
+                    select: { email: true, name: true }
+                });
+
+                if (tenantUser?.email) {
+                    const result = await emailService.sendEmail({
+                        to: tenantUser.email,
+                        subject: title,
+                        html: emailService.wrapEmailTemplate(`
+                            <h2 style="color: #2563eb; margin-bottom: 20px;">📢 ${title}</h2>
+                            <p>${message}</p>
+                        `, tenant.name)
+                    });
+
+                    if (result.success) {
+                        emailsSent++;
+                    } else {
+                        emailsFailed++;
+                    }
+                }
+            }
+        }
+
+        // Log the action
+        await prisma.adminLog.create({
+            data: {
+                adminId: req.user?.id || req.user?.userId,
+                adminEmail: req.user?.email || 'admin',
+                action: 'BROADCAST_NOTIFICATION',
+                targetType: 'ALL_TENANTS',
+                reason: `${title}: ${message.substring(0, 100)}`,
+                ipAddress: req.ip
+            }
+        });
+
+        console.log(`[BROADCAST] Complete: ${notificationsCreated} notifications, ${emailsSent} emails sent, ${emailsFailed} emails failed`);
+
+        res.json({
+            success: true,
+            stats: {
+                tenants: tenants.length,
+                notificationsCreated,
+                emailsSent,
+                emailsFailed
+            }
+        });
+    } catch (error) {
+        console.error('Broadcast error:', error);
+        res.status(500).json({ error: 'Error enviando broadcast' });
+    }
+});
+
 module.exports = router;

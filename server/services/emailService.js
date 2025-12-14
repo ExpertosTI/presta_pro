@@ -89,6 +89,10 @@ const wrapEmailTemplate = (content, tenantName = BRAND_NAME) => `
  * Send email with error handling
  */
 const sendEmail = async ({ to, subject, html, text }) => {
+  console.log(`[EMAIL] Attempting to send to: ${to}`);
+  console.log(`[EMAIL] Subject: ${subject}`);
+  console.log(`[EMAIL] SMTP: ${SMTP_HOST}:${SMTP_PORT}, User: ${SMTP_USER}`);
+
   try {
     const result = await transporter.sendMail({
       from: FROM_EMAIL,
@@ -97,10 +101,14 @@ const sendEmail = async ({ to, subject, html, text }) => {
       html,
       text: text || subject
     });
-    console.log(`Email sent to ${to}: ${subject}`);
+    console.log(`[EMAIL] ✅ SUCCESS - Sent to ${to}`);
+    console.log(`[EMAIL] MessageId: ${result.messageId}`);
+    console.log(`[EMAIL] Response: ${result.response}`);
     return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error(`Email error to ${to}:`, error.message);
+    console.error(`[EMAIL] ❌ FAILED to ${to}:`, error.message);
+    console.error(`[EMAIL] Error code: ${error.code}`);
+    console.error(`[EMAIL] Full error:`, error);
     return { success: false, error: error.message };
   }
 };
