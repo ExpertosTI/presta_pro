@@ -48,7 +48,7 @@ const initializeFirebase = () => {
 /**
  * Send push notification to a single device
  */
-const sendPush = async ({ token, title, body, data = {}, icon = '/icons/icon-192.png' }) => {
+const sendPush = async ({ token, title, body, data = {}, icon = '/notification-icon.png' }) => {
     if (!initializeFirebase()) return { success: false, error: 'Firebase not configured' };
 
     try {
