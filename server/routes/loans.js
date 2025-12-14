@@ -4,42 +4,91 @@ const prisma = require('../lib/prisma');
 const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
 
 // --- Helper: Calculate amortization schedule ---
-// --- Helper: Calculate amortization schedule ---
-function calculateSchedule(amount, rate, term, frequency, startDate, amortizationType = 'FRENCH') {
+// amortizationType: 'FLAT' (default, simple interest), 'FRENCH' (compound on balance), 'INTEREST_ONLY'
+function calculateSchedule(amount, rate, term, frequency, startDate, amortizationType = 'FLAT') {
     const schedule = [];
     const principalAmount = parseFloat(amount) || 0;
     let balance = principalAmount;
-    const annualRate = (parseFloat(rate) || 0) / 100;
+    const ratePercent = (parseFloat(rate) || 0) / 100;
     const totalTerms = parseInt(term, 10) || 0;
 
-    let periodsPerYear = 12;
     let daysPerPeriod = 30;
 
     switch (frequency) {
-        case 'Diario': periodsPerYear = 365; daysPerPeriod = 1; break;
-        case 'Semanal': periodsPerYear = 52; daysPerPeriod = 7; break;
-        case 'Quincenal': periodsPerYear = 24; daysPerPeriod = 15; break;
-        case 'Mensual': periodsPerYear = 12; daysPerPeriod = 30; break;
-        default: periodsPerYear = 12;
+        case 'Diario': daysPerPeriod = 1; break;
+        case 'Semanal': daysPerPeriod = 7; break;
+        case 'Quincenal': daysPerPeriod = 15; break;
+        case 'Mensual': daysPerPeriod = 30; break;
+        default: daysPerPeriod = 30;
     }
 
     if (!principalAmount || (!totalTerms && amortizationType !== 'OPEN')) return [];
 
-    const ratePerPeriod = annualRate / periodsPerYear;
-    let pmt = 0;
     let currentDate = new Date(startDate);
 
-    // Interest Only Logic
+    // =============================================
+    // FLAT (Simple Interest) - Most common in RD
+    // Total = Principal * (1 + rate)
+    // Example: 10,000 at 20% = 12,000 total
+    // =============================================
+    if (amortizationType === 'FLAT') {
+        const totalInterest = principalAmount * ratePercent;
+        const totalAmount = principalAmount + totalInterest;
+        const regularPayment = parseFloat((totalAmount / totalTerms).toFixed(2));
+        const interestPerPayment = parseFloat((totalInterest / totalTerms).toFixed(2));
+        const principalPerPayment = parseFloat((principalAmount / totalTerms).toFixed(2));
+
+        let remainingBalance = principalAmount;
+        let totalPaid = 0;
+
+        for (let i = 1; i <= totalTerms; i++) {
+            currentDate.setDate(currentDate.getDate() + daysPerPeriod);
+
+            // Last payment adjusts for rounding differences
+            let payment = regularPayment;
+            let principal = principalPerPayment;
+            let interest = interestPerPayment;
+
+            if (i === totalTerms) {
+                // Adjust last payment to match exact total
+                const remaining = totalAmount - totalPaid;
+                payment = parseFloat(remaining.toFixed(2));
+                principal = remainingBalance;
+                interest = parseFloat((payment - principal).toFixed(2));
+            }
+
+            remainingBalance = parseFloat((remainingBalance - principal).toFixed(2));
+            if (remainingBalance < 0) remainingBalance = 0;
+            totalPaid += payment;
+
+            schedule.push({
+                number: i,
+                date: new Date(currentDate),
+                payment,
+                interest,
+                principal,
+                balance: remainingBalance,
+                status: 'PENDING'
+            });
+        }
+        return schedule;
+    }
+
+    // =============================================
+    // INTEREST_ONLY - Pay only interest each period
+    // Principal paid at end or never
+    // =============================================
     if (amortizationType === 'INTEREST_ONLY') {
+        const periodsPerYear = frequency === 'Diario' ? 365 : frequency === 'Semanal' ? 52 : frequency === 'Quincenal' ? 24 : 12;
+        const ratePerPeriod = ratePercent / periodsPerYear;
         const interestPayment = parseFloat((principalAmount * ratePerPeriod).toFixed(2));
-        pmt = interestPayment;
 
         for (let i = 1; i <= totalTerms; i++) {
             currentDate.setDate(currentDate.getDate() + daysPerPeriod);
             schedule.push({
                 number: i,
                 date: new Date(currentDate),
-                payment: pmt,
+                payment: interestPayment,
                 interest: interestPayment,
                 principal: 0,
                 balance: principalAmount,
@@ -49,7 +98,14 @@ function calculateSchedule(amount, rate, term, frequency, startDate, amortizatio
         return schedule;
     }
 
-    // French Logic
+    // =============================================
+    // FRENCH - Compound interest on decreasing balance
+    // Traditional amortization (banks use this)
+    // =============================================
+    const periodsPerYear = frequency === 'Diario' ? 365 : frequency === 'Semanal' ? 52 : frequency === 'Quincenal' ? 24 : 12;
+    const ratePerPeriod = ratePercent / periodsPerYear;
+    let pmt = 0;
+
     if (ratePerPeriod === 0) {
         pmt = principalAmount / totalTerms;
     } else {
@@ -80,6 +136,7 @@ function calculateSchedule(amount, rate, term, frequency, startDate, amortizatio
             interest,
             principal,
             balance,
+            status: 'PENDING'
         });
     }
 
