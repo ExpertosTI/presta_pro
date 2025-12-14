@@ -5,8 +5,8 @@ export const sendMessageToAI = async (chatHistory, userMessage, systemInstructio
         throw new Error('API Key missing');
     }
 
-    // Modelo Gemini 2.0 Flash Experimental (diciembre 2024, más rápido y capaz)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${effectiveKey}`;
+    // Modelo Gemini 1.5 Flash - más estable, mejor cuota que 2.0-flash-exp
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${effectiveKey}`;
 
     // Construir el contenido de la conversación: siempre reinyectar instrucciones + resumen de datos
     const historyContents = chatHistory.map(msg => ({
@@ -63,7 +63,7 @@ export const sendMessageToAI = async (chatHistory, userMessage, systemInstructio
 
     // If we exhausted all retries without success, throw rate limit error
     if (!responseData) {
-        throw new Error('RATE_LIMIT: La cuota de IA está agotada. Espera 1 minuto e intenta de nuevo.');
+        throw new Error('QUOTA_EXCEEDED: El asistente IA está ocupado. Por favor espera 1-2 minutos y vuelve a intentar. 💡 Tip: escribe mensajes más cortos para ahorrar cuota.');
     }
 
     const candidate = responseData?.candidates?.[0];
@@ -98,7 +98,7 @@ export const generateLoanContract = async (loan, client, companyName, apiKey) =>
       Redacta el contrato de manera profesional, listo para imprimir y firmar.
     `;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${effectiveKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${effectiveKey}`;
 
     const payload = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
@@ -206,7 +206,7 @@ ${instrucciones}
 
 Devuelve únicamente el texto del documento listo para imprimir.`;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${effectiveKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${effectiveKey}`;
 
     const payload = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
