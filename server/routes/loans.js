@@ -215,10 +215,8 @@ router.get('/', async (req, res) => {
 
         // Only filter if not including archived
         if (!includeArchived) {
-            whereClause.OR = [
-                { archived: false },
-                { archived: null }
-            ];
+            // Show loans where archived is NOT true (includes false, null, undefined)
+            whereClause.archived = { not: true };
         }
 
         const loans = await prisma.loan.findMany({
