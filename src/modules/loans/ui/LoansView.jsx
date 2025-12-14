@@ -25,6 +25,26 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
 
   // Reprint Receipt
   const [reprintReceipt, setReprintReceipt] = useState(null);
+
+  // Search and Filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  const filteredLoans = useMemo(() => {
+    return loans.filter(loan => {
+      // Status filter
+      if (statusFilter !== 'ALL' && loan.status !== statusFilter) return false;
+
+      // Search query (client name)
+      if (searchQuery.trim()) {
+        const client = clients.find(c => c.id === loan.clientId);
+        const clientName = (client?.name || '').toLowerCase();
+        if (!clientName.includes(searchQuery.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [loans, clients, searchQuery, statusFilter]);
+
   const selectedLoan = useMemo(() => loans.find(l => l.id === selectedLoanId), [loans, selectedLoanId]);
   const selectedClient = useMemo(() => {
     if (!selectedLoan) return null;
@@ -424,6 +444,32 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
         )}
       </div>
 
+      {/* Search and Filter Bar */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex-1 min-w-[200px]">
+          <input
+            type="text"
+            placeholder="Buscar por nombre de cliente..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="ALL">Todos los estados</option>
+          <option value="ACTIVE">Activos</option>
+          <option value="COMPLETED">Completados</option>
+          <option value="DEFAULTED">En mora</option>
+        </select>
+        <span className="text-sm text-slate-500 dark:text-slate-400">
+          {filteredLoans.length} de {loans.length}
+        </span>
+      </div>
+
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -436,7 +482,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-              {loans.map(l => {
+              {filteredLoans.map(l => {
                 const client = clients.find(c => c.id === l.clientId);
                 const isSelected = selectedLoanId === l.id;
                 // Check if client has documents (simulated or real property check)
