@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
 const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
+const notify = require('../services/notificationHelper');
 
 // --- Helper: Calculate amortization schedule ---
 // amortizationType: 'FLAT' (default, simple interest), 'FRENCH' (compound on balance), 'INTEREST_ONLY'
@@ -353,6 +354,15 @@ router.post('/', async (req, res) => {
         });
 
         res.status(201).json(mapLoanToResponse(newLoan));
+
+        // Send push notification for new loan
+        if (newLoan.client) {
+            notify.notifyLoanCreated({
+                tenantId: req.user.tenantId,
+                clientName: newLoan.client.name,
+                amount: parsedAmount
+            }).catch(err => console.error('[LOAN] Notify error:', err.message));
+        }
     } catch (error) {
         console.error('Error creating loan:', error.message);
         console.error('Error details:', error.code, error.meta);
@@ -555,6 +565,14 @@ router.post('/:id/payments', async (req, res) => {
             ipAddress: req.ip
         });
 
+        // Send push notification for payment
+        notify.notifyPaymentReceived({
+            tenantId: req.user.tenantId,
+            clientName: loan.client?.name || 'Cliente',
+            amount: paymentAmount,
+            loanId: id
+        }).catch(err => console.error('[PAYMENT] Notify error:', err.message));
+
         res.json({
             loan: mapLoanToResponse(result.updatedLoan),
             receipt: result.receipt,
@@ -665,6 +683,14 @@ router.post('/:id/free-payment', async (req, res) => {
             },
             ipAddress: req.ip
         });
+
+        // Send push notification for free payment
+        notify.notifyPaymentReceived({
+            tenantId: req.user.tenantId,
+            clientName: loan.client?.name || 'Cliente',
+            amount: paymentAmount,
+            loanId: id
+        }).catch(err => console.error('[FREE_PAYMENT] Notify error:', err.message));
 
         res.json({
             success: true,
