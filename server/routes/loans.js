@@ -209,18 +209,8 @@ router.get('/', async (req, res) => {
         // By default, hide archived loans unless includeArchived=true
         const includeArchived = req.query.includeArchived === 'true';
 
-        const whereClause = {
-            tenantId: req.user.tenantId
-        };
-
-        // Only filter if not including archived
-        if (!includeArchived) {
-            // Show loans where archived is NOT true (includes false, null, undefined)
-            whereClause.archived = { not: true };
-        }
-
         const loans = await prisma.loan.findMany({
-            where: whereClause,
+            where: { tenantId: req.user.tenantId },
             include: {
                 installments: true,
                 client: true,
@@ -229,7 +219,10 @@ router.get('/', async (req, res) => {
             orderBy: { createdAt: 'desc' }
         });
 
-        res.json(loans.map(mapLoanToResponse));
+        // Filter in memory to avoid Prisma schema issues
+        const filteredLoans = loans.filter(l => includeArchived || !l.archived);
+
+        res.json(filteredLoans.map(mapLoanToResponse));
     } catch (error) {
         console.error('Error fetching loans:', error);
         res.status(500).json({ error: 'Error al obtener préstamos' });
