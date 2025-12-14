@@ -67,6 +67,8 @@ export const sendMessageToAI = async (chatHistory, userMessage, systemInstructio
 };
 
 export const generateLoanContract = async (loan, client, companyName, apiKey) => {
+    console.log('[generateContract] Starting with:', { loan: loan?.id, client: client?.name, company: companyName });
+
     const ai = getClient(apiKey);
 
     const prompt = `
@@ -91,24 +93,44 @@ export const generateLoanContract = async (loan, client, companyName, apiKey) =>
       Redacta el contrato de manera profesional, listo para imprimir y firmar.
     `;
 
-    try {
-        const response = await ai.models.generateContent({
-            model: MODEL,
-            contents: prompt,
-        });
+    let attempts = 0;
+    const maxAttempts = 3;
 
-        return response.text || "Error generando contrato.";
-    } catch (e) {
-        console.error('generateLoanContract error:', e);
+    while (attempts < maxAttempts) {
+        try {
+            console.log(`[generateContract] Attempt ${attempts + 1}/${maxAttempts}`);
 
-        if (e.message?.includes('429') || e.message?.includes('quota')) {
-            const err = new Error('RATE_LIMIT');
-            err.status = 429;
+            const response = await ai.models.generateContent({
+                model: MODEL,
+                contents: prompt,
+            });
+
+            const text = response.text;
+            console.log('[generateContract] Success, length:', text?.length || 0);
+            return text || "Error generando contrato.";
+
+        } catch (e) {
+            console.error('[generateContract] Error:', e.message || e);
+
+            // Check for rate limit
+            if (e.message?.includes('429') || e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) {
+                const delay = Math.pow(2, attempts) * 1000;
+                console.warn(`[generateContract] Rate limit hit. Retrying in ${delay / 1000}s...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                attempts++;
+                continue;
+            }
+
+            const err = new Error('CONTRACT_GENERATION_ERROR: ' + (e.message || 'Error desconocido'));
+            err.status = e.status || 500;
             throw err;
         }
-
-        throw e;
     }
+
+    // All retries exhausted
+    const err = new Error('RATE_LIMIT: El servicio de IA está ocupado. Intenta de nuevo en 1-2 minutos.');
+    err.status = 429;
+    throw err;
 };
 
 export const generateClientDocument = async (docType, client, loan, companyName, apiKey) => {

@@ -218,16 +218,28 @@ router.post('/tenants/:id/suspend', async (req, res) => {
         });
 
         // Get tenant owner/admin email and send suspension notification
-        const tenantOwner = await prisma.user.findFirst({
+        // First try to find owner/admin, then fall back to any user
+        let tenantOwner = await prisma.user.findFirst({
             where: {
                 tenantId: id,
-                role: { in: ['ADMIN', 'OWNER', 'admin', 'owner'] }
+                role: { in: ['ADMIN', 'OWNER', 'admin', 'owner', 'SUPER_ADMIN'] }
             },
-            select: { email: true, name: true }
+            select: { email: true, name: true, role: true }
         });
+
+        // If no owner found, get ANY user from this tenant
+        if (!tenantOwner) {
+            tenantOwner = await prisma.user.findFirst({
+                where: { tenantId: id },
+                select: { email: true, name: true, role: true }
+            });
+        }
+
+        console.log(`[SUSPEND] Tenant ${id} - Found user:`, tenantOwner ? tenantOwner.email : 'NO USER FOUND');
 
         if (tenantOwner?.email) {
             const suspensionReason = reason || 'Suspendido por administrador';
+            console.log(`[SUSPEND] Sending email to ${tenantOwner.email}...`);
             await emailService.sendEmail({
                 to: tenantOwner.email,
                 subject: '⚠️ Tu cuenta ha sido suspendida - Presta Pro',
@@ -245,7 +257,13 @@ router.post('/tenants/:id/suspend', async (req, res) => {
                     <p>Si crees que esto es un error o deseas resolver esta situación, por favor contacta a soporte:</p>
                     <p><a href="mailto:soporte@renace.tech" style="color: #2563eb;">soporte@renace.tech</a></p>
                 `)
-            }).catch(err => console.error('Error sending suspension email:', err));
+            }).then(() => {
+                console.log(`[SUSPEND] Email sent successfully to ${tenantOwner.email}`);
+            }).catch(err => {
+                console.error('[SUSPEND] Error sending suspension email:', err.message || err);
+            });
+        } else {
+            console.warn(`[SUSPEND] No user email found for tenant ${id}`);
         }
 
         // Create in-app notification for the suspended tenant

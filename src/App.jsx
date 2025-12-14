@@ -879,7 +879,6 @@ function App() {
             <MenuItem id="documents" label="Documentos" icon={FileDigit} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
             <MenuItem id="calc" label="Calculadora" icon={Calculator} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
             <MenuItem id="notes" label="Notas" icon={FileText} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
-            <MenuItem id="ai" label="Asistente IA" icon={BrainCircuit} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge="New" />
           </MenuSection>
 
           <MenuSection title="Administración">
