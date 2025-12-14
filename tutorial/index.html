@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presta Pro - Guía Interactiva | Renace.tech</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --dark: #0f172a;
+            --dark-lighter: #1e293b;
+            --light: #f8fafc;
+            --glass: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--dark) 0%, #1a1a2e 50%, var(--dark-lighter) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+            background-image:
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
+            animation: bgPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes bgPulse {
+
+            0%,
+            100% {
+                opacity: 0.4;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 0.5;
+            }
+
+            90% {
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: translateY(-100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 4rem 1rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+
+        /* CTA Button */
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4);
+        }
+
+        .cta-btn span {
+            font-size: 1.3rem;
+        }
+
+        /* Tutorial Steps Navigation */
+        .steps-nav {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 3rem 0 2rem;
+            padding: 1rem;
+            background: var(--glass);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .step-dot {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--dark-lighter);
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .step-dot:hover {
+            transform: scale(1.1);
+            border-color: var(--primary);
+        }
+
+        .step-dot.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: scale(1.15);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        }
+
+        .step-dot.completed {
+            background: var(--secondary);
+            border-color: var(--secondary);
+        }
+
+        /* Tutorial Content */
+        .tutorial-content {
+            background: var(--glass);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 400px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .step-content {
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-icon {
+            font-size: 3rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .step-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .step-description {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .nav-btn.prev {
+            background: var(--dark-lighter);
+            color: #94a3b8;
+        }
+
+        .nav-btn.next {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-btn:hover {
+            transform: translateX(3px);
+        }
+
+        .nav-btn.prev:hover {
+            transform: translateX(-3px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Tips Section */
+        .tip-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .tip-box .tip-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .tip-box p {
+            color: #a7f3d0;
+            font-size: 0.95rem;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--dark-lighter);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            transition: width 0.5s ease;
+            border-radius: 3px;
+        }
+
+        .progress-text {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #64748b;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--dark-lighter);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal p {
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .hero {
+                padding: 2rem 0.5rem;
+            }
+
+            .step-dot {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .tutorial-content {
+                padding: 1.5rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            .nav-btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-pattern"></div>
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="logo">💰</div>
+            <h1>Presta Pro</h1>
+            <p class="subtitle">Tu sistema completo de gestión de préstamos y cobranzas</p>
+            <a href="https://prestapro.renace.tech" target="_blank" class="cta-btn">
+                <span>🚀</span> Iniciar Aplicación
+            </a>
+        </section>
+
+        <!-- Progress -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 12.5%"></div>
+            </div>
+            <p class="progress-text"><span id="currentStep">1</span> de 8 pasos completados</p>
+        </div>
+
+        <!-- Steps Navigation -->
+        <div class="steps-nav">
+            <div class="step-dot active" data-step="1" title="Bienvenida">👋</div>
+            <div class="step-dot" data-step="2" title="Registro">📝</div>
+            <div class="step-dot" data-step="3" title="Dashboard">📊</div>
+            <div class="step-dot" data-step="4" title="Clientes">👥</div>
+            <div class="step-dot" data-step="5" title="Préstamos">💵</div>
+            <div class="step-dot" data-step="6" title="Cobros">📥</div>
+            <div class="step-dot" data-step="7" title="Cobradores">🏃</div>
+            <div class="step-dot" data-step="8" title="Reportes">📈</div>
+        </div>
+
+        <!-- Tutorial Content -->
+        <div class="tutorial-content">
+            <!-- Step 1: Welcome -->
+            <div class="step-content active" data-step="1">
+                <div class="step-header">
+                    <span class="step-icon">👋</span>
+                    <h2 class="step-title">¡Bienvenido a Presta Pro!</h2>
+                </div>
+                <p class="step-description">
+                    Presta Pro es un sistema completo para gestionar tu negocio de préstamos y cobranzas.
+                    Con esta guía interactiva aprenderás a utilizar todas las funcionalidades en minutos.
+                </p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📱</div>
+                        <h3 class="feature-title">100% Móvil</h3>
+                        <p class="feature-desc">Funciona perfecto en tu celular, tablet o computadora</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">☁️</div>
+                        <h3 class="feature-title">En la Nube</h3>
+                        <p class="feature-desc">Tus datos siempre seguros y accesibles desde cualquier lugar</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <h3 class="feature-title">Asistente IA</h3>
+                        <p class="feature-desc">Un asistente inteligente que responde tus preguntas</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🖨️</div>
+                        <h3 class="feature-title">Recibos Térmicos</h3>
+                        <p class="feature-desc">Imprime comprobantes directamente en impresora 80mm</p>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <div class="tip-title">💡 Consejo</div>
+                    <p>Navega por los pasos usando los botones de abajo o haz clic en los iconos de arriba.</p>
+                </div>
+            </div>
+
+            <!-- Step 2: Registration -->
+            <div class="step-content" data-step="2">
+                <div class="step-header">
+                    <span class="step-icon">📝</span>
+                    <h2 class="step-title">Registro y Configuración</h2>
+                </div>
+                <p class="step-description">
+                    Registrar tu empresa es muy fácil. Solo necesitas tu correo electrónico y unos minutos.
+                </p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">1️⃣</div>
+                        <h3 class="feature-title">Crear Cuenta</h3>
+                        <p class="feature-desc">Ingresa tu email, nombre de empresa y contraseña</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">2️⃣</div>
+                        <h3 class="feature-title">Verificar Email</h3>
+                        <p class="feature-desc">Confirma tu correo con el link que te enviamos</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">3️⃣</div>
+                        <h3 class="feature-title">Elegir Plan</h3>
+                        <p class="feature-desc">Selecciona Free, Pro o Enterprise según tus necesidades</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">4️⃣</div>
+                        <h3 class="feature-title">¡Listo!</h3>
+                        <p class="feature-desc">Tu panel de control está configurado y listo para usar</p>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <div class="tip-title">🔐 Seguridad</div>
+                    <p>También puedes iniciar sesión con tu cuenta de Google para mayor rapidez y seguridad.</p>
+                </div>
+            </div>
+
+            <!-- Step 3: Dashboard -->
+            <div class="step-content" data-step="3">
+                <div class="step-header">
+                    <span class="step-icon">📊</span>
+                    <h2 class="step-title">Dashboard Principal</h2>
+                </div>
+                <p class="step-description">
+                    El dashboard te muestra un resumen en tiempo real de tu negocio: préstamos activos,
+                    cobros del día, clientes y más.
+                </p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">💰</div>
+                        <h3 class="feature-title">Por Cobrar</h3>
+                        <p class="feature-desc">Total pendiente de todos tus préstamos activos</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">👥</div>
+                        <h3 class="feature-title">Clientes</h3>
+                        <p class="feature-desc">Cantidad total de clientes registrados</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📈</div>
+                        <h3 class="feature-title">Ingresos Hoy</h3>
+                        <p class="feature-desc">Cobros realizados en el día actual</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚠️</div>
+                        <h3 class="feature-title">En Mora</h3>
+                        <p class="feature-desc">Préstamos con cuotas vencidas</p>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <div class="tip-title">🔔 Notificaciones</div>
+                    <p>Haz clic en la campana 🔔 para ver alertas de pagos pendientes y vencimientos.</p>
+                </div>
+            </div>
+
+            <!-- Step 4: Clients -->
+            <div class="step-content" data-step="4">
+                <div class="step-header">
+                    <span class="step-icon">👥</span>
+                    <h2 class="step-title">Gestión de Clientes</h2>
+                </div>
+                <p class="step-description">
+                    Registra a tus clientes con toda su información: nombre, teléfono, dirección,
+                    documentos y asigna un cobrador responsable.
+                </p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">➕</div>
+                        <h3 class="feature-title">Agregar Cliente</h3>
+                        <p class="feature-desc">Clic en "+ Nuevo Cliente" y llena el formulario</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📄</div>
+                        <h3 class="feature-title">Documentos</h3>
+                        <p class="feature-desc">Sube cédula, contrato u otros documentos</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🏃</div>
+                        <h3 class="feature-title">Asignar Cobrador</h3>
+                        <p class="feature-desc">Selecciona quién será responsable del cliente</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔍</div>
+                        <h3 class="feature-title">Buscar</h3>
+                        <p class="feature-desc">Encuentra clientes por nombre o teléfono</p>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <div class="tip-title">📸 Foto de Perfil</div>
+                    <p>Puedes agregar una foto del cliente para identificación rápida.</p>
+                </div>
+            </div>
+
+            <!-- Step 5: Loans -->
+            <div class="step-content" data-step="5">
+                <div class="step-header">
+                    <span class="step-icon">💵</span>
+                    <h2 class="step-title">Crear Préstamos</h2>
+                </div>
+                <p class="step-description">
+                    Crea préstamos personalizados con diferentes frecuencias de pago: diario, semanal,
+                    quincenal o mensual. El sistema calcula automáticamente las cuotas.
+                </p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">💲</div>
+                        <h3 class="feature-title">Monto y Tasa</h3>
+                        <p class="feature-desc">Define el capital y la tasa de interés</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📅</div>
+                        <h3 class="feature-title">Plazo</h3>
+                        <p class="feature-desc">Elige la cantidad de cuotas (ej: 12 semanas)</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔄</div>
+                        <h3 class="feature-title">Frecuencia</h3>
+                        <p class="feature-desc">Diario, Semanal, Quincenal o Mensual</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📋</div>
+                        <h3 class="feature-title">Contrato</h3>
+                        <p class="feature-desc">Genera e imprime contrato automáticamente</p>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <div class="tip-title">🧮 Amortización</div>
+                    <p>Presta Pro calcula automáticamente el calendario de pagos con sistema francés.</p>
+                </div>
+            </div>
+
+            <!-- Step 6: Collections -->
+            <div class="step-content" data-step="6">
+                <div class="step-header">
+                    <span class="step-icon">📥</span>
+                    <h2 class="step-title">Registrar Cobros</h2>
+                </div>
+                <p class="step-description">
+                    Registra los pagos de tus clientes de forma rápida. Puedes agregar mora, hacer
+                    pagos parciales y reimprimir recibos.
+                </p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">✅</div>
+                        <h3 class="feature-title">Pago Normal</h3>
+                        <p class="feature-desc">Un clic para registrar la cuota completa</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚠️</div>
+                        <h3 class="feature-title">Con Mora</h3>
+                        <p class="feature-desc">Agrega penalidad por pago tardío</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">✂️</div>
+                        <h3 class="feature-title">Pago Parcial</h3>
+                        <p class="feature-desc">Registra abonos menores a la cuota</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🖨️</div>
+                        <h3 class="feature-title">Recibo</h3>
+                        <p class="feature-desc">Imprime comprobante en impresora térmica 80mm</p>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <div class="tip-title">📱 Modo Cobrador</div>
+                    <p>Los cobradores pueden registrar pagos directamente desde su celular en la calle.</p>
+                </div>
+            </div>
+
+            <!-- Step 7: Collectors -->
+            <div class="step-content" data-step="7">
+                <div class="step-header">
+                    <span class="step-icon">🏃</span>
+                    <h2 class="step-title">Gestión de Cobradores</h2>
+                </div>
+                <p class="step-description">
+                    Registra a tus cobradores, asígnales clientes y dales acceso limitado al sistema
+                    para que registren cobros desde sus dispositivos.
+                </p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">➕</div>
+                        <h3 class="feature-title">Agregar Cobrador</h3>
+                        <p class="feature-desc">Menú → Cobradores → + Nuevo</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔑</div>
+                        <h3 class="feature-title">Credenciales</h3>
+                        <p class="feature-desc">Crea usuario y contraseña para el cobrador</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">👥</div>
+                        <h3 class="feature-title">Asignar Clientes</h3>
+                        <p class="feature-desc">Distribuye la cartera entre cobradores</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3 class="feature-title">Reportes</h3>
+                        <p class="feature-desc">Ve el rendimiento de cada cobrador</p>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <div class="tip-title">🔐 Permisos</div>
+                    <p>Los cobradores solo ven SUS clientes asignados, no toda la cartera.</p>
+                </div>
+            </div>
+
+            <!-- Step 8: Reports -->
+            <div class="step-content" data-step="8">
+                <div class="step-header">
+                    <span class="step-icon">📈</span>
+                    <h2 class="step-title">Reportes y Más</h2>
+                </div>
+                <p class="step-description">
+                    Genera reportes detallados, usa el asistente IA para consultas rápidas y
+                    configura tu empresa a tu medida.
+                </p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3 class="feature-title">Reportes</h3>
+                        <p class="feature-desc">Ingresos, gastos, mora, rendimiento</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <h3 class="feature-title">Asistente IA</h3>
+                        <p class="feature-desc">"¿Cuánto llevo cobrado hoy?"</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚙️</div>
+                        <h3 class="feature-title">Configuración</h3>
+                        <p class="feature-desc">Logo, nombre, tema, notificaciones</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💳</div>
+                        <h3 class="feature-title">Suscripción</h3>
+                        <p class="feature-desc">Actualiza tu plan en cualquier momento</p>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <div class="tip-title">🎉 ¡Felicidades!</div>
+                    <p>Has completado la guía. ¡Estás listo para usar Presta Pro como un experto!</p>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="https://prestapro.renace.tech" target="_blank" class="cta-btn">
+                        <span>🚀</span> Ir a la Aplicación
+                    </a>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="nav-buttons">
+                <button class="nav-btn prev" id="prevBtn" disabled>← Anterior</button>
+                <button class="nav-btn next" id="nextBtn">Siguiente →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completion Modal -->
+    <div class="modal-overlay" id="completionModal">
+        <div class="modal">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+            <h3>¡Tutorial Completado!</h3>
+            <p>Ya conoces todas las funcionalidades de Presta Pro. ¿Listo para empezar?</p>
+            <a href="https://prestapro.renace.tech" target="_blank" class="cta-btn"
+                style="width: 100%; justify-content: center;">
+                <span>🚀</span> Iniciar Ahora
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        <p>Presta Pro V1.01 | © 2024 <a href="https://renace.tech" target="_blank">Renace.tech</a> | Todos los derechos
+            reservados</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem;">
+            ¿Necesitas ayuda? <a href="mailto:soporte@renace.tech">soporte@renace.tech</a>
+        </p>
+    </footer>
+
+    <script>
+        // Create particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = (10 + Math.random() * 20) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Tutorial navigation
+        let currentStep = 1;
+        const totalSteps = 8;
+        const stepDots = document.querySelectorAll('.step-dot');
+        const stepContents = document.querySelectorAll('.step-content');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressFill = document.getElementById('progressFill');
+        const currentStepText = document.getElementById('currentStep');
+
+        function updateStep(step) {
+            currentStep = step;
+
+            // Update dots
+            stepDots.forEach((dot, index) => {
+                dot.classList.remove('active');
+                if (index + 1 < step) {
+                    dot.classList.add('completed');
+                } else {
+                    dot.classList.remove('completed');
+                }
+                if (index + 1 === step) {
+                    dot.classList.add('active');
+                }
+            });
+
+            // Update content
+            stepContents.forEach(content => {
+                content.classList.remove('active');
+                if (parseInt(content.dataset.step) === step) {
+                    content.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            prevBtn.disabled = step === 1;
+            nextBtn.textContent = step === totalSteps ? '¡Completar! 🎉' : 'Siguiente →';
+
+            // Update progress
+            const progress = (step / totalSteps) * 100;
+            progressFill.style.width = progress + '%';
+            currentStepText.textContent = step;
+
+            // Scroll to top of content
+            document.querySelector('.tutorial-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Click on dots
+        stepDots.forEach(dot => {
+            dot.addEventListener('click', () => {
+                updateStep(parseInt(dot.dataset.step));
+            });
+        });
+
+        // Navigation buttons
+        prevBtn.addEventListener('click', () => {
+            if (currentStep > 1) {
+                updateStep(currentStep - 1);
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentStep < totalSteps) {
+                updateStep(currentStep + 1);
+            } else {
+                // Show completion modal
+                document.getElementById('completionModal').classList.add('active');
+            }
+        });
+
+        // Close modal on click outside
+        document.getElementById('completionModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('completionModal')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' && currentStep < totalSteps) {
+                updateStep(currentStep + 1);
+            } else if (e.key === 'ArrowLeft' && currentStep > 1) {
+                updateStep(currentStep - 1);
+            }
+        });
+    </script>
+</body>
+
+</html>
