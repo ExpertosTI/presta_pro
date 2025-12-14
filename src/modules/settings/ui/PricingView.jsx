@@ -250,7 +250,7 @@ export function PricingView({ showToast, currentPlan = 'FREE' }) {
                     return (
                         <Card
                             key={plan.id}
-                            className={`relative ${PLAN_COLORS[plan.id]} ${plan.id === 'PRO' ? 'transform scale-105' : ''}`}
+                            className={`relative ${PLAN_COLORS[plan.id]} ${plan.id === 'PRO' ? 'md:transform md:scale-105' : ''}`}
                         >
                             {plan.id === 'PRO' && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">

@@ -1,7 +1,39 @@
 import React, { useMemo } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency } from '../../../shared/utils/formatters';
-import { Users } from 'lucide-react';
+import { Users, Star } from 'lucide-react';
+
+// Client score rating component
+const ClientRating = ({ score }) => {
+  const numScore = parseInt(score) || 70;
+  const stars = Math.round(numScore / 20); // 0-100 -> 0-5 stars
+
+  // Color based on score
+  const getScoreColor = (s) => {
+    if (s >= 80) return { bg: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-700 dark:text-emerald-300', star: 'text-emerald-500' };
+    if (s >= 60) return { bg: 'bg-yellow-100 dark:bg-yellow-900/40', text: 'text-yellow-700 dark:text-yellow-300', star: 'text-yellow-500' };
+    if (s >= 40) return { bg: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-700 dark:text-orange-300', star: 'text-orange-500' };
+    return { bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-300', star: 'text-red-500' };
+  };
+
+  const colors = getScoreColor(numScore);
+
+  return (
+    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${colors.bg}`}>
+      <div className="flex">
+        {[1, 2, 3, 4, 5].map(i => (
+          <Star
+            key={i}
+            size={12}
+            className={i <= stars ? colors.star : 'text-slate-300 dark:text-slate-600'}
+            fill={i <= stars ? 'currentColor' : 'none'}
+          />
+        ))}
+      </div>
+      <span className={`text-xs font-bold ${colors.text}`}>{numScore}</span>
+    </div>
+  );
+};
 
 const getStatusLabel = (status) => {
   const map = {
@@ -104,6 +136,9 @@ export function ClientsView({ clients, loans, onNewClient, selectedClientId, onS
               <div>
                 <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100">{selectedClient.name}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">CLIENTE #{selectedClient?.id?.slice(0, 6) || ''}</p>
+                <div className="mt-1">
+                  <ClientRating score={selectedClient.score} />
+                </div>
               </div>
             </div>
 
