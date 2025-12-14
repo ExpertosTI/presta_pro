@@ -134,6 +134,14 @@ model Loan {
   interestAccrued Float             @default(0) // Interés acumulado para préstamos abiertos
   dailyRate       Float?            // Tasa diaria para préstamos abiertos (ej: 0.5 = 0.5% diario)
   lastInterestCalc DateTime?        // Última fecha de cálculo de interés
+  
+  // Archive/Cancel fields
+  archived        Boolean           @default(false)
+  archivedAt      DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+  amortizationType String           @default("FLAT") // FLAT, FRENCH, INTEREST_ONLY
+  
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   installments    LoanInstallment[]

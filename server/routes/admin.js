@@ -635,40 +635,55 @@ router.post('/broadcast', async (req, res) => {
         let emailsFailed = 0;
 
         for (const tenant of tenants) {
-            // Create in-app notification for each tenant
-            await prisma.notification.create({
-                data: {
-                    tenantId: tenant.id,
-                    type,
-                    title,
-                    message
-                }
-            });
-            notificationsCreated++;
-
-            // Optionally send email to tenant owner
-            if (sendEmail) {
-                const tenantUser = await prisma.user.findFirst({
-                    where: { tenantId: tenant.id },
-                    select: { email: true, name: true }
+            try {
+                // Create in-app notification for each tenant
+                await prisma.notification.create({
+                    data: {
+                        tenantId: tenant.id,
+                        type,
+                        title,
+                        message
+                    }
                 });
+                notificationsCreated++;
 
-                if (tenantUser?.email) {
-                    const result = await emailService.sendEmail({
-                        to: tenantUser.email,
-                        subject: title,
-                        html: emailService.wrapEmailTemplate(`
-                            <h2 style="color: #2563eb; margin-bottom: 20px;">📢 ${title}</h2>
-                            <p>${message}</p>
-                        `, tenant.name)
+                // Optionally send email to tenant owner (with timeout)
+                if (sendEmail) {
+                    const tenantUser = await prisma.user.findFirst({
+                        where: { tenantId: tenant.id },
+                        select: { email: true, name: true }
                     });
 
-                    if (result.success) {
-                        emailsSent++;
-                    } else {
-                        emailsFailed++;
+                    if (tenantUser?.email) {
+                        try {
+                            // Send with 10 second timeout
+                            const emailPromise = emailService.sendEmail({
+                                to: tenantUser.email,
+                                subject: title,
+                                html: emailService.wrapEmailTemplate(`
+                                    <h2 style="color: #2563eb; margin-bottom: 20px;">📢 ${title}</h2>
+                                    <p>${message}</p>
+                                `, tenant.name)
+                            });
+
+                            const timeoutPromise = new Promise((_, reject) =>
+                                setTimeout(() => reject(new Error('Email timeout')), 10000)
+                            );
+
+                            const result = await Promise.race([emailPromise, timeoutPromise]);
+                            if (result?.success) {
+                                emailsSent++;
+                            } else {
+                                emailsFailed++;
+                            }
+                        } catch (emailErr) {
+                            console.error(`[BROADCAST] Email failed for ${tenantUser.email}:`, emailErr.message);
+                            emailsFailed++;
+                        }
                     }
                 }
+            } catch (tenantErr) {
+                console.error(`[BROADCAST] Error for tenant ${tenant.id}:`, tenantErr.message);
             }
         }
 

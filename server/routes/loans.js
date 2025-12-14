@@ -710,4 +710,166 @@ router.get('/:id/free-payments', async (req, res) => {
     }
 });
 
+// ============================================
+// LOAN STATUS MANAGEMENT
+// ============================================
+
+// POST /api/loans/:id/cancel - Cancelar préstamo
+router.post('/:id/cancel', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        const loan = await prisma.loan.findFirst({
+            where: { id, tenantId: req.user.tenantId },
+            include: { installments: true }
+        });
+
+        if (!loan) {
+            return res.status(404).json({ error: 'Préstamo no encontrado' });
+        }
+
+        // Check if loan has any paid installments
+        const hasPaidInstallments = loan.installments.some(i => i.status === 'PAID');
+        if (hasPaidInstallments) {
+            return res.status(400).json({
+                error: 'No se puede cancelar un préstamo con pagos registrados. Use "Archivar" en su lugar.'
+            });
+        }
+
+        const updated = await prisma.loan.update({
+            where: { id },
+            data: {
+                status: 'CANCELLED',
+                cancelledAt: new Date(),
+                cancelReason: reason || 'Cancelado por usuario'
+            },
+            include: { installments: true, client: true }
+        });
+
+        await logAudit({
+            userId: req.user.id,
+            action: AUDIT_ACTIONS.LOAN_DELETED || 'LOAN_CANCELLED',
+            tenantId: req.user.tenantId,
+            details: { loanId: id, reason },
+            ipAddress: req.ip
+        });
+
+        res.json({ success: true, loan: mapLoanToResponse(updated) });
+    } catch (error) {
+        console.error('Error cancelling loan:', error);
+        res.status(500).json({ error: 'Error al cancelar préstamo' });
+    }
+});
+
+// POST /api/loans/:id/archive - Archivar préstamo (ocultar de vista principal)
+router.post('/:id/archive', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const loan = await prisma.loan.findFirst({
+            where: { id, tenantId: req.user.tenantId }
+        });
+
+        if (!loan) {
+            return res.status(404).json({ error: 'Préstamo no encontrado' });
+        }
+
+        const updated = await prisma.loan.update({
+            where: { id },
+            data: {
+                archived: true,
+                archivedAt: new Date()
+            },
+            include: { installments: true, client: true }
+        });
+
+        await logAudit({
+            userId: req.user.id,
+            action: 'LOAN_ARCHIVED',
+            tenantId: req.user.tenantId,
+            details: { loanId: id },
+            ipAddress: req.ip
+        });
+
+        res.json({ success: true, loan: mapLoanToResponse(updated) });
+    } catch (error) {
+        console.error('Error archiving loan:', error);
+        res.status(500).json({ error: 'Error al archivar préstamo' });
+    }
+});
+
+// POST /api/loans/:id/unarchive - Desarchivar préstamo
+router.post('/:id/unarchive', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const loan = await prisma.loan.findFirst({
+            where: { id, tenantId: req.user.tenantId }
+        });
+
+        if (!loan) {
+            return res.status(404).json({ error: 'Préstamo no encontrado' });
+        }
+
+        const updated = await prisma.loan.update({
+            where: { id },
+            data: {
+                archived: false,
+                archivedAt: null
+            },
+            include: { installments: true, client: true }
+        });
+
+        res.json({ success: true, loan: mapLoanToResponse(updated) });
+    } catch (error) {
+        console.error('Error unarchiving loan:', error);
+        res.status(500).json({ error: 'Error al desarchivar préstamo' });
+    }
+});
+
+// DELETE /api/loans/:id - Eliminar préstamo permanentemente
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const loan = await prisma.loan.findFirst({
+            where: { id, tenantId: req.user.tenantId },
+            include: { installments: true }
+        });
+
+        if (!loan) {
+            return res.status(404).json({ error: 'Préstamo no encontrado' });
+        }
+
+        // Only allow delete if no payments were made
+        const hasPaidInstallments = loan.installments.some(i => i.status === 'PAID');
+        if (hasPaidInstallments) {
+            return res.status(400).json({
+                error: 'No se puede eliminar un préstamo con pagos registrados. Use "Archivar" en su lugar.'
+            });
+        }
+
+        // Delete installments first, then loan
+        await prisma.$transaction([
+            prisma.loanInstallment.deleteMany({ where: { loanId: id } }),
+            prisma.freePayment.deleteMany({ where: { loanId: id } }),
+            prisma.loan.delete({ where: { id } })
+        ]);
+
+        await logAudit({
+            userId: req.user.id,
+            action: AUDIT_ACTIONS.LOAN_DELETED || 'LOAN_DELETED',
+            tenantId: req.user.tenantId,
+            details: { loanId: id, amount: loan.amount, clientId: loan.clientId },
+            ipAddress: req.ip
+        });
+
+        res.json({ success: true, message: 'Préstamo eliminado' });
+    } catch (error) {
+        console.error('Error deleting loan:', error);
+        res.status(500).json({ error: 'Error al eliminar préstamo' });
+    }
+});
+
 module.exports = router;
