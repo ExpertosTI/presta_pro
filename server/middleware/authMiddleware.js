@@ -89,7 +89,9 @@ const authMiddleware = (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
-    if (!req.user || req.user.role !== 'admin') {
+    const role = req.user?.role?.toUpperCase();
+    const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
+    if (!req.user || !allowedRoles.includes(role)) {
         console.warn(`⛔ ACCESS_DENIED: Admin required. User: ${req.user?.userId || 'unknown'}, Role: ${req.user?.role || 'none'}, Tenant: ${req.tenantId || 'unknown'}`);
         return res.status(403).json({ error: 'Acceso denegado. Se requieren permisos de administrador.' });
     }
