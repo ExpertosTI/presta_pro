@@ -258,10 +258,10 @@ router.post('/tenants/:id/suspend', async (req, res) => {
             }
         }).catch(err => console.error('Error creating tenant notification:', err));
 
-        // Create in-app notification for super admin (you)
+        // Create in-app notification for super admin (you) - stored in the tenant's notifications
         await prisma.notification.create({
             data: {
-                tenantId: null, // System-wide notification
+                tenantId: id, // Use suspended tenant's ID (required field)
                 userId: req.user?.id || req.user?.userId,
                 type: 'ADMIN',
                 title: '🔴 Cuenta Suspendida',
@@ -342,10 +342,10 @@ router.post('/tenants/:id/activate', async (req, res) => {
             }
         }).catch(err => console.error('Error creating tenant notification:', err));
 
-        // Create in-app notification for super admin (you)
+        // Create in-app notification for super admin (you) - stored in the tenant's notifications
         await prisma.notification.create({
             data: {
-                tenantId: null,
+                tenantId: id, // Use tenant's ID (required field)
                 userId: req.user?.id || req.user?.userId,
                 type: 'ADMIN',
                 title: '🟢 Cuenta Reactivada',
