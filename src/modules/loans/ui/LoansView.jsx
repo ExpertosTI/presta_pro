@@ -3,10 +3,11 @@ import Card from '../../../shared/components/ui/Card.jsx';
 import Badge from '../../../shared/components/ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { calculateSchedule } from '../../../shared/utils/amortization';
-import { FileText, Sparkles, X, Printer, FileCheck, Plus, Banknote } from 'lucide-react';
+import { FileText, Sparkles, X, Printer, FileCheck, Plus, Banknote, Archive, Trash2, XCircle } from 'lucide-react';
 import { PaymentConfirmationModal } from '../../payments';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
 import PaymentTicket from '../../../shared/components/ui/PaymentTicket';
+import { loanApi } from '../infrastructure/loanApi';
 
 export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan, onNewClient, onNavigateToDocuments }) {
   const [generatingContract, setGeneratingContract] = useState(false);
@@ -29,6 +30,13 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
   // Search and Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // Loan action modals
+  const [cancelModal, setCancelModal] = useState(false);
+  const [archiveModal, setArchiveModal] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   const filteredLoans = useMemo(() => {
     return loans.filter(loan => {
@@ -711,6 +719,38 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                 {generatingContract ? 'Generando...' : 'Generar Contrato Legal (IA)'}
               </button>
             </div>
+
+            {/* Loan Actions: Cancel, Archive, Delete */}
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <p className="text-xs text-slate-500 mb-2 font-medium">Acciones del préstamo</p>
+              <div className="grid grid-cols-3 gap-2">
+                {selectedLoan.status === 'ACTIVE' && (
+                  <button
+                    onClick={() => setCancelModal(true)}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors text-xs"
+                  >
+                    <XCircle size={18} />
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  onClick={() => setArchiveModal(true)}
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-xs"
+                >
+                  <Archive size={18} />
+                  {selectedLoan.archived ? 'Desarchivar' : 'Archivar'}
+                </button>
+                {!Array.isArray(selectedLoan.schedule) || !selectedLoan.schedule.some(i => i.status === 'PAID') ? (
+                  <button
+                    onClick={() => setDeleteModal(true)}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-xs"
+                  >
+                    <Trash2 size={18} />
+                    Eliminar
+                  </button>
+                ) : null}
+              </div>
+            </div>
           </Card>
 
           <Card className="lg:col-span-2 order-2 lg:order-2">
@@ -789,6 +829,145 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
           onClose={() => setReprintReceipt(null)}
           isCopy={true}
         />
+      )}
+
+      {/* Cancel Loan Modal */}
+      {cancelModal && selectedLoan && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
+              <XCircle size={20} /> Cancelar Préstamo
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              ¿Estás seguro de cancelar este préstamo? Solo se puede cancelar si no tiene pagos registrados.
+            </p>
+            <input
+              type="text"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Razón de cancelación (opcional)"
+              className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setCancelModal(false); setCancelReason(''); }}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+              >
+                No, volver
+              </button>
+              <button
+                onClick={async () => {
+                  setActionLoading(true);
+                  try {
+                    await loanApi.cancel(selectedLoan.id, cancelReason || 'Cancelado por usuario');
+                    onUpdateLoan?.({ ...selectedLoan, status: 'CANCELLED' });
+                    setCancelModal(false);
+                    setCancelReason('');
+                  } catch (e) {
+                    alert(e.message || 'Error al cancelar');
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50"
+              >
+                {actionLoading ? 'Cancelando...' : 'Sí, cancelar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Archive Loan Modal */}
+      {archiveModal && selectedLoan && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
+              <Archive size={20} /> {selectedLoan.archived ? 'Desarchivar' : 'Archivar'} Préstamo
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              {selectedLoan.archived
+                ? 'Este préstamo volverá a aparecer en la lista principal.'
+                : 'El préstamo se ocultará de la vista principal pero no se eliminará.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setArchiveModal(false)}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  setActionLoading(true);
+                  try {
+                    if (selectedLoan.archived) {
+                      await loanApi.unarchive(selectedLoan.id);
+                      onUpdateLoan?.({ ...selectedLoan, archived: false });
+                    } else {
+                      await loanApi.archive(selectedLoan.id);
+                      onUpdateLoan?.({ ...selectedLoan, archived: true });
+                    }
+                    setArchiveModal(false);
+                  } catch (e) {
+                    alert(e.message || 'Error');
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-800 dark:bg-slate-600 text-white hover:bg-slate-700"
+              >
+                {actionLoading ? 'Procesando...' : (selectedLoan.archived ? 'Desarchivar' : 'Archivar')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Loan Modal */}
+      {deleteModal && selectedLoan && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
+              <Trash2 size={20} /> Eliminar Préstamo
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+              ⚠️ <strong>Esta acción es irreversible.</strong>
+            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              Se eliminará permanentemente el préstamo y todos sus datos asociados.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal(false)}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+              >
+                No, volver
+              </button>
+              <button
+                onClick={async () => {
+                  setActionLoading(true);
+                  try {
+                    await loanApi.delete(selectedLoan.id);
+                    onSelectLoan?.(null);
+                    // Force reload by calling parent update
+                    window.location.reload();
+                  } catch (e) {
+                    alert(e.message || 'Error al eliminar');
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-500 disabled:opacity-50"
+              >
+                {actionLoading ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
