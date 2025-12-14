@@ -265,7 +265,7 @@ router.post('/send-report', async (req, res) => {
             </div>
         `;
 
-        await emailService.sendEmail(targetEmail, finalSubject, htmlBody);
+        await emailService.sendEmail({ to: targetEmail, subject: finalSubject, html: htmlBody });
         res.json({ success: true, message: `Reporte enviado a ${targetEmail}` });
     } catch (error) {
         console.error('Error sending report email:', error);

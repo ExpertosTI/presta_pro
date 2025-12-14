@@ -71,6 +71,7 @@ const notificationsRouter = require('./routes/notifications');
 const adminRouter = require('./routes/admin');
 const loanRequestsRouter = require('./routes/loan-requests');
 const routeClosingsRouter = require('./routes/route-closings');
+const { initializeSchedulers } = require('./schedulers/reportScheduler');
 
 
 // Importar middleware de autenticación
@@ -1811,7 +1812,7 @@ app.listen(PORT, () => {
 
   // Initialize scheduled jobs in production
   if (process.env.NODE_ENV === 'production' || process.env.ENABLE_CRON === 'true') {
-    initScheduler();
+    initializeSchedulers();
   } else {
     console.log('ℹ️ Cron jobs disabled in development. Set ENABLE_CRON=true to enable.');
   }
