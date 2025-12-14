@@ -304,6 +304,55 @@ router.post('/tenants/:id/activate', async (req, res) => {
             }
         });
 
+        // Get tenant owner/admin email and send activation notification
+        const tenantOwner = await prisma.user.findFirst({
+            where: {
+                tenantId: id,
+                role: { in: ['ADMIN', 'OWNER', 'admin', 'owner'] }
+            },
+            select: { email: true, name: true }
+        });
+
+        if (tenantOwner?.email) {
+            await emailService.sendEmail({
+                to: tenantOwner.email,
+                subject: '✅ Tu cuenta ha sido reactivada - Presta Pro',
+                html: emailService.wrapEmailTemplate(`
+                    <h2 style="color: #16a34a; margin-bottom: 20px;">¡Tu Cuenta Está Activa!</h2>
+                    <p>Hola ${tenantOwner.name || 'Usuario'},</p>
+                    <p>Tu cuenta en <strong>Presta Pro</strong> ha sido reactivada correctamente.</p>
+                    
+                    <div style="background: #dcfce7; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                        <p style="margin: 0; color: #166534;">Ya puedes acceder normalmente al sistema con tus credenciales habituales.</p>
+                    </div>
+                    
+                    <p>¡Gracias por confiar en nosotros!</p>
+                    <p><a href="https://prestapro.renace.tech" style="color: #2563eb;">Ir a Presta Pro</a></p>
+                `)
+            }).catch(err => console.error('Error sending activation email:', err));
+        }
+
+        // Create in-app notification for the reactivated tenant
+        await prisma.notification.create({
+            data: {
+                tenantId: id,
+                type: 'SYSTEM',
+                title: '✅ Cuenta Reactivada',
+                message: '¡Tu cuenta ha sido reactivada! Ya puedes acceder normalmente al sistema.'
+            }
+        }).catch(err => console.error('Error creating tenant notification:', err));
+
+        // Create in-app notification for super admin (you)
+        await prisma.notification.create({
+            data: {
+                tenantId: null,
+                userId: req.user?.id || req.user?.userId,
+                type: 'ADMIN',
+                title: '🟢 Cuenta Reactivada',
+                message: `Has reactivado la cuenta de "${tenant.name}".`
+            }
+        }).catch(err => console.error('Error creating admin notification:', err));
+
         res.json({ success: true, tenant });
     } catch (error) {
         console.error('Activate tenant error:', error);
