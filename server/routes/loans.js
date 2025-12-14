@@ -206,8 +206,23 @@ function mapLoanToResponse(loanWithRelations) {
 // GET /api/loans
 router.get('/', async (req, res) => {
     try {
+        // By default, hide archived loans unless includeArchived=true
+        const includeArchived = req.query.includeArchived === 'true';
+
+        const whereClause = {
+            tenantId: req.user.tenantId
+        };
+
+        // Only filter if not including archived
+        if (!includeArchived) {
+            whereClause.OR = [
+                { archived: false },
+                { archived: null }
+            ];
+        }
+
         const loans = await prisma.loan.findMany({
-            where: { tenantId: req.user.tenantId },
+            where: whereClause,
             include: {
                 installments: true,
                 client: true,

@@ -37,6 +37,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
   const [deleteModal, setDeleteModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [errorModal, setErrorModal] = useState({ show: false, message: '' });
 
   const filteredLoans = useMemo(() => {
     return loans.filter(loan => {
@@ -865,7 +866,8 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                     // Reload to sync with server
                     window.location.reload();
                   } catch (e) {
-                    alert(e.message || 'Error al cancelar');
+                    setCancelModal(false);
+                    setErrorModal({ show: true, message: e.message || 'Error al cancelar préstamo' });
                     setActionLoading(false);
                   }
                 }}
@@ -911,7 +913,8 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                     // Reload to sync with server
                     window.location.reload();
                   } catch (e) {
-                    alert(e.message || 'Error');
+                    setArchiveModal(false);
+                    setErrorModal({ show: true, message: e.message || 'Error al archivar préstamo' });
                     setActionLoading(false);
                   }
                 }}
@@ -965,6 +968,29 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                 {actionLoading ? 'Eliminando...' : 'Sí, eliminar'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal - replaces browser alert() */}
+      {errorModal.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Error</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              {errorModal.message}
+            </p>
+            <button
+              onClick={() => setErrorModal({ show: false, message: '' })}
+              className="w-full py-2.5 rounded-lg font-semibold bg-slate-800 dark:bg-slate-600 text-white hover:bg-slate-700"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}
