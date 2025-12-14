@@ -47,6 +47,7 @@ export function usePrestaProState() {
           if (data.loadCollectors) data.loadCollectors(token);
           if (data.loadLoans) data.loadLoans(token);
           if (data.loadAiMetrics) data.loadAiMetrics(token);
+          if (data.loadRouteClosings) data.loadRouteClosings(token);
         }
       } catch (e) {
         console.error('Error resetting data for new tenant', e);
@@ -119,7 +120,7 @@ export function usePrestaProState() {
   const updateLoan = (d) => { data.updateLoan(d, auth.user?.token); ui.showToast('Préstamo actualizado correctamente'); };
   const rejectRequest = (d) => { data.rejectRequest(d); ui.showToast('Solicitud rechazada', 'success'); };
   const assignCollectorToClient = (cid, colid) => { data.assignCollectorToClient(cid, colid, auth.user?.token); ui.showToast('Ruta / cobrador asignado al cliente'); };
-  const addRouteClosing = (d) => { data.addRouteClosing(d); ui.showToast('Cuadre del cobrador registrado correctamente'); };
+  const addRouteClosing = (d) => { data.addRouteClosing(d, auth.user?.token); ui.showToast('Cuadre del cobrador registrado correctamente'); };
 
   const addClientDocument = (clientId, doc) => {
     if (!clientId || !doc) return;

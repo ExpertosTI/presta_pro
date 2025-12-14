@@ -394,15 +394,54 @@ export function useDataState() {
         }).catch((err) => console.error('Error assigning collector via API', err));
     };
 
-    const addRouteClosing = ({ collectorId, date, totalAmount, receiptsCount }) => {
+    const addRouteClosing = async ({ collectorId, date, totalAmount, receiptsCount }, token) => {
+        const optimisticId = generateId();
         const closing = {
-            id: generateId(),
+            id: optimisticId,
             collectorId,
             date,
             totalAmount,
             receiptsCount,
         };
+        // Optimistic update
         setRouteClosings([closing, ...routeClosings]);
+
+        // Try to save to API
+        if (token) {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/route-closings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ collectorId, date, totalAmount, receiptsCount }),
+                });
+                if (res.ok) {
+                    const created = await res.json();
+                    // Update with server ID
+                    setRouteClosings((prev) =>
+                        prev.map(c => c.id === optimisticId ? { ...created } : c)
+                    );
+                }
+            } catch (err) {
+                console.error('Error creating route closing via API', err);
+            }
+        }
+    };
+
+    const loadRouteClosings = async (token) => {
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/route-closings`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            setRouteClosings(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Error loading route closings from API', err);
+        }
     };
 
     // Carga inicial de datos remotos (si hay sesión SaaS)
@@ -417,6 +456,7 @@ export function useDataState() {
             loadCollectors(token);
             loadLoans(token);
             loadAiMetrics(token);
+            loadRouteClosings(token);
         } catch (e) {
             console.error('Error restoring auth for data sync', e);
         }
@@ -456,6 +496,7 @@ export function useDataState() {
         loadCollectors,
         loadLoans,
         loadAiMetrics,
+        loadRouteClosings,
         resetDataForNewTenant
     };
 }
