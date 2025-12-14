@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Building2, CreditCard, ScrollText, Search,
     TrendingUp, Users, DollarSign, AlertTriangle, CheckCircle,
-    XCircle, Clock, Eye, Ban, PlayCircle, FileText
+    XCircle, Clock, Eye, Ban, PlayCircle, FileText, Megaphone, Send
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency, formatDateTime, formatDate } from '../../../shared/utils/formatters';
@@ -12,6 +12,7 @@ const TABS = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tenants', label: 'Empresas', icon: Building2 },
     { id: 'payments', label: 'Pagos Pendientes', icon: CreditCard },
+    { id: 'broadcast', label: 'Broadcast', icon: Megaphone },
     { id: 'logs', label: 'Audit Logs', icon: ScrollText }
 ];
 
@@ -23,6 +24,14 @@ export function AdminDashboard({ showToast }) {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+
+    // Broadcast state
+    const [broadcastTitle, setBroadcastTitle] = useState('');
+    const [broadcastMessage, setBroadcastMessage] = useState('');
+    const [sendEmail, setSendEmail] = useState(false);
+    const [broadcastSending, setBroadcastSending] = useState(false);
+    const [broadcastResult, setBroadcastResult] = useState(null);
+
 
     useEffect(() => {
         loadData();
@@ -129,6 +138,28 @@ export function AdminDashboard({ showToast }) {
             loadData();
         } catch (e) {
             showToast?.('Error rechazando pago', 'error');
+        }
+    };
+
+    const handleSendBroadcast = async () => {
+        if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+            showToast?.('Completa título y mensaje', 'error');
+            return;
+        }
+        setBroadcastSending(true);
+        setBroadcastResult(null);
+        try {
+            const result = await adminService.sendBroadcast(broadcastTitle, broadcastMessage, sendEmail);
+            setBroadcastResult(result.data?.stats || result.stats || { success: true });
+            showToast?.('Broadcast enviado exitosamente', 'success');
+            setBroadcastTitle('');
+            setBroadcastMessage('');
+            setSendEmail(false);
+        } catch (e) {
+            showToast?.('Error enviando broadcast', 'error');
+            setBroadcastResult({ error: e.message });
+        } finally {
+            setBroadcastSending(false);
         }
     };
 
@@ -362,6 +393,94 @@ export function AdminDashboard({ showToast }) {
                                 </Card>
                             ))}
                         </div>
+                    )}
+
+                    {/* Broadcast Tab */}
+                    {activeTab === 'broadcast' && (
+                        <Card>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                    <Megaphone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-800 dark:text-slate-100">Enviar Broadcast</h3>
+                                    <p className="text-sm text-slate-500">Envia una notificación a todas las empresas activas</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                        Título
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={broadcastTitle}
+                                        onChange={(e) => setBroadcastTitle(e.target.value)}
+                                        placeholder="Ej: 🚀 IA Disponible"
+                                        className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                        Mensaje
+                                    </label>
+                                    <textarea
+                                        value={broadcastMessage}
+                                        onChange={(e) => setBroadcastMessage(e.target.value)}
+                                        placeholder="El asistente de inteligencia artificial está disponible de nuevo..."
+                                        rows={4}
+                                        className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="checkbox"
+                                        id="sendEmail"
+                                        checked={sendEmail}
+                                        onChange={(e) => setSendEmail(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                    />
+                                    <label htmlFor="sendEmail" className="text-sm text-slate-700 dark:text-slate-300">
+                                        También enviar por correo electrónico
+                                    </label>
+                                </div>
+
+                                <button
+                                    onClick={handleSendBroadcast}
+                                    disabled={broadcastSending || !broadcastTitle.trim() || !broadcastMessage.trim()}
+                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {broadcastSending ? (
+                                        <>Enviando...</>
+                                    ) : (
+                                        <>
+                                            <Send className="w-4 h-4" />
+                                            Enviar Broadcast
+                                        </>
+                                    )}
+                                </button>
+
+                                {broadcastResult && (
+                                    <div className={`p-4 rounded-xl ${broadcastResult.error ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'}`}>
+                                        {broadcastResult.error ? (
+                                            <p className="text-red-600 dark:text-red-400">❌ Error: {broadcastResult.error}</p>
+                                        ) : (
+                                            <div className="text-green-700 dark:text-green-400">
+                                                <p className="font-semibold mb-2">✅ Broadcast enviado exitosamente</p>
+                                                <p className="text-sm">Empresas: {broadcastResult.tenants || 0}</p>
+                                                <p className="text-sm">Notificaciones: {broadcastResult.notificationsCreated || 0}</p>
+                                                {sendEmail && (
+                                                    <p className="text-sm">Emails enviados: {broadcastResult.emailsSent || 0} ({broadcastResult.emailsFailed || 0} fallidos)</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
                     )}
 
                     {/* Logs Tab */}

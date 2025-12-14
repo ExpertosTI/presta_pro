@@ -85,6 +85,18 @@ export const getLogs = async (params = {}) => {
     return response;
 };
 
+/**
+ * Send broadcast notification to all tenants
+ */
+export const sendBroadcast = async (title, message, sendEmail = false) => {
+    const response = await axiosInstance.post('/admin/broadcast', {
+        title,
+        message,
+        sendEmail
+    });
+    return response;
+};
+
 export default {
     getDashboard,
     getTenants,
@@ -95,5 +107,6 @@ export default {
     getPendingPayments,
     verifyPayment,
     rejectPayment,
-    getLogs
+    getLogs,
+    sendBroadcast
 };

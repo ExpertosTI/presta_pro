@@ -20,7 +20,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
 
   // Create Loan Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FRENCH' });
+  const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT' });
   const [createError, setCreateError] = useState('');
 
   // Reprint Receipt
@@ -69,7 +69,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
       term: String(selectedLoan.term || ''),
       frequency: selectedLoan.frequency || 'Mensual',
       startDate: selectedLoan.startDate || new Date().toISOString().split('T')[0],
-      amortizationType: selectedLoan.amortizationType || 'FRENCH'
+      amortizationType: selectedLoan.amortizationType || 'FLAT'
     });
     setEditError('');
     setEditModalOpen(true);
@@ -95,7 +95,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
         term,
         editForm.frequency,
         editForm.startDate || selectedLoan.startDate,
-        editForm.amortizationType || 'FRENCH'
+        editForm.amortizationType || 'FLAT'
       );
 
       const updatedLoan = {
@@ -490,6 +490,24 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
                   onChange={(e) => setCreateForm({ ...createForm, closingCosts: e.target.value })}
                 />
                 <p className="text-[10px] text-slate-400 mt-1">Se suma al capital para calcular las cuotas</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                  Tipo de Interés
+                </label>
+                <select
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={createForm.amortizationType}
+                  onChange={(e) => setCreateForm({ ...createForm, amortizationType: e.target.value })}
+                >
+                  <option value="FLAT">Saldo Absoluto (Interés Simple)</option>
+                  <option value="FRENCH">Saldo Insoluto (Interés Compuesto)</option>
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {createForm.amortizationType === 'FLAT'
+                    ? 'Ej: 10,000 al 20% = 12,000 total (común en financieras)'
+                    : 'Interés calculado sobre saldo restante (bancos)'}
+                </p>
               </div>
               <div className="flex gap-2 pt-2">
                 <button
