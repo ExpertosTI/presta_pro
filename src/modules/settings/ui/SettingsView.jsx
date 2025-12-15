@@ -28,6 +28,15 @@ export function SettingsView({
     securityPassword: systemSettings.securityPassword || '1234',
     ownerDisplayName: systemSettings.ownerDisplayName || '',
     companyLogo: systemSettings.companyLogo || '',
+    // NEW FIELDS
+    dateFormat: systemSettings.dateFormat || 'DD/MM/YYYY',
+    companyWhatsApp: systemSettings.companyWhatsApp || '',
+    graceDays: systemSettings.graceDays ?? 0,
+    enabledFrequencies: systemSettings.enabledFrequencies || { DAILY: true, WEEKLY: true, BIWEEKLY: true, MONTHLY: true },
+    minLoanAmount: systemSettings.minLoanAmount ?? 1000,
+    maxLoanAmount: systemSettings.maxLoanAmount ?? 500000,
+    termsAndConditions: systemSettings.termsAndConditions || '',
+    receiptFooter: systemSettings.receiptFooter || '',
   });
 
   const [collectorForm, setCollectorForm] = useState({ name: '', phone: '', photoUrl: '' });
@@ -51,8 +60,25 @@ export function SettingsView({
       securityUser: systemSettings.securityUser || prev.securityUser,
       ownerDisplayName: systemSettings.ownerDisplayName || prev.ownerDisplayName,
       companyLogo: systemSettings.companyLogo || prev.companyLogo,
+      // Sync new fields
+      dateFormat: systemSettings.dateFormat || prev.dateFormat,
+      companyWhatsApp: systemSettings.companyWhatsApp || prev.companyWhatsApp,
+      graceDays: systemSettings.graceDays ?? prev.graceDays,
+      enabledFrequencies: systemSettings.enabledFrequencies || prev.enabledFrequencies,
+      minLoanAmount: systemSettings.minLoanAmount ?? prev.minLoanAmount,
+      maxLoanAmount: systemSettings.maxLoanAmount ?? prev.maxLoanAmount,
+      termsAndConditions: systemSettings.termsAndConditions || prev.termsAndConditions,
+      receiptFooter: systemSettings.receiptFooter || prev.receiptFooter,
     }));
   }, [systemSettings]);
+
+  // MEJORA 14: Settings history
+  const [settingsHistory, setSettingsHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  React.useEffect(() => {
+    const saved = localStorage.getItem('settingsHistory');
+    if (saved) setSettingsHistory(JSON.parse(saved));
+  }, []);
 
   const handleSaveSettings = async (e) => {
     e.preventDefault();
@@ -68,7 +94,22 @@ export function SettingsView({
       securityPassword: form.securityPassword,
       ownerDisplayName: form.ownerDisplayName || '',
       companyLogo: form.companyLogo || systemSettings.companyLogo || '',
+      // New fields
+      dateFormat: form.dateFormat,
+      companyWhatsApp: form.companyWhatsApp,
+      graceDays: parseInt(form.graceDays) || 0,
+      enabledFrequencies: form.enabledFrequencies,
+      minLoanAmount: parseFloat(form.minLoanAmount) || 1000,
+      maxLoanAmount: parseFloat(form.maxLoanAmount) || 500000,
+      termsAndConditions: form.termsAndConditions,
+      receiptFooter: form.receiptFooter,
     };
+
+    // MEJORA 14: Log history
+    const historyEntry = { date: new Date().toISOString(), changedBy: auth?.user?.name || 'Admin' };
+    const newHistory = [historyEntry, ...settingsHistory].slice(0, 20);
+    setSettingsHistory(newHistory);
+    localStorage.setItem('settingsHistory', JSON.stringify(newHistory));
 
     try {
       // Persist to backend
@@ -83,6 +124,35 @@ export function SettingsView({
       // Fallback local update
       setSystemSettings(newSettings);
     }
+  };
+
+  // MEJORA 15: Reset to defaults
+  const handleResetToDefaults = () => {
+    if (!window.confirm('¿Restaurar todos los ajustes a valores predeterminados?')) return;
+    const defaults = {
+      companyName: 'Presta Pro',
+      mainCurrency: 'DOP',
+      defaultPenaltyRate: 5,
+      themeColor: 'indigo',
+      securityUser: 'admin',
+      securityPassword: '1234',
+      ownerDisplayName: '',
+      companyLogo: '',
+      dateFormat: 'DD/MM/YYYY',
+      companyWhatsApp: '',
+      graceDays: 0,
+      enabledFrequencies: { DAILY: true, WEEKLY: true, BIWEEKLY: true, MONTHLY: true },
+      minLoanAmount: 1000,
+      maxLoanAmount: 500000,
+      termsAndConditions: '',
+      receiptFooter: '',
+      includeFutureInstallmentsInRoutes: true,
+      enableRouteGpsNotification: true,
+    };
+    setForm(defaults);
+    setSystemSettings(defaults);
+    localStorage.setItem('systemSettings', JSON.stringify(defaults));
+    if (showToast) showToast('Ajustes restaurados a valores predeterminados', 'success');
   };
 
   const handleAddCollector = (e) => {
@@ -348,6 +418,135 @@ export function SettingsView({
             </div>
           </div>
 
+          {/* MEJORA 3: Date Format + MEJORA 5: WhatsApp + MEJORA 7: Grace Days */}
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg inline-block px-3">
+              📅 Formato y Comunicación
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Formato de Fecha</label>
+                <select
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={form.dateFormat}
+                  onChange={(e) => setForm({ ...form, dateFormat: e.target.value })}
+                >
+                  <option value="DD/MM/YYYY">DD/MM/YYYY (31/12/2024)</option>
+                  <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2024)</option>
+                  <option value="YYYY-MM-DD">YYYY-MM-DD (2024-12-31)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">📱 WhatsApp Empresa</label>
+                <input
+                  type="tel"
+                  placeholder="809-555-1234"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={form.companyWhatsApp}
+                  onChange={(e) => setForm({ ...form, companyWhatsApp: e.target.value })}
+                />
+                <p className="text-xs text-slate-400 mt-1">Para mensajes automáticos</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Días de Gracia</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={form.graceDays}
+                  onChange={(e) => setForm({ ...form, graceDays: e.target.value })}
+                />
+                <p className="text-xs text-slate-400 mt-1">Antes de aplicar mora</p>
+              </div>
+            </div>
+          </div>
+
+          {/* MEJORA 8: Frecuencias Habilitadas */}
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg inline-block px-3">
+              🔄 Frecuencias de Pago Disponibles
+            </h4>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { id: 'DAILY', label: 'Diario' },
+                { id: 'WEEKLY', label: 'Semanal' },
+                { id: 'BIWEEKLY', label: 'Quincenal' },
+                { id: 'MONTHLY', label: 'Mensual' }
+              ].map(freq => (
+                <label key={freq.id} className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-100">
+                  <input
+                    type="checkbox"
+                    checked={form.enabledFrequencies?.[freq.id] ?? true}
+                    onChange={(e) => setForm({ ...form, enabledFrequencies: { ...form.enabledFrequencies, [freq.id]: e.target.checked } })}
+                    className="w-4 h-4 rounded text-indigo-600"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">{freq.label}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 mt-2">Solo las frecuencias activas estarán disponibles al crear préstamos</p>
+          </div>
+
+          {/* MEJORA 9: Límites de Préstamo */}
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg inline-block px-3">
+              💰 Límites de Préstamo
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Monto Mínimo ({form.mainCurrency})</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={form.minLoanAmount}
+                  onChange={(e) => setForm({ ...form, minLoanAmount: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Monto Máximo ({form.mainCurrency})</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={form.maxLoanAmount}
+                  onChange={(e) => setForm({ ...form, maxLoanAmount: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* MEJORA 10: Términos y Condiciones + MEJORA 12: Footer de Recibos */}
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg inline-block px-3">
+              📝 Textos Legales
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Términos y Condiciones</label>
+                <textarea
+                  rows={4}
+                  placeholder="Ingrese los términos y condiciones que aparecerán en los contratos..."
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+                  value={form.termsAndConditions}
+                  onChange={(e) => setForm({ ...form, termsAndConditions: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Footer de Recibos</label>
+                <input
+                  type="text"
+                  placeholder="Texto que aparecerá al pie de cada recibo"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={form.receiptFooter}
+                  onChange={(e) => setForm({ ...form, receiptFooter: e.target.value })}
+                />
+                <p className="text-xs text-slate-400 mt-1">Ej: "Gracias por su pago" o información de contacto</p>
+              </div>
+            </div>
+          </div>
+
           {/* Future Route Toggle Section */}
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
             <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg inline-block px-3">
@@ -425,7 +624,25 @@ export function SettingsView({
             </p>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
+            <div className="flex gap-2">
+              {/* MEJORA 15: Reset to defaults */}
+              <button
+                type="button"
+                onClick={handleResetToDefaults}
+                className="px-4 py-2 border border-rose-300 text-rose-600 rounded-lg text-sm font-medium hover:bg-rose-50 dark:hover:bg-rose-900/20"
+              >
+                🔄 Restaurar Defaults
+              </button>
+              {/* MEJORA 14: History button */}
+              <button
+                type="button"
+                onClick={() => setShowHistory(true)}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                📋 Historial ({settingsHistory.length})
+              </button>
+            </div>
             <button
               type="submit"
               className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30 active:scale-95 transform"
@@ -534,6 +751,33 @@ export function SettingsView({
           💡 Tip: Guarda el archivo de backup en un lugar seguro (Google Drive, USB, etc.)
         </p>
       </Card>
+
+      {/* MEJORA 14: Settings History Modal */}
+      {showHistory && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">📋 Historial de Cambios</h3>
+            {settingsHistory.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-4">Sin cambios registrados</p>
+            ) : (
+              <ul className="space-y-2">
+                {settingsHistory.map((entry, i) => (
+                  <li key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700 rounded-lg text-sm">
+                    <span className="text-slate-600 dark:text-slate-300">{new Date(entry.date).toLocaleString('es-DO')}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{entry.changedBy}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              onClick={() => setShowHistory(false)}
+              className="w-full mt-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 font-medium"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div >
   );
 }
