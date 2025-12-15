@@ -30,6 +30,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
   // Search and Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [showArchived, setShowArchived] = useState(false);
 
   // Loan action modals
   const [cancelModal, setCancelModal] = useState(false);
@@ -41,6 +42,9 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
 
   const filteredLoans = useMemo(() => {
     return loans.filter(loan => {
+      // Archive filter - hide archived unless showArchived is true
+      if (!showArchived && loan.archived) return false;
+
       // Status filter
       if (statusFilter !== 'ALL' && loan.status !== statusFilter) return false;
 
@@ -52,7 +56,7 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
       }
       return true;
     });
-  }, [loans, clients, searchQuery, statusFilter]);
+  }, [loans, clients, searchQuery, statusFilter, showArchived]);
 
   const selectedLoan = useMemo(() => loans.find(l => l.id === selectedLoanId), [loans, selectedLoanId]);
   const selectedClient = useMemo(() => {
@@ -574,6 +578,16 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
           <option value="COMPLETED">Completados</option>
           <option value="DEFAULTED">En mora</option>
         </select>
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          className={`px-3 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all ${showArchived
+              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
+              : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-600'
+            }`}
+        >
+          <Archive size={16} />
+          {showArchived ? 'Ocultar archivados' : 'Ver archivados'}
+        </button>
         <span className="text-sm text-slate-500 dark:text-slate-400">
           {filteredLoans.length} de {loans.length}
         </span>
