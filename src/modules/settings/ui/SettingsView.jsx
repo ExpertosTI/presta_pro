@@ -348,6 +348,54 @@ export function SettingsView({
             </div>
           </div>
 
+          {/* Future Route Toggle Section */}
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg inline-block px-3">
+              🛣️ Opciones de Ruta
+            </h4>
+            <div className="space-y-4">
+              <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                <div>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">Incluir cuotas futuras en ruta</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Cuando está activo, las cuotas que aún no vencen aparecerán en la ruta de cobro</p>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={systemSettings.includeFutureInstallmentsInRoutes ?? true}
+                    onChange={(e) => {
+                      const newSettings = { ...systemSettings, includeFutureInstallmentsInRoutes: e.target.checked };
+                      setSystemSettings(newSettings);
+                      localStorage.setItem('systemSettings', JSON.stringify(newSettings));
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-300 peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </div>
+              </label>
+
+              <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                <div>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">Notificaciones GPS en ruta</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Solicitar ubicación al iniciar y finalizar una ruta de cobro</p>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={systemSettings.enableRouteGpsNotification ?? true}
+                    onChange={(e) => {
+                      const newSettings = { ...systemSettings, enableRouteGpsNotification: e.target.checked };
+                      setSystemSettings(newSettings);
+                      localStorage.setItem('systemSettings', JSON.stringify(newSettings));
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-300 peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </div>
+              </label>
+            </div>
+          </div>
+
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
             <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg inline-block px-3">
               Seguridad: Contraseña Maestra
