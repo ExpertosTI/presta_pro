@@ -341,7 +341,7 @@ model AuditLog {
   
   // Acción
   action    String   // 'subscription.created', 'payment.verified', etc.
-  resource  String   // 'subscription', 'payment', etc.
+  resource  String?   // 'subscription', 'payment', etc.
   resourceId String?
   
   // Detalles

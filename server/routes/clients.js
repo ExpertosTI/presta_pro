@@ -78,7 +78,7 @@ router.post('/', async (req, res) => {
                 // Si tienes campos de geolocalización en el schema, agrégalos aquí. 
                 // Si no, ignora lat/lng o agrégalos al schema primero.
                 tenantId: req.user.tenantId,
-                collectorId: req.body.collectorId // Opcional: asignar a un cobrador
+                collectorId: req.body.collectorId || null // Fix: Convert empty string to null
             }
         });
 
@@ -124,7 +124,8 @@ router.put('/:id', async (req, res) => {
                 idNumber,
                 email,
                 notes,
-                photoUrl
+                photoUrl,
+                collectorId: req.body.collectorId || null // Allow updating collector
             }
         });
 

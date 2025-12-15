@@ -19,7 +19,7 @@ const prisma = require('../lib/prisma');
  */
 async function logAudit({
     action,
-    resource,
+    resource = 'system',
     resourceId = null,
     userId = null,
     tenantId = null,
