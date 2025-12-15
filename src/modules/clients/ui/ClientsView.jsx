@@ -448,7 +448,7 @@ export function ClientsView({
                     className="text-green-600 hover:text-green-700"
                     title="WhatsApp"
                   >
-                    <MessageCircle size={14} />
+                    <WhatsAppIcon size={14} />
                   </a>
                 )}
               </p>
