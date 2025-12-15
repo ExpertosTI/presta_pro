@@ -114,7 +114,7 @@ sudo certbot certonly --standalone -d tudominio.com -d www.tudominio.com
 docker compose build --no-cache
 
 # Ejecutar migraciones
-docker compose run --rm backend npx prisma migrate deploy
+docker compose run --rm presta_pro_api npx prisma migrate deploy
 
 # Iniciar servicios
 docker compose up -d
@@ -144,11 +144,11 @@ git pull origin v1.10
 # Reconstruir
 docker compose down
 docker compose build --no-cache
-docker compose run --rm backend npx prisma migrate deploy
+docker compose run --rm presta_pro_api npx prisma migrate deploy
 docker compose up -d
 
 # Verificar
-docker compose logs -f app
+docker compose logs -f presta_pro_api
 ```
 
 ### Rollback
