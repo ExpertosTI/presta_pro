@@ -34,14 +34,16 @@ export default function DashboardView({
         }
     };
 
-    // Core metrics
-    const totalLent = loans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
-    const totalCollected = loans.reduce((acc, l) => acc + (l.totalPaid || 0), 0);
-    const activeLoans = loans.filter(l => l.status === 'ACTIVE').length;
-    const paidLoans = loans.filter(l => l.status === 'PAID').length;
+    // Core metrics - exclude archived loans
+    const activeLoansOnly = useMemo(() => loans.filter(l => !l.archived), [loans]);
+
+    const totalLent = activeLoansOnly.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+    const totalCollected = activeLoansOnly.reduce((acc, l) => acc + (l.totalPaid || 0), 0);
+    const activeLoans = activeLoansOnly.filter(l => l.status === 'ACTIVE').length;
+    const paidLoans = activeLoansOnly.filter(l => l.status === 'PAID').length;
 
     // Calculate expected interest
-    const totalExpectedInterest = loans.reduce((acc, l) => acc + (l.totalInterest || 0), 0);
+    const totalExpectedInterest = activeLoansOnly.reduce((acc, l) => acc + (l.totalInterest || 0), 0);
     const totalExpected = totalLent + totalExpectedInterest;
     const pendingAmount = totalExpected - totalCollected;
 
@@ -65,7 +67,7 @@ export default function DashboardView({
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        return loans.flatMap(loan => {
+        return activeLoansOnly.flatMap(loan => {
             const client = clients.find(c => c.id === loan.clientId);
             return (loan.schedule || [])
                 .filter(inst => inst.status !== 'PAID' && new Date(inst.date) < today)
@@ -77,7 +79,7 @@ export default function DashboardView({
                     daysOverdue: Math.floor((today - new Date(inst.date)) / (1000 * 60 * 60 * 24)),
                 }));
         }).sort((a, b) => b.daysOverdue - a.daysOverdue);
-    }, [loans, clients]);
+    }, [activeLoansOnly, clients]);
 
     // Upcoming due today
     const dueToday = useMemo(() => {
@@ -86,7 +88,7 @@ export default function DashboardView({
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        return loans.flatMap(loan => {
+        return activeLoansOnly.flatMap(loan => {
             const client = clients.find(c => c.id === loan.clientId);
             return (loan.schedule || [])
                 .filter(inst => {
@@ -99,7 +101,7 @@ export default function DashboardView({
                     clientName: client?.name || 'Sin nombre',
                 }));
         });
-    }, [loans, clients]);
+    }, [activeLoansOnly, clients]);
 
     // Recent payments
     const recentPayments = (receipts || [])
@@ -197,7 +199,7 @@ export default function DashboardView({
                             <div className="min-w-0">
                                 <p className="text-[10px] md:text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Cartera</p>
                                 <p className="text-sm sm:text-lg md:text-2xl font-black text-slate-800 dark:text-white mt-1">{formatCurrency(totalLent)}</p>
-                                <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{loans.length} préstamos</p>
+                                <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{activeLoansOnly.length} préstamos</p>
                             </div>
                             <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 flex-shrink-0">
                                 <Wallet size={20} />
