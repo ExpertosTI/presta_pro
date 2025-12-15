@@ -175,6 +175,11 @@ function mapLoanToResponse(loanWithRelations) {
         lastInterestCalc: loan.lastInterestCalc || null,
         currentBalance: currentBalance,
         closingCosts: loan.closingCosts || 0,
+        // Archive/Cancel fields
+        archived: loan.archived || false,
+        archivedAt: loan.archivedAt || null,
+        cancelledAt: loan.cancelledAt || null,
+        cancelReason: loan.cancelReason || null,
         // Historial de pagos libres (para préstamos abiertos)
         freePayments: (freePayments || []).sort((a, b) => new Date(b.date) - new Date(a.date)).map(p => ({
             id: p.id,
