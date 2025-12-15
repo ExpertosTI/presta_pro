@@ -370,32 +370,35 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    <Phone size={14} className="inline mr-1" />
-                                    Teléfono
-                                </label>
-                                <input
-                                    type="tel"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
-                                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
-                                    placeholder="809-555-1234"
-                                />
-                            </div>
+                            {/* Phone and Email - 2 column grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                        <Phone size={14} className="inline mr-1" />
+                                        Teléfono
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+                                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+                                        placeholder="809-555-1234"
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    <Mail size={14} className="inline mr-1" />
-                                    Email
-                                </label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
-                                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
-                                    placeholder="cobrador@email.com"
-                                />
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                        <Mail size={14} className="inline mr-1" />
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+                                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+                                        placeholder="cobrador@email.com"
+                                    />
+                                </div>
                             </div>
 
                             {/* Photo Upload */}

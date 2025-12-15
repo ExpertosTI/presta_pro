@@ -79,6 +79,11 @@ model Collector {
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   
+  // Comisión y GPS
+  commissionRate Float?    @default(5) // Porcentaje de comisión
+  lastLatitude   Float?    // Última ubicación GPS
+  lastLongitude  Float?
+  
   // Permisos (JSON con flags)
   permissions  Json      @default("{}")
   

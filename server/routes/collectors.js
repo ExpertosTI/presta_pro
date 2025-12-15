@@ -119,6 +119,7 @@ router.post('/', async (req, res) => {
                 username: finalUsername,
                 passwordHash,
                 permissions: DEFAULT_PERMISSIONS,
+                commissionRate: req.body.commissionRate ? parseFloat(req.body.commissionRate) : 5,
                 tenantId: req.tenantId
             }
         });
@@ -152,7 +153,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, phone, email, photoUrl, isActive } = req.body;
+        const { name, phone, email, photoUrl, isActive, commissionRate, lastLatitude, lastLongitude } = req.body;
 
         const collector = await prisma.collector.update({
             where: { id, tenantId: req.tenantId },
@@ -161,7 +162,10 @@ router.put('/:id', async (req, res) => {
                 phone: phone || null,
                 email: email || null,
                 photoUrl: photoUrl || null,
-                isActive: isActive !== undefined ? isActive : undefined
+                isActive: isActive !== undefined ? isActive : undefined,
+                commissionRate: commissionRate !== undefined ? parseFloat(commissionRate) : undefined,
+                lastLatitude: lastLatitude !== undefined ? parseFloat(lastLatitude) : undefined,
+                lastLongitude: lastLongitude !== undefined ? parseFloat(lastLongitude) : undefined
             }
         });
 
