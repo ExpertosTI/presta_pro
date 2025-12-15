@@ -3,45 +3,50 @@ services:
     build:
       context: ./server
     container_name: presta_pro_api
-    ports:
-      - "4000:4000"  # Exponer API al host
+    # SECURITY: Only expose internally to Docker network, nginx proxies externally
+    expose:
+      - "4000"
     environment:
-      - DATABASE_URL=postgresql://prestapro:prestapro@prestapro_db:5432/prestapro?schema=public
-      - JWT_SECRET=${JWT_SECRET:-pon_un_secreto_largo_aqui}
+      - DATABASE_URL=postgresql://${DB_USER:-prestapro}:${DB_PASSWORD}@prestapro_db:5432/${DB_NAME:-prestapro}?schema=public
+      - JWT_SECRET=${JWT_SECRET}
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-25}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
       - SMTP_FROM=${SMTP_FROM:-noreply@renace.tech}
       - ADMIN_NOTIFY_EMAIL=${ADMIN_NOTIFY_EMAIL:-adderlymarte@hotmail.com}
-      - APP_BASE_URL=https://prestanace.renace.tech
+      - APP_BASE_URL=${APP_BASE_URL:-https://prestanace.renace.tech}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-AIzaSyDzL55DYAIxDgsSaP6PSHILGydukdqIIY4}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - FIREBASE_SERVICE_ACCOUNT_JSON=${FIREBASE_SERVICE_ACCOUNT_JSON:-}
     restart: unless-stopped
+    depends_on:
+      - prestapro_db
 
   prestapro_db:
     image: postgres:15-alpine
     container_name: prestapro_db
     environment:
-      - POSTGRES_DB=prestapro
-      - POSTGRES_USER=prestapro
-      - POSTGRES_PASSWORD=prestapro
+      - POSTGRES_DB=${DB_NAME:-prestapro}
+      - POSTGRES_USER=${DB_USER:-prestapro}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
       - prestapro_db_data:/var/lib/postgresql/data
     restart: unless-stopped
+    # SECURITY: DB not exposed externally, only Docker network
 
   presta_pro_web:
     build:
       context: .
       args:
-        - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
-        - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+        - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY:-}
+        - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID:-}
         - VITE_API_URL=${VITE_API_URL:-https://prestanace.renace.tech/api}
     container_name: presta_pro_web
     depends_on:
       - presta_pro_api
     ports:
-      - "18080:80"  # HOST:CONTAINER
+      - "18080:80"  # HOST:CONTAINER (nginx fronts this with SSL)
     restart: unless-stopped
 
 volumes:
