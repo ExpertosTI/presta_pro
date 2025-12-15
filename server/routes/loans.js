@@ -206,9 +206,6 @@ function mapLoanToResponse(loanWithRelations) {
 // GET /api/loans
 router.get('/', async (req, res) => {
     try {
-        // By default, hide archived loans unless includeArchived=true
-        const includeArchived = req.query.includeArchived === 'true';
-
         const loans = await prisma.loan.findMany({
             where: { tenantId: req.user.tenantId },
             include: {
@@ -219,10 +216,7 @@ router.get('/', async (req, res) => {
             orderBy: { createdAt: 'desc' }
         });
 
-        // Filter in memory to avoid Prisma schema issues
-        const filteredLoans = loans.filter(l => includeArchived || !l.archived);
-
-        res.json(filteredLoans.map(mapLoanToResponse));
+        res.json(loans.map(mapLoanToResponse));
     } catch (error) {
         console.error('Error fetching loans:', error);
         res.status(500).json({ error: 'Error al obtener préstamos' });
