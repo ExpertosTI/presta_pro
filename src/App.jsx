@@ -643,6 +643,8 @@ function App() {
         return <ClientsView
           clients={dbData.clients}
           loans={dbData.loans}
+          receipts={dbData.receipts}
+          collectors={dbData.collectors}
           selectedClientId={selectedClientId}
           onNewClient={() => {
             setEditingClient(null);
@@ -658,6 +660,27 @@ function App() {
             setEditingClient(client);
             setClientModalOpen(true);
           }}
+          onUpdateClient={async (client) => {
+            if (client.collectorId !== undefined) {
+              await assignCollectorToClient(client.id, client.collectorId);
+            } else {
+              try {
+                await clientService.update(client.id, client);
+                setDbData(p => ({
+                  ...p,
+                  clients: p.clients.map(c => c.id === client.id ? { ...c, ...client } : c)
+                }));
+                showToast('Cliente actualizado', 'success');
+              } catch (e) {
+                console.error('Update client error:', e);
+                showToast('Error al actualizar cliente', 'error');
+              }
+            }
+          }}
+          onNavigateToDocuments={(clientId) => {
+            setSelectedClientId(clientId);
+            setActiveTab('documents');
+          }}
           addClientDocument={handleAddClientDocument}
           onDeleteClient={(client) => {
             setDeleteConfirmModal({ type: 'client', item: client });
@@ -667,6 +690,7 @@ function App() {
         return <LoansView
           loans={dbData.loans}
           clients={dbData.clients}
+          collectors={dbData.collectors}
           registerPayment={registerPayment}
           selectedLoanId={selectedLoanId}
           onSelectLoan={(id) => setSelectedLoanId(id === selectedLoanId ? null : id)}
