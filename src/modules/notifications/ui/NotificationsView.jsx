@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, Check, CheckCheck, Trash2, Settings, Mail, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Bell, Check, CheckCheck, Trash2, Settings, Mail, Calendar, Clock, AlertTriangle, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import { formatDateTime } from '../../../shared/utils/formatters';
 import notificationService from '../services/notificationService';
@@ -22,13 +22,28 @@ const NOTIFICATION_COLORS = {
     OVERDUE: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
 };
 
-export function NotificationsView({ showToast }) {
+// MEJORA 11: Type labels for grouping
+const TYPE_LABELS = {
+    PAYMENT_DUE: 'Pagos Pendientes',
+    PAYMENT_RECEIVED: 'Pagos Recibidos',
+    REPORT: 'Reportes',
+    SYSTEM: 'Sistema',
+    SUBSCRIPTION: 'Suscripción',
+    OVERDUE: 'Mora'
+};
+
+export function NotificationsView({ showToast, systemSettings }) {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all'); // all, unread, preferences
     const [preferences, setPreferences] = useState(null);
     const [savingPrefs, setSavingPrefs] = useState(false);
+
+    // MEJORA: Expanded notification ID for click-to-expand
+    const [expandedId, setExpandedId] = useState(null);
+    // MEJORA 11: Group by type toggle
+    const [groupByType, setGroupByType] = useState(false);
 
     useEffect(() => {
         loadNotifications();
@@ -112,9 +127,49 @@ export function NotificationsView({ showToast }) {
         }
     };
 
+    // MEJORA 8: WhatsApp reminder
+    const handleWhatsAppReminder = (notification) => {
+        const phone = systemSettings?.companyWhatsApp || '';
+        if (!phone) {
+            showToast?.('Configure el WhatsApp de empresa en Ajustes', 'error');
+            return;
+        }
+        const message = encodeURIComponent(`Recordatorio: ${notification.title}\n${notification.message}`);
+        window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+    };
+
+    // Click handler for touchable notifications
+    const handleNotificationClick = (notification) => {
+        if (expandedId === notification.id) {
+            // Already expanded - navigate if has actionUrl
+            if (notification.actionUrl) {
+                window.location.href = notification.actionUrl;
+            }
+        } else {
+            // First click - expand
+            setExpandedId(notification.id);
+            // Mark as read
+            if (!notification.read) {
+                handleMarkAsRead(notification.id);
+            }
+        }
+    };
+
     const filteredNotifications = activeTab === 'unread'
         ? notifications.filter(n => !n.read)
         : notifications;
+
+    // MEJORA 11: Group notifications by type
+    const groupedNotifications = useMemo(() => {
+        if (!groupByType) return null;
+        const groups = {};
+        filteredNotifications.forEach(n => {
+            const type = n.type || 'SYSTEM';
+            if (!groups[type]) groups[type] = [];
+            groups[type].push(n);
+        });
+        return groups;
+    }, [filteredNotifications, groupByType]);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -154,8 +209,8 @@ export function NotificationsView({ showToast }) {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors border-b-2 ${activeTab === tab.id
-                                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                            ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
                             }`}
                     >
                         <tab.icon size={18} />
@@ -290,6 +345,17 @@ export function NotificationsView({ showToast }) {
             ) : (
                 /* Notifications List */
                 <div className="space-y-3">
+                    {/* MEJORA 11: Group toggle */}
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-slate-500">{filteredNotifications.length} notificaciones</span>
+                        <button
+                            onClick={() => setGroupByType(!groupByType)}
+                            className={`text-sm px-3 py-1 rounded-lg transition-colors ${groupByType ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}
+                        >
+                            {groupByType ? '✓ Agrupado por tipo' : 'Agrupar por tipo'}
+                        </button>
+                    </div>
+
                     {loading ? (
                         <Card>
                             <p className="text-center text-slate-500 py-8">Cargando notificaciones...</p>
@@ -303,69 +369,112 @@ export function NotificationsView({ showToast }) {
                                 </p>
                             </div>
                         </Card>
-                    ) : (
-                        filteredNotifications.map(notification => (
-                            <div
-                                key={notification.id}
-                                className={`p-4 rounded-xl border transition-all ${notification.read
-                                        ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                                        : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                                    }`}
-                            >
-                                <div className="flex items-start gap-4">
-                                    {/* Icon */}
-                                    <div className={`p-2 rounded-lg ${NOTIFICATION_COLORS[notification.type] || NOTIFICATION_COLORS.SYSTEM}`}>
-                                        <span className="text-xl">{NOTIFICATION_ICONS[notification.type] || '📌'}</span>
-                                    </div>
-
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <h4 className={`font-semibold ${notification.read ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-slate-100'}`}>
-                                                {notification.title}
-                                            </h4>
-                                            <span className="text-xs text-slate-400 whitespace-nowrap">
-                                                {formatDateTime(notification.createdAt)}
-                                            </span>
-                                        </div>
-                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                                            {notification.message}
-                                        </p>
-
-                                        {/* Actions */}
-                                        <div className="flex gap-2 mt-3">
-                                            {!notification.read && (
-                                                <button
-                                                    onClick={() => handleMarkAsRead(notification.id)}
-                                                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                                                >
-                                                    <Check size={14} />
-                                                    Marcar como leída
-                                                </button>
-                                            )}
-                                            {notification.actionUrl && (
-                                                <a
-                                                    href={notification.actionUrl}
-                                                    className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
-                                                >
-                                                    Ver más →
-                                                </a>
-                                            )}
-                                            <button
-                                                onClick={() => handleDelete(notification.id)}
-                                                className="text-xs text-red-500 hover:underline flex items-center gap-1 ml-auto"
-                                            >
-                                                <Trash2 size={14} />
-                                                Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
+                    ) : groupByType && groupedNotifications ? (
+                        /* GROUPED VIEW */
+                        Object.entries(groupedNotifications).map(([type, items]) => (
+                            <div key={type} className="mb-4">
+                                <h3 className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-2">
+                                    <span>{NOTIFICATION_ICONS[type] || '📌'}</span>
+                                    {TYPE_LABELS[type] || type} ({items.length})
+                                </h3>
+                                <div className="space-y-2">
+                                    {items.map(notification => (
+                                        <NotificationCard
+                                            key={notification.id}
+                                            notification={notification}
+                                            expandedId={expandedId}
+                                            handleNotificationClick={handleNotificationClick}
+                                            handleWhatsAppReminder={handleWhatsAppReminder}
+                                            handleDelete={handleDelete}
+                                        />
+                                    ))}
                                 </div>
                             </div>
+                        ))
+                    ) : (
+                        /* FLAT VIEW */
+                        filteredNotifications.map(notification => (
+                            <NotificationCard
+                                key={notification.id}
+                                notification={notification}
+                                expandedId={expandedId}
+                                handleNotificationClick={handleNotificationClick}
+                                handleWhatsAppReminder={handleWhatsAppReminder}
+                                handleDelete={handleDelete}
+                            />
                         ))
                     )}
                 </div>
             )}
+        </div>
+    );
+}
+
+// Touchable Notification Card Component
+function NotificationCard({ notification, expandedId, handleNotificationClick, handleWhatsAppReminder, handleDelete }) {
+    const isExpanded = expandedId === notification.id;
+
+    return (
+        <div
+            onClick={() => handleNotificationClick(notification)}
+            className={`p-4 rounded-xl border transition-all cursor-pointer active:scale-[0.98] ${notification.read
+                ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                } ${isExpanded ? 'ring-2 ring-blue-500' : ''}`}
+        >
+            <div className="flex items-start gap-3">
+                {/* Icon */}
+                <div className={`p-2 rounded-lg shrink-0 ${NOTIFICATION_COLORS[notification.type] || NOTIFICATION_COLORS.SYSTEM}`}>
+                    <span className="text-xl">{NOTIFICATION_ICONS[notification.type] || '📌'}</span>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                        <h4 className={`font-semibold ${notification.read ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-slate-100'}`}>
+                            {notification.title}
+                        </h4>
+                        <div className="flex items-center gap-1 shrink-0">
+                            <span className="text-xs text-slate-400 whitespace-nowrap">
+                                {formatDateTime(notification.createdAt)}
+                            </span>
+                            {isExpanded ? <ChevronUp size={14} className="text-blue-500" /> : <ChevronDown size={14} className="text-slate-400" />}
+                        </div>
+                    </div>
+
+                    {/* Message - truncated or full based on expanded state */}
+                    <p className={`text-sm text-slate-600 dark:text-slate-400 mt-1 ${isExpanded ? '' : 'line-clamp-2'}`}>
+                        {notification.message}
+                    </p>
+
+                    {/* Expanded Actions */}
+                    {isExpanded && (
+                        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
+                            {notification.actionUrl && (
+                                <a
+                                    href={notification.actionUrl}
+                                    className="flex-1 py-2 px-3 bg-blue-600 text-white text-sm font-medium rounded-lg text-center hover:bg-blue-700"
+                                >
+                                    Abrir →
+                                </a>
+                            )}
+                            <button
+                                onClick={() => handleWhatsAppReminder(notification)}
+                                className="py-2 px-3 bg-green-500 text-white text-sm font-medium rounded-lg flex items-center gap-1 hover:bg-green-600"
+                            >
+                                <MessageCircle size={14} />
+                                WhatsApp
+                            </button>
+                            <button
+                                onClick={() => handleDelete(notification.id)}
+                                className="py-2 px-3 bg-red-100 text-red-600 text-sm font-medium rounded-lg hover:bg-red-200"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

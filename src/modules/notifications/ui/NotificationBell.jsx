@@ -17,6 +17,29 @@ export function NotificationBell({ onNavigateToNotifications }) {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const lastUnreadCountRef = useRef(0);
+
+    // MEJORA 2: Notification sound using Web Audio API
+    const playNotificationSound = () => {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (e) {
+            console.log('Sound not supported');
+        }
+    };
 
     useEffect(() => {
         loadNotifications();
@@ -39,8 +62,16 @@ export function NotificationBell({ onNavigateToNotifications }) {
     const loadNotifications = async () => {
         try {
             const data = await notificationService.getNotifications();
+            const newUnreadCount = data.unreadCount || 0;
+
+            // Play sound if new notifications arrived
+            if (newUnreadCount > lastUnreadCountRef.current && lastUnreadCountRef.current !== 0) {
+                playNotificationSound();
+            }
+            lastUnreadCountRef.current = newUnreadCount;
+
             setNotifications((data.notifications || []).slice(0, 5)); // Show only 5 in dropdown
-            setUnreadCount(data.unreadCount || 0);
+            setUnreadCount(newUnreadCount);
         } catch (e) {
             console.error('Error loading notifications:', e);
         }
