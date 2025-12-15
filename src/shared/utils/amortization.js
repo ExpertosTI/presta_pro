@@ -59,6 +59,50 @@ export const calculateSchedule = (amount, rate, term, frequency, startDate, type
     return schedule;
   }
 
+  // FLAT / Saldo Absoluto (Préstamos Informales)
+  // Cálculo simple: Interés Total = Capital × Tasa
+  // Cuota Fija = (Capital + Interés Total) / Plazo
+  if (type === 'FLAT') {
+    // La tasa se aplica directamente al capital (no es tasa anual, es tasa simple del préstamo)
+    const totalInterest = principalAmount * (parseFloat(rate) / 100);
+    const totalToPay = principalAmount + totalInterest;
+    const fixedPayment = parseFloat((totalToPay / totalTerms).toFixed(2));
+    const fixedInterest = parseFloat((totalInterest / totalTerms).toFixed(2));
+    const fixedPrincipal = parseFloat((principalAmount / totalTerms).toFixed(2));
+
+    for (let i = 1; i <= totalTerms; i++) {
+      currentDate.setDate(currentDate.getDate() + daysPerPeriod);
+      balance = parseFloat((principalAmount - (fixedPrincipal * i)).toFixed(2));
+      if (balance < 0) balance = 0;
+
+      // Ajuste última cuota para cuadrar exacto
+      let payment = fixedPayment;
+      let principal = fixedPrincipal;
+      let interest = fixedInterest;
+
+      if (i === totalTerms) {
+        // Ajustar para que sume exacto
+        const sumPaid = fixedPayment * (totalTerms - 1);
+        payment = parseFloat((totalToPay - sumPaid).toFixed(2));
+        balance = 0;
+      }
+
+      schedule.push({
+        id: generateId(),
+        number: i,
+        date: currentDate.toISOString().split('T')[0],
+        payment,
+        interest,
+        principal,
+        balance,
+        status: 'PENDING',
+        paidAmount: 0,
+        paidDate: null
+      });
+    }
+    return schedule;
+  }
+
   // SISTEMA FRANCES (Original)
   if (ratePerPeriod === 0) {
     pmt = principalAmount / totalTerms;
