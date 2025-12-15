@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Users, Plus, Edit2, Trash2, Key, Shield, Activity,
     Phone, Mail, User, CheckCircle, XCircle, AlertTriangle,
-    Copy, Eye, EyeOff, UserPlus
+    Copy, Eye, EyeOff, UserPlus, Search, MapPin, DollarSign, Filter
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import ConfirmDialog from '../../../shared/components/ui/ConfirmDialog';
@@ -30,7 +30,7 @@ const PERMISSION_LABELS = {
     canViewReports: { label: 'Ver reportes', desc: 'Acceso a reportes' }
 };
 
-export function CollectorsView({ showToast, clients = [] }) {
+export function CollectorsView({ showToast, clients = [], receipts = [] }) {
     const [collectors, setCollectors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -40,6 +40,11 @@ export function CollectorsView({ showToast, clients = [] }) {
     const [activityData, setActivityData] = useState([]);
     const [tempPassword, setTempPassword] = useState(null);
 
+    // MEJORA 14: Status filter
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    // MEJORA 1: Search
+    const [searchQuery, setSearchQuery] = useState('');
+
     // Confirm dialog state
     const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
@@ -48,14 +53,17 @@ export function CollectorsView({ showToast, clients = [] }) {
     const [assigningCollector, setAssigningCollector] = useState(null);
     const [selectedClients, setSelectedClients] = useState([]);
 
-    // Form state
+    // Form state - MEJORA 8: Added commissionRate
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
         email: '',
         photoUrl: '',
         createCredentials: false,
-        username: ''
+        username: '',
+        commissionRate: 5,
+        lastLatitude: null,
+        lastLongitude: null
     });
 
     useEffect(() => {
@@ -153,7 +161,7 @@ export function CollectorsView({ showToast, clients = [] }) {
     const resetForm = () => {
         setShowForm(false);
         setEditingCollector(null);
-        setFormData({ name: '', phone: '', email: '', photoUrl: '', createCredentials: false, username: '' });
+        setFormData({ name: '', phone: '', email: '', photoUrl: '', createCredentials: false, username: '', commissionRate: 5, lastLatitude: null, lastLongitude: null });
     };
 
     const openEdit = (collector) => {
@@ -164,7 +172,10 @@ export function CollectorsView({ showToast, clients = [] }) {
             email: collector.email || '',
             photoUrl: collector.photoUrl || '',
             createCredentials: false,
-            username: collector.username || ''
+            username: collector.username || '',
+            commissionRate: collector.commissionRate || 5,
+            lastLatitude: collector.lastLatitude || null,
+            lastLongitude: collector.lastLongitude || null
         });
         setShowForm(true);
     };
@@ -203,6 +214,43 @@ export function CollectorsView({ showToast, clients = [] }) {
         );
     };
 
+    // MEJORA 14: Filter collectors by status + MEJORA 1: Search
+    const filteredCollectors = useMemo(() => {
+        let result = collectors;
+        if (statusFilter === 'ACTIVE') {
+            result = result.filter(c => c.isActive !== false);
+        } else if (statusFilter === 'INACTIVE') {
+            result = result.filter(c => c.isActive === false);
+        }
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            result = result.filter(c =>
+                c.name?.toLowerCase().includes(q) ||
+                c.phone?.toLowerCase().includes(q) ||
+                c.email?.toLowerCase().includes(q)
+            );
+        }
+        return result;
+    }, [collectors, statusFilter, searchQuery]);
+
+    // MEJORA 8: Calculate total commissions for each collector
+    const collectorCommissions = useMemo(() => {
+        const commissions = {};
+        collectors.forEach(c => {
+            const collectorClients = clients.filter(cl => cl.collectorId === c.id);
+            const clientIds = collectorClients.map(cl => cl.id);
+            const collectorReceipts = receipts.filter(r => clientIds.includes(r.clientId));
+            const totalCollected = collectorReceipts.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0);
+            const rate = c.commissionRate || 5;
+            commissions[c.id] = {
+                totalCollected,
+                rate,
+                commission: (totalCollected * rate) / 100
+            };
+        });
+        return commissions;
+    }, [collectors, clients, receipts]);
+
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
@@ -226,6 +274,35 @@ export function CollectorsView({ showToast, clients = [] }) {
                     <Plus size={18} />
                     Nuevo Cobrador
                 </button>
+            </div>
+
+            {/* MEJORA 14 + Search: Filter Bar */}
+            <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[200px]">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por nombre, teléfono..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-sm"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <Filter size={16} className="text-slate-400" />
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-sm"
+                    >
+                        <option value="ALL">Todos</option>
+                        <option value="ACTIVE">Activos</option>
+                        <option value="INACTIVE">Inactivos</option>
+                    </select>
+                </div>
+                <p className="text-sm text-slate-500">
+                    Mostrando {filteredCollectors.length} de {collectors.length}
+                </p>
             </div>
 
             {/* Confirm Dialog */}
@@ -363,6 +440,25 @@ export function CollectorsView({ showToast, clients = [] }) {
                                 </div>
                             </div>
 
+                            {/* MEJORA 8: Commission Rate */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    <DollarSign size={14} className="inline mr-1" />
+                                    Tasa de Comisión (%)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    max="100"
+                                    value={formData.commissionRate}
+                                    onChange={(e) => setFormData(p => ({ ...p, commissionRate: parseFloat(e.target.value) || 0 }))}
+                                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+                                    placeholder="5"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">Porcentaje sobre cobros realizados</p>
+                            </div>
+
                             {!editingCollector && (
                                 <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                                     <label className="flex items-center gap-3 cursor-pointer">
@@ -454,120 +550,149 @@ export function CollectorsView({ showToast, clients = [] }) {
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {collectors.map(collector => (
-                        <Card key={collector.id} className="relative">
-                            {/* Status Badge */}
-                            <div className="absolute top-4 right-4">
-                                {collector.isActive !== false ? (
-                                    <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-medium">
-                                        <CheckCircle size={12} />
-                                        Activo
-                                    </span>
-                                ) : (
-                                    <span className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs font-medium">
-                                        <XCircle size={12} />
-                                        Inactivo
-                                    </span>
-                                )}
-                            </div>
+                    {filteredCollectors.map(collector => {
+                        const commData = collectorCommissions[collector.id] || { totalCollected: 0, rate: 5, commission: 0 };
+                        return (
+                            <Card key={collector.id} className="relative">
+                                {/* Status Badge */}
+                                <div className="absolute top-4 right-4">
+                                    {collector.isActive !== false ? (
+                                        <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-medium">
+                                            <CheckCircle size={12} />
+                                            Activo
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs font-medium">
+                                            <XCircle size={12} />
+                                            Inactivo
+                                        </span>
+                                    )}
+                                </div>
 
-                            {/* Collector Info */}
-                            <div className="flex items-start gap-4 mb-4">
-                                {collector.photoUrl ? (
-                                    <img
-                                        src={collector.photoUrl}
-                                        alt={collector.name}
-                                        className="w-12 h-12 rounded-full object-cover border-2 border-indigo-300"
-                                    />
-                                ) : (
-                                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-xl font-bold text-indigo-600 dark:text-indigo-400">
-                                        {collector.name.charAt(0).toUpperCase()}
+                                {/* Collector Info */}
+                                <div className="flex items-start gap-4 mb-4">
+                                    {collector.photoUrl ? (
+                                        <img
+                                            src={collector.photoUrl}
+                                            alt={collector.name}
+                                            className="w-12 h-12 rounded-full object-cover border-2 border-indigo-300"
+                                        />
+                                    ) : (
+                                        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                                            {collector.name.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-bold text-slate-800 dark:text-slate-100 truncate">{collector.name}</h3>
+                                        {collector.phone && (
+                                            <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                                <Phone size={12} />
+                                                {collector.phone}
+                                            </p>
+                                        )}
+                                        {collector.email && (
+                                            <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
+                                                <Mail size={12} />
+                                                {collector.email}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Stats */}
+                                <div className="flex gap-4 mb-4 text-sm">
+                                    <div className="flex-1 text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                        <p className="font-bold text-slate-800 dark:text-slate-200">{collector.clients?.length || 0}</p>
+                                        <p className="text-xs text-slate-500">Clientes</p>
+                                    </div>
+                                    <div className="flex-1 text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                        <p className="font-bold text-slate-800 dark:text-slate-200">{collector._count?.routeClosings || 0}</p>
+                                        <p className="text-xs text-slate-500">Cierres</p>
+                                    </div>
+                                </div>
+
+                                {/* Credentials indicator */}
+                                {collector.hasCredentials && (
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-4">
+                                        <Key size={14} className="text-blue-600 dark:text-blue-400" />
+                                        <span className="text-sm text-blue-700 dark:text-blue-300">Usuario: {collector.username}</span>
                                     </div>
                                 )}
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-slate-800 dark:text-slate-100 truncate">{collector.name}</h3>
-                                    {collector.phone && (
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                            <Phone size={12} />
-                                            {collector.phone}
+
+                                {/* MEJORA 8: Commissions Display */}
+                                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg mb-3">
+                                    <DollarSign size={14} className="text-emerald-600" />
+                                    <div className="flex-1 text-xs">
+                                        <p className="text-emerald-700 dark:text-emerald-300">
+                                            Cobrado: <span className="font-bold">${commData.totalCollected.toLocaleString()}</span>
                                         </p>
-                                    )}
-                                    {collector.email && (
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
-                                            <Mail size={12} />
-                                            {collector.email}
+                                        <p className="text-emerald-600">
+                                            Comisión ({commData.rate}%): <span className="font-bold">${commData.commission.toLocaleString()}</span>
                                         </p>
-                                    )}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Stats */}
-                            <div className="flex gap-4 mb-4 text-sm">
-                                <div className="flex-1 text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                                    <p className="font-bold text-slate-800 dark:text-slate-200">{collector.clients?.length || 0}</p>
-                                    <p className="text-xs text-slate-500">Clientes</p>
-                                </div>
-                                <div className="flex-1 text-center p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                                    <p className="font-bold text-slate-800 dark:text-slate-200">{collector._count?.routeClosings || 0}</p>
-                                    <p className="text-xs text-slate-500">Cierres</p>
-                                </div>
-                            </div>
-
-                            {/* Credentials indicator */}
-                            {collector.hasCredentials && (
-                                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-4">
-                                    <Key size={14} className="text-blue-600 dark:text-blue-400" />
-                                    <span className="text-sm text-blue-700 dark:text-blue-300">Usuario: {collector.username}</span>
-                                </div>
-                            )}
-
-                            {/* Actions */}
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    onClick={() => openEdit(collector)}
-                                    className="flex-1 flex items-center justify-center gap-1 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    <Edit2 size={14} />
-                                    Editar
-                                </button>
-                                <button
-                                    onClick={() => setShowPermissions(collector)}
-                                    className="flex-1 flex items-center justify-center gap-1 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    <Shield size={14} />
-                                    Permisos
-                                </button>
-                                <button
-                                    onClick={() => openAssignClients(collector)}
-                                    className="flex items-center justify-center gap-1 py-2 px-3 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                                    title="Asignar Clientes"
-                                >
-                                    <UserPlus size={14} />
-                                </button>
-                                <button
-                                    onClick={() => handleViewActivity(collector)}
-                                    className="flex items-center justify-center gap-1 py-2 px-3 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    <Activity size={14} />
-                                </button>
-                                {collector.hasCredentials && (
-                                    <button
-                                        onClick={() => handleResetPassword(collector.id)}
-                                        // className="flex items-center justify-center gap-1 py-2 px-3 text-sm text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                                        className="flex items-center justify-center gap-1 py-2 px-3 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
+                                {/* MEJORA 9: GPS Location Link */}
+                                {(collector.lastLatitude && collector.lastLongitude) && (
+                                    <a
+                                        href={`https://www.google.com/maps?q=${collector.lastLatitude},${collector.lastLongitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-3 hover:bg-blue-100"
                                     >
-                                        <Key size={14} />
-                                    </button>
+                                        <MapPin size={14} className="text-blue-600" />
+                                        <span className="text-xs text-blue-700 dark:text-blue-300">Ver última ubicación</span>
+                                    </a>
                                 )}
-                                <button
-                                    onClick={() => handleDelete(collector.id)}
-                                    className="flex items-center justify-center gap-1 py-2 px-3 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
-                            </div>
-                        </Card>
-                    ))}
+
+                                {/* Actions */}
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => openEdit(collector)}
+                                        className="flex-1 flex items-center justify-center gap-1 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                    >
+                                        <Edit2 size={14} />
+                                        Editar
+                                    </button>
+                                    <button
+                                        onClick={() => setShowPermissions(collector)}
+                                        className="flex-1 flex items-center justify-center gap-1 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                    >
+                                        <Shield size={14} />
+                                        Permisos
+                                    </button>
+                                    <button
+                                        onClick={() => openAssignClients(collector)}
+                                        className="flex items-center justify-center gap-1 py-2 px-3 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                        title="Asignar Clientes"
+                                    >
+                                        <UserPlus size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleViewActivity(collector)}
+                                        className="flex items-center justify-center gap-1 py-2 px-3 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                    >
+                                        <Activity size={14} />
+                                    </button>
+                                    {collector.hasCredentials && (
+                                        <button
+                                            onClick={() => handleResetPassword(collector.id)}
+                                            // className="flex items-center justify-center gap-1 py-2 px-3 text-sm text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                            className="flex items-center justify-center gap-1 py-2 px-3 text-sm border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
+                                        >
+                                            <Key size={14} />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => handleDelete(collector.id)}
+                                        className="flex items-center justify-center gap-1 py-2 px-3 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            </Card>
+                        );
+                    })}
                 </div>
             )}
 
@@ -589,8 +714,8 @@ export function CollectorsView({ showToast, clients = [] }) {
                                     <label
                                         key={client.id}
                                         className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedClients.includes(client.id)
-                                                ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-500'
-                                                : 'bg-slate-50 dark:bg-slate-700 border-2 border-transparent hover:border-slate-300'
+                                            ? 'bg-indigo-50 dark:bg-indigo-900/30 border-2 border-indigo-500'
+                                            : 'bg-slate-50 dark:bg-slate-700 border-2 border-transparent hover:border-slate-300'
                                             }`}
                                     >
                                         <input
