@@ -776,7 +776,22 @@ function App() {
       case 'notes':
         return <NotesView showToast={showToast} />;
       case 'expenses':
-        return <ExpensesView expenses={dbData.expenses} addExpense={addExpense} />;
+        return <ExpensesView
+          expenses={dbData.expenses}
+          addExpense={addExpense}
+          onDeleteExpense={async (id) => {
+            try {
+              await expenseService.delete(id);
+              setDbData(p => ({ ...p, expenses: p.expenses.filter(e => e.id !== id) }));
+              showToast('Gasto eliminado', 'success');
+            } catch (err) {
+              console.error('Delete expense error:', err);
+              // Fallback local
+              setDbData(p => ({ ...p, expenses: p.expenses.filter(e => e.id !== id) }));
+              showToast('Gasto eliminado localmente', 'warning');
+            }
+          }}
+        />;
       case 'reports':
         return <ReportsView loans={dbData.loans} expenses={dbData.expenses} />;
       case 'hr':
