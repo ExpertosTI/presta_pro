@@ -339,8 +339,8 @@ docker compose restart nginx
 
 Si tienes problemas con el despliegue:
 
-- **Email**: deploy@renace.tech
-- **Documentación**: https://docs.renace.tech/prestapro
+- **Email**: info@renace.tech
+- **WhatsApp**: +1 (849) 457-7463
 - **GitHub Issues**: https://github.com/ExpertosTI/presta_pro/issues
 
 ---

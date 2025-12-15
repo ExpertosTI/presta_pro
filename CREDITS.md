@@ -107,9 +107,9 @@ Ver [LICENSE](./LICENSE) para términos completos de uso.
 
 Para consultas comerciales o de desarrollo:
 
-- **Email**: business@renace.tech
-- **Soporte**: soporte@renace.tech
-- **Ventas**: ventas@renace.tech
+- **Email**: info@renace.tech
+- **WhatsApp**: +1 (849) 457-7463
+- **Web**: https://renace.tech
 
 ---
 

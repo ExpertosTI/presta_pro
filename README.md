@@ -170,9 +170,9 @@ npx cap open ios
 
 ## 🆘 Soporte
 
-- **Email**: soporte@renace.tech
-- **WhatsApp**: +1 (809) XXX-XXXX
-- **Web**: https://prestanace.renace.tech
+- **Email**: info@renace.tech
+- **WhatsApp**: +1 (849) 457-7463
+- **Web**: https://renace.tech/PrestApp/
 
 ---
 
