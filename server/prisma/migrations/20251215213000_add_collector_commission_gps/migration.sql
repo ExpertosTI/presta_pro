@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Collector" ADD COLUMN "commissionRate" DOUBLE PRECISION DEFAULT 5;
+ALTER TABLE "Collector" ADD COLUMN "lastLatitude" DOUBLE PRECISION;
+ALTER TABLE "Collector" ADD COLUMN "lastLongitude" DOUBLE PRECISION;
