@@ -3,13 +3,17 @@ import Card from '../../../shared/components/ui/Card.jsx';
 import Badge from '../../../shared/components/ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { calculateSchedule } from '../../../shared/utils/amortization';
-import { FileText, Sparkles, X, Printer, FileCheck, Plus, Banknote, Archive, Trash2, XCircle } from 'lucide-react';
+import {
+  FileText, Sparkles, X, Printer, FileCheck, Plus, Banknote, Archive, Trash2, XCircle,
+  ArrowUpDown, Filter, Calendar, TrendingUp, RefreshCw, Wallet, Clock, History,
+  StickyNote, UserCheck
+} from 'lucide-react';
 import { PaymentConfirmationModal } from '../../payments';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
 import PaymentTicket from '../../../shared/components/ui/PaymentTicket';
 import { loanApi } from '../infrastructure/loanApi';
 
-export function LoansView({ loans, clients, registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan, onNewClient, onNavigateToDocuments }) {
+export function LoansView({ loans, clients, collectors = [], registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan, onNewClient, onNavigateToDocuments }) {
   const [generatingContract, setGeneratingContract] = useState(false);
   const [contractContent, setContractContent] = useState(null);
   const [showContractModal, setShowContractModal] = useState(false);
@@ -31,6 +35,21 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [showArchived, setShowArchived] = useState(false);
+  // MEJORA 1: Sorting
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
+  // MEJORA 3: Type filter (FIXED vs OPEN)
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  // MEJORA 6: Collector filter
+  const [collectorFilter, setCollectorFilter] = useState('ALL');
+  // MEJORA 8: Date filter
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  // MEJORA 14: Notes modal
+  const [notesModal, setNotesModal] = useState({ show: false, loanId: null, notes: '' });
+  // MEJORA 11 & 12: Renew/Refinance modals
+  const [renewModal, setRenewModal] = useState(false);
+  const [refinanceModal, setRefinanceModal] = useState(false);
 
   // Loan action modals
   const [cancelModal, setCancelModal] = useState(false);
@@ -41,12 +60,35 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
   const [errorModal, setErrorModal] = useState({ show: false, message: '' });
 
   const filteredLoans = useMemo(() => {
-    return loans.filter(loan => {
+    let result = loans.filter(loan => {
       // Archive filter - hide archived unless showArchived is true
       if (!showArchived && loan.archived) return false;
 
       // Status filter
       if (statusFilter !== 'ALL' && loan.status !== statusFilter) return false;
+
+      // MEJORA 3: Type filter
+      if (typeFilter !== 'ALL') {
+        const isOpen = loan.amortizationType === 'OPEN' || loan.type === 'OPEN';
+        if (typeFilter === 'OPEN' && !isOpen) return false;
+        if (typeFilter === 'FIXED' && isOpen) return false;
+      }
+
+      // MEJORA 6: Collector filter
+      if (collectorFilter !== 'ALL') {
+        const client = clients.find(c => c.id === loan.clientId);
+        if (client?.collectorId !== collectorFilter) return false;
+      }
+
+      // MEJORA 8: Date filter
+      if (dateFrom) {
+        const loanDate = new Date(loan.startDate || loan.createdAt);
+        if (loanDate < new Date(dateFrom)) return false;
+      }
+      if (dateTo) {
+        const loanDate = new Date(loan.startDate || loan.createdAt);
+        if (loanDate > new Date(dateTo)) return false;
+      }
 
       // Search query (client name)
       if (searchQuery.trim()) {
@@ -56,7 +98,34 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
       }
       return true;
     });
-  }, [loans, clients, searchQuery, statusFilter, showArchived]);
+
+    // MEJORA 1: Sorting
+    result.sort((a, b) => {
+      let valA, valB;
+      const clientA = clients.find(c => c.id === a.clientId);
+      const clientB = clients.find(c => c.id === b.clientId);
+
+      if (sortBy === 'date') {
+        valA = new Date(a.startDate || a.createdAt);
+        valB = new Date(b.startDate || b.createdAt);
+      } else if (sortBy === 'amount') {
+        valA = parseFloat(a.amount) || 0;
+        valB = parseFloat(b.amount) || 0;
+      } else if (sortBy === 'client') {
+        valA = (clientA?.name || '').toLowerCase();
+        valB = (clientB?.name || '').toLowerCase();
+      } else if (sortBy === 'status') {
+        valA = a.status || '';
+        valB = b.status || '';
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [loans, clients, searchQuery, statusFilter, showArchived, typeFilter, collectorFilter, dateFrom, dateTo, sortBy, sortOrder]);
 
   const selectedLoan = useMemo(() => loans.find(l => l.id === selectedLoanId), [loans, selectedLoanId]);
   const selectedClient = useMemo(() => {
@@ -68,6 +137,36 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
     if (!selectedLoan || !selectedLoan.schedule) return null;
     return selectedLoan.schedule.find(s => s.status !== 'PAID');
   }, [selectedLoan]);
+
+  // MEJORA 4: Portfolio statistics
+  const loanStats = useMemo(() => {
+    const activeLoans = loans.filter(l => !l.archived && l.status === 'ACTIVE');
+    const totalPortfolio = activeLoans.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
+    const totalExpectedInterest = activeLoans.reduce((acc, l) => acc + (l.totalInterest || 0), 0);
+    const totalCollected = activeLoans.reduce((acc, l) => acc + (l.totalPaid || 0), 0);
+    const totalPending = (totalPortfolio + totalExpectedInterest) - totalCollected;
+
+    // Count by type
+    const fixedCount = activeLoans.filter(l => l.amortizationType !== 'OPEN' && l.type !== 'OPEN').length;
+    const openCount = activeLoans.filter(l => l.amortizationType === 'OPEN' || l.type === 'OPEN').length;
+
+    return {
+      totalPortfolio,
+      totalExpectedInterest,
+      totalCollected,
+      totalPending,
+      activeCount: activeLoans.length,
+      fixedCount,
+      openCount
+    };
+  }, [loans]);
+
+  // MEJORA 9: Get payment progress for a loan
+  const getPaymentProgress = (loan) => {
+    if (!loan.schedule || loan.schedule.length === 0) return 0;
+    const paid = loan.schedule.filter(s => s.status === 'PAID').length;
+    return Math.round((paid / loan.schedule.length) * 100);
+  };
 
   const handleOpenEditLoan = () => {
     if (!selectedLoan || !onUpdateLoan) return;
@@ -557,41 +656,129 @@ export function LoansView({ loans, clients, registerPayment, selectedLoanId, onS
         )}
       </div>
 
-      {/* Search and Filter Bar */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="flex-1 min-w-[200px]">
-          <input
-            type="text"
-            placeholder="Buscar por nombre de cliente..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+      {/* MEJORA 4: Portfolio Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+          <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1"><Wallet size={12} /> Cartera</p>
+          <p className="text-lg font-bold text-blue-800 dark:text-blue-200">{formatCurrency(loanStats.totalPortfolio)}</p>
+          <p className="text-xs text-blue-600">{loanStats.activeCount} activos</p>
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="ALL">Todos los estados</option>
-          <option value="ACTIVE">Activos</option>
-          <option value="COMPLETED">Completados</option>
-          <option value="DEFAULTED">En mora</option>
-        </select>
-        <button
-          onClick={() => setShowArchived(!showArchived)}
-          className={`px-3 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all ${showArchived
+        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1"><TrendingUp size={12} /> Interés Esperado</p>
+          <p className="text-lg font-bold text-emerald-800 dark:text-emerald-200">{formatCurrency(loanStats.totalExpectedInterest)}</p>
+        </div>
+        <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800">
+          <p className="text-xs text-violet-600 dark:text-violet-400 font-semibold flex items-center gap-1"><Clock size={12} /> Por Cobrar</p>
+          <p className="text-lg font-bold text-violet-800 dark:text-violet-200">{formatCurrency(loanStats.totalPending)}</p>
+        </div>
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Por Tipo</p>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{loanStats.fixedCount} cuotas · {loanStats.openCount} abiertos</p>
+        </div>
+      </div>
+
+      {/* Search and Enhanced Filter Bar */}
+      <Card>
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex-1 min-w-[180px]">
+            <input
+              type="text"
+              placeholder="Buscar cliente..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 text-sm"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+          >
+            <option value="ALL">Todos estados</option>
+            <option value="ACTIVE">Activos</option>
+            <option value="COMPLETED">Completados</option>
+            <option value="DEFAULTED">En mora</option>
+          </select>
+          {/* MEJORA 3: Type filter */}
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+          >
+            <option value="ALL">Todos tipos</option>
+            <option value="FIXED">Cuotas fijas</option>
+            <option value="OPEN">Abonos libres</option>
+          </select>
+          {/* MEJORA 6: Collector filter */}
+          {collectors.length > 0 && (
+            <select
+              value={collectorFilter}
+              onChange={(e) => setCollectorFilter(e.target.value)}
+              className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+            >
+              <option value="ALL">Todos cobradores</option>
+              {collectors.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+          {/* MEJORA 1: Sort dropdown */}
+          <select
+            value={`${sortBy}-${sortOrder}`}
+            onChange={(e) => {
+              const [field, order] = e.target.value.split('-');
+              setSortBy(field);
+              setSortOrder(order);
+            }}
+            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+          >
+            <option value="date-desc">Más reciente</option>
+            <option value="date-asc">Más antiguo</option>
+            <option value="amount-desc">Mayor monto</option>
+            <option value="amount-asc">Menor monto</option>
+            <option value="client-asc">Cliente A-Z</option>
+            <option value="client-desc">Cliente Z-A</option>
+          </select>
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-all ${showArchived
               ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
               : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-600'
-            }`}
-        >
-          <Archive size={16} />
-          {showArchived ? 'Ocultar archivados' : 'Ver archivados'}
-        </button>
-        <span className="text-sm text-slate-500 dark:text-slate-400">
-          {filteredLoans.length} de {loans.length}
-        </span>
-      </div>
+              }`}
+          >
+            <Archive size={14} />
+            {showArchived ? 'Ocultar arch.' : 'Ver arch.'}
+          </button>
+        </div>
+        {/* MEJORA 8: Date filter row */}
+        <div className="flex flex-wrap gap-3 items-center mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+          <span className="text-xs text-slate-500 flex items-center gap-1"><Calendar size={12} /> Rango de fecha:</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+          />
+          <span className="text-xs text-slate-400">a</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo(''); }}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              Limpiar
+            </button>
+          )}
+          <span className="ml-auto text-sm text-slate-500 dark:text-slate-400">
+            {filteredLoans.length} de {loans.filter(l => !l.archived).length}
+          </span>
+        </div>
+      </Card>
 
       <Card>
         <div className="overflow-x-auto">
