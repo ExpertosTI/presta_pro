@@ -952,6 +952,34 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   </button>
                 ) : null}
               </div>
+              {/* MEJORA 11, 12, 14: Renew, Refinance, Notes */}
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {selectedLoan.status === 'COMPLETED' && (
+                  <button
+                    onClick={() => setRenewModal(true)}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors text-xs"
+                  >
+                    <RefreshCw size={18} />
+                    Renovar
+                  </button>
+                )}
+                {selectedLoan.status === 'ACTIVE' && (
+                  <button
+                    onClick={() => setRefinanceModal(true)}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-xs"
+                  >
+                    <Wallet size={18} />
+                    Refinanciar
+                  </button>
+                )}
+                <button
+                  onClick={() => setNotesModal({ show: true, loanId: selectedLoan.id, notes: selectedLoan.notes || '' })}
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors text-xs"
+                >
+                  <StickyNote size={18} />
+                  Notas
+                </button>
+              </div>
             </div>
           </Card>
 
@@ -1170,6 +1198,150 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* MEJORA 11: Renew Loan Modal */}
+      {renewModal && selectedLoan && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mb-3 flex items-center gap-2">
+              <RefreshCw size={20} /> Renovar Préstamo
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              Este préstamo está completado. ¿Deseas crear un nuevo préstamo para el mismo cliente con las mismas condiciones?
+            </p>
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-3 mb-4 text-sm">
+              <p><span className="font-semibold">Cliente:</span> {selectedClient?.name}</p>
+              <p><span className="font-semibold">Monto anterior:</span> {formatCurrency(selectedLoan.amount)}</p>
+              <p><span className="font-semibold">Tasa:</span> {selectedLoan.rate}%</p>
+              <p><span className="font-semibold">Plazo:</span> {selectedLoan.term} cuotas</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setRenewModal(false)}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (onCreateLoan) {
+                    onCreateLoan({
+                      clientId: selectedLoan.clientId,
+                      amount: selectedLoan.amount,
+                      rate: selectedLoan.rate,
+                      term: selectedLoan.term,
+                      frequency: selectedLoan.frequency,
+                      amortizationType: selectedLoan.amortizationType,
+                      renewedFrom: selectedLoan.id
+                    });
+                  }
+                  setRenewModal(false);
+                }}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-500"
+              >
+                Crear Nuevo Préstamo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MEJORA 12: Refinance Loan Modal */}
+      {refinanceModal && selectedLoan && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
+              <Wallet size={20} /> Refinanciar Préstamo
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              Consolidar el saldo pendiente ({formatCurrency(selectedLoan.currentBalance || (parseFloat(selectedLoan.amount) * (1 + parseFloat(selectedLoan.rate) / 100)) - (selectedLoan.totalPaid || 0))}) en un nuevo préstamo.
+            </p>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 mb-4 text-sm text-amber-800 dark:text-amber-300">
+              <p className="font-semibold">⚠️ Advertencia:</p>
+              <p>Al refinanciar, el préstamo actual se marcará como completado y se creará uno nuevo con el saldo pendiente.</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setRefinanceModal(false)}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const pendingBalance = selectedLoan.currentBalance ||
+                    (parseFloat(selectedLoan.amount) * (1 + parseFloat(selectedLoan.rate) / 100)) - (selectedLoan.totalPaid || 0);
+                  if (onCreateLoan) {
+                    onCreateLoan({
+                      clientId: selectedLoan.clientId,
+                      amount: pendingBalance,
+                      rate: selectedLoan.rate,
+                      term: selectedLoan.term,
+                      frequency: selectedLoan.frequency,
+                      amortizationType: selectedLoan.amortizationType,
+                      refinancedFrom: selectedLoan.id
+                    });
+                  }
+                  setRefinanceModal(false);
+                }}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-500"
+              >
+                Refinanciar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MEJORA 14: Notes Modal */}
+      {notesModal.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-md animate-fade-in">
+            <h3 className="text-lg font-bold text-violet-600 dark:text-violet-400 mb-3 flex items-center gap-2">
+              <StickyNote size={20} /> Notas del Préstamo
+            </h3>
+            <textarea
+              value={notesModal.notes}
+              onChange={(e) => setNotesModal({ ...notesModal, notes: e.target.value })}
+              placeholder="Agrega observaciones, comentarios o información importante sobre este préstamo..."
+              className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 min-h-[120px] text-sm"
+            />
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => setNotesModal({ show: false, loanId: null, notes: '' })}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (onUpdateLoan && selectedLoan) {
+                    onUpdateLoan({ ...selectedLoan, notes: notesModal.notes });
+                  }
+                  setNotesModal({ show: false, loanId: null, notes: '' });
+                }}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-violet-600 text-white hover:bg-violet-500"
+              >
+                Guardar Notas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MEJORA 13: Loan History (shown in notes modal if history exists) */}
+      {selectedLoan?.history && selectedLoan.history.length > 0 && notesModal.show && (
+        <div className="fixed bottom-4 right-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 max-w-xs z-40 border border-slate-200 dark:border-slate-700">
+          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1">
+            <History size={14} /> Historial de cambios
+          </h4>
+          <ul className="text-xs text-slate-500 dark:text-slate-400 space-y-1 max-h-32 overflow-y-auto">
+            {selectedLoan.history.slice(-5).map((h, i) => (
+              <li key={i}>{formatDate(h.date)} - {h.action}</li>
+            ))}
+          </ul>
         </div>
       )}
 
