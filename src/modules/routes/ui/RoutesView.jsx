@@ -90,6 +90,11 @@ export function RoutesView({
     console.log('[RoutesView] Input - loans:', loans?.length, 'clients:', clients?.length, 'includeFuture:', includeFutureInstallments);
 
     const pending = loans.flatMap(loan => {
+      // Skip archived or completed loans
+      if (loan.status === 'ARCHIVED' || loan.status === 'COMPLETED' || loan.archived) {
+        return [];
+      }
+
       const client = clients.find(c => c.id === loan.clientId);
 
       // DEBUG: Log loan processing

@@ -35,7 +35,9 @@ export default function DashboardView({
     };
 
     // Core metrics - exclude archived loans
-    const activeLoansOnly = useMemo(() => loans.filter(l => !l.archived), [loans]);
+    const activeLoansOnly = useMemo(() => loans.filter(l =>
+        !l.archived && l.status !== 'ARCHIVED' && l.status !== 'COMPLETED'
+    ), [loans]);
 
     const totalLent = activeLoansOnly.reduce((acc, l) => acc + parseFloat(l.amount || 0), 0);
     const totalCollected = activeLoansOnly.reduce((acc, l) => acc + (l.totalPaid || 0), 0);
