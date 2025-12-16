@@ -293,7 +293,9 @@ const sendSubscriptionExpiringEmail = async ({ to, tenantName, plan, expiresAt, 
 /**
  * Welcome collector email with credentials
  */
-const sendCollectorWelcomeEmail = async ({ to, tenantName, collectorName, username, temporaryPassword }) => {
+const sendCollectorWelcomeEmail = async ({ to, tenantName, tenantSlug, collectorName, username, temporaryPassword }) => {
+  const appUrl = process.env.APP_URL || 'https://prestanace.renace.tech';
+
   const content = `
     <div style="text-align: center; margin-bottom: 24px;">
       <div style="display: inline-block; width: 64px; height: 64px; background: #dbeafe; border-radius: 50%; line-height: 64px; font-size: 32px;">👋</div>
@@ -302,9 +304,13 @@ const sendCollectorWelcomeEmail = async ({ to, tenantName, collectorName, userna
     <h2 style="color: #0f172a; text-align: center; margin: 0 0 8px;">¡Bienvenido/a al equipo!</h2>
     <p style="color: #64748b; text-align: center; margin: 0 0 24px;">Hola ${collectorName}, tu cuenta de cobrador está lista</p>
     
-    <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
-      <p style="margin: 0 0 8px;"><strong>Usuario:</strong> ${username}</p>
-      <p style="margin: 0 0 8px;"><strong>Contraseña temporal:</strong></p>
+    <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+      <p style="margin: 0 0 12px;"><strong>🏢 Código de Empresa:</strong></p>
+      <div style="background: #dbeafe; padding: 10px; border-radius: 8px; text-align: center; font-family: monospace; font-size: 16px; color: #1e40af; margin-bottom: 12px;">
+        ${tenantSlug || tenantName.toLowerCase().replace(/\s+/g, '-')}
+      </div>
+      <p style="margin: 0 0 8px;"><strong>👤 Usuario:</strong> ${username}</p>
+      <p style="margin: 0 0 8px;"><strong>🔐 Contraseña temporal:</strong></p>
       <div style="background: #e2e8f0; padding: 12px; border-radius: 8px; text-align: center; font-family: monospace; font-size: 18px; letter-spacing: 2px;">
         ${temporaryPassword}
       </div>
@@ -315,11 +321,15 @@ const sendCollectorWelcomeEmail = async ({ to, tenantName, collectorName, userna
     </div>
     
     <div style="text-align: center;">
-      <a href="${process.env.APP_URL || 'https://prestapro.renace.tech'}/collector-login" 
+      <a href="${appUrl}/collector-login" 
          style="display: inline-block; padding: 16px 32px; background: ${BRAND_COLOR}; color: white; text-decoration: none; border-radius: 12px; font-weight: 700;">
         Iniciar Sesión
       </a>
     </div>
+    
+    <p style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 24px;">
+      URL de acceso: ${appUrl}/collector-login
+    </p>
   `;
 
   return sendEmail({

@@ -130,6 +130,7 @@ router.post('/', async (req, res) => {
             await emailService.sendCollectorWelcomeEmail({
                 to: email,
                 tenantName: tenant?.name || 'PrestaPro',
+                tenantSlug: tenant?.slug,
                 collectorName: name,
                 username: finalUsername,
                 temporaryPassword: tempPassword
