@@ -24,6 +24,8 @@ const transporter = nodemailer.createTransport({
 });
 
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
+const ADMIN_EMAIL_2 = process.env.ADMIN_NOTIFY_EMAIL_2 || 'klkpopklk1@gmail.com'; // 2MASTER for subscription confirmations
+const ADMIN_EMAILS = [ADMIN_EMAIL, ADMIN_EMAIL_2]; // Both receive alerts
 const FROM_EMAIL = process.env.SMTP_FROM || '"PRESTAPRO" <noreply@prestapro.renace.tech>';
 
 // Multer config for proof uploads
@@ -313,7 +315,7 @@ router.post('/upload-proof', upload.single('proof'), async (req, res) => {
             const proofFilePath = path.join(uploadsDir, req.file.filename);
             await transporter.sendMail({
                 from: FROM_EMAIL,
-                to: ADMIN_EMAIL,
+                to: ADMIN_EMAILS.join(','),
                 subject: `[PrestaPro] ⚡ Nuevo Comprobante - ${tenant?.name || tId} - ${planDetails.name}`,
                 html: `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8fafc;">
