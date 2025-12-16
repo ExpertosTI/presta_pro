@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import Badge from '../../../shared/components/ui/Badge';
+import PaymentTicket from '../../../shared/components/ui/PaymentTicket';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { PaymentConfirmationModal } from '../../payments';
 
@@ -445,50 +446,23 @@ _PrestaPro by RENACE.TECH_`;
                 />
             )}
 
-            {/* Receipt Success Modal */}
+            {/* Receipt Success Modal - uses PaymentTicket with 58mm thermal print */}
             {lastReceipt && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden">
-                        <div className="bg-green-500 px-6 py-4 text-white text-center">
-                            <CheckCircle className="w-12 h-12 mx-auto mb-2" />
-                            <h3 className="text-lg font-bold">¡Pago Registrado!</h3>
-                        </div>
-
-                        <div className="p-6 text-center">
-                            <p className="text-3xl font-bold text-green-600 mb-2">
-                                {formatCurrency(lastReceipt.amount)}
-                            </p>
-                            <p className="text-sm text-slate-500 mb-4">
-                                {lastReceipt.clientName} - Cuota #{lastReceipt.number}
-                            </p>
-
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => {
-                                        const msg = `🧾 *Recibo de Pago*\nCliente: ${lastReceipt.clientName}\nMonto: ${formatCurrency(lastReceipt.amount)}\nFecha: ${formatDate(new Date())}\n\n_PrestaPro by RENACE.TECH_`;
-                                        window.open(`https://wa.me/${lastReceipt.clientPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`);
-                                    }}
-                                    className="flex-1 py-3 bg-green-100 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2"
-                                >
-                                    <Share2 size={18} /> WhatsApp
-                                </button>
-                                <button
-                                    onClick={() => window.print()}
-                                    className="flex-1 py-3 bg-blue-100 text-blue-700 font-bold rounded-xl flex items-center justify-center gap-2"
-                                >
-                                    <Printer size={18} /> Imprimir
-                                </button>
-                            </div>
-
-                            <button
-                                onClick={() => setLastReceipt(null)}
-                                className="w-full mt-4 py-3 text-slate-500 font-medium"
-                            >
-                                Cerrar
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <PaymentTicket
+                    receipt={{
+                        id: lastReceipt.id || `REC-${Date.now()}`,
+                        date: lastReceipt.date || new Date(),
+                        clientName: lastReceipt.clientName,
+                        clientPhone: lastReceipt.clientPhone,
+                        amount: lastReceipt.amount,
+                        penalty: lastReceipt.penalty || 0,
+                        total: lastReceipt.amount + (lastReceipt.penalty || 0),
+                        installmentNumber: lastReceipt.number,
+                        remainingBalance: lastReceipt.remainingBalance
+                    }}
+                    companyName="PrestaPro"
+                    onClose={() => setLastReceipt(null)}
+                />
             )}
 
             {/* Expense Form Modal */}
@@ -585,4 +559,3 @@ _PrestaPro by RENACE.TECH_`;
         </div>
     );
 }
-

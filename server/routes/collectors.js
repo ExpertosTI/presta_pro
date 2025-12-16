@@ -452,20 +452,18 @@ router.post('/expenses', async (req, res) => {
             return res.status(404).json({ error: 'Cobrador no encontrado' });
         }
 
-        // Create expense record
+        // Create expense record - only use valid Expense model fields
+        const expenseDescription = description
+            ? `${description} (Cobrador: ${collector.name})`
+            : `Gasto de cobrador (${category}): ${collector.name}`;
+
         const expense = await prisma.expense.create({
             data: {
                 tenantId: collector.tenantId,
                 category: `COLLECTOR_${category}`,
                 amount: parseFloat(amount),
-                description: description || `Gasto de cobrador: ${category}`,
-                date: new Date(),
-                notes: JSON.stringify({
-                    collectorId,
-                    collectorName: collector.name,
-                    location
-                }),
-                createdBy: collector.name
+                description: expenseDescription,
+                date: new Date()
             }
         });
 
