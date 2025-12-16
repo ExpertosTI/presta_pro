@@ -554,4 +554,115 @@ router.post('/:id/unassign-clients', async (req, res) => {
     }
 });
 
+// ============================================
+// COLLECTOR PORTAL ENDPOINTS (Public with collector token)
+// ============================================
+
+/**
+ * GET /api/collectors/:id/clients - Get collector's assigned clients with loans
+ * Works with collector token (from collector portal)
+ */
+router.get('/:id/clients', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Get tenantId from either user token or collector token
+        const tenantId = req.tenantId || req.user?.tenantId;
+
+        if (!tenantId) {
+            return res.status(401).json({ error: 'No autorizado' });
+        }
+
+        // Verify collector belongs to tenant and matches id
+        const collector = await prisma.collector.findFirst({
+            where: { id, tenantId }
+        });
+
+        if (!collector) {
+            return res.status(404).json({ error: 'Cobrador no encontrado' });
+        }
+
+        // Get clients assigned to this collector with their active loans
+        const clients = await prisma.client.findMany({
+            where: {
+                collectorId: id,
+                tenantId
+            },
+            include: {
+                loans: {
+                    where: {
+                        status: { in: ['ACTIVE', 'PENDING'] }
+                    },
+                    orderBy: { createdAt: 'desc' }
+                }
+            }
+        });
+
+        res.json(clients);
+    } catch (error) {
+        console.error('Error fetching collector clients:', error);
+        res.status(500).json({ error: 'Error fetching clients' });
+    }
+});
+
+/**
+ * GET /api/collectors/:id/pending - Get pending collections for today
+ */
+router.get('/:id/pending', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const tenantId = req.tenantId || req.user?.tenantId;
+        const today = new Date().toISOString().split('T')[0];
+
+        // Get all clients for this collector
+        const clients = await prisma.client.findMany({
+            where: { collectorId: id, tenantId },
+            include: {
+                loans: {
+                    where: { status: 'ACTIVE' }
+                }
+            }
+        });
+
+        // Build pending collections list
+        const pendingCollections = [];
+
+        for (const client of clients) {
+            for (const loan of client.loans) {
+                const schedule = Array.isArray(loan.schedule) ? loan.schedule : [];
+                const pendingInstallments = schedule.filter(s =>
+                    s.status === 'PENDING' &&
+                    s.date?.split('T')[0] <= today
+                );
+
+                for (const installment of pendingInstallments) {
+                    pendingCollections.push({
+                        clientId: client.id,
+                        clientName: client.name,
+                        clientPhone: client.phone,
+                        clientAddress: client.address,
+                        loanId: loan.id,
+                        installmentNumber: installment.number,
+                        installmentId: installment.id,
+                        dueDate: installment.date,
+                        amount: installment.payment,
+                        isOverdue: installment.date?.split('T')[0] < today
+                    });
+                }
+            }
+        }
+
+        res.json({
+            collectorId: id,
+            date: today,
+            pendingCount: pendingCollections.length,
+            totalAmount: pendingCollections.reduce((sum, p) => sum + (p.amount || 0), 0),
+            collections: pendingCollections
+        });
+    } catch (error) {
+        console.error('Error fetching pending collections:', error);
+        res.status(500).json({ error: 'Error fetching pending' });
+    }
+});
+
 module.exports = router;
