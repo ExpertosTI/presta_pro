@@ -1280,7 +1280,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                       rate: selectedLoan.rate,
                       term: selectedLoan.term,
                       frequency: selectedLoan.frequency,
-                      amortizationType: selectedLoan.amortizationType,
+                      startDate: new Date().toISOString().split('T')[0], // Today as start date
+                      amortizationType: selectedLoan.amortizationType || 'FRENCH',
                       refinancedFrom: selectedLoan.id
                     });
                   }
