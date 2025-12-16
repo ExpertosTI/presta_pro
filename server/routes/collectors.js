@@ -588,7 +588,7 @@ router.get('/:id/clients', async (req, res) => {
             return res.status(404).json({ error: 'Cobrador no encontrado' });
         }
 
-        // Get clients assigned to this collector with their active loans
+        // Get clients assigned to this collector with their active loans AND installments
         const clients = await prisma.client.findMany({
             where: {
                 collectorId: id,
@@ -599,7 +599,12 @@ router.get('/:id/clients', async (req, res) => {
                     where: {
                         status: { in: ['ACTIVE', 'PENDING'] }
                     },
-                    orderBy: { createdAt: 'desc' }
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        installments: {
+                            orderBy: { number: 'asc' }
+                        }
+                    }
                 }
             }
         });

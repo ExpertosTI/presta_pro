@@ -63,8 +63,9 @@ export default function CollectorDashboard({
     const pendingToday = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
         return loans.filter(loan => {
-            const schedule = Array.isArray(loan.schedule) ? loan.schedule : [];
-            return schedule.some(s =>
+            // Use installments from Prisma relation (not schedule JSON)
+            const installments = Array.isArray(loan.installments) ? loan.installments : [];
+            return installments.some(s =>
                 s.status === 'PENDING' &&
                 s.date?.split('T')[0] <= today
             );
@@ -74,8 +75,8 @@ export default function CollectorDashboard({
     // Stats
     const stats = useMemo(() => {
         const totalPending = pendingToday.reduce((sum, loan) => {
-            const schedule = Array.isArray(loan.schedule) ? loan.schedule : [];
-            const pendingInstallments = schedule.filter(s => s.status === 'PENDING');
+            const installments = Array.isArray(loan.installments) ? loan.installments : [];
+            const pendingInstallments = installments.filter(s => s.status === 'PENDING');
             return sum + pendingInstallments.reduce((s, i) => s + (i.payment || 0), 0);
         }, 0);
 
@@ -224,8 +225,8 @@ export default function CollectorDashboard({
             ) : (
                 <div className="space-y-3">
                     {pendingToday.map(loan => {
-                        const schedule = Array.isArray(loan.schedule) ? loan.schedule : [];
-                        const pendingInstallment = schedule.find(s => s.status === 'PENDING');
+                        const installments = Array.isArray(loan.installments) ? loan.installments : [];
+                        const pendingInstallment = installments.find(s => s.status === 'PENDING');
 
                         return (
                             <Card key={loan.id} className="p-4">
