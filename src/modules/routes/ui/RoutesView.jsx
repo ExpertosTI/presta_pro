@@ -86,11 +86,22 @@ export function RoutesView({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // DEBUG: Initial counts
+    console.log('[RoutesView] Input - loans:', loans?.length, 'clients:', clients?.length, 'includeFuture:', includeFutureInstallments);
+
     const pending = loans.flatMap(loan => {
       const client = clients.find(c => c.id === loan.clientId);
-      if (!client) return [];
 
-      if (!loan.schedule || !Array.isArray(loan.schedule)) return [];
+      // DEBUG: Log loan processing
+      if (!client) {
+        console.log('[RoutesView] Loan without client:', loan.id, 'clientId:', loan.clientId);
+        return [];
+      }
+
+      if (!loan.schedule || !Array.isArray(loan.schedule)) {
+        console.log('[RoutesView] Loan without schedule:', loan.id, 'schedule:', loan.schedule);
+        return [];
+      }
 
       if (collectorFilter && client.collectorId !== collectorFilter) return [];
 
@@ -101,11 +112,17 @@ export function RoutesView({
       }
 
       const pendingInstallment = loan.schedule.find(s => s.status !== 'PAID');
-      if (!pendingInstallment) return [];
+      if (!pendingInstallment) {
+        console.log('[RoutesView] Loan all paid:', loan.id);
+        return [];
+      }
 
       if (!includeFutureInstallments) {
         const dueDate = new Date(pendingInstallment.date);
-        if (dueDate > today) return [];
+        if (dueDate > today) {
+          console.log('[RoutesView] Loan future date:', loan.id, 'due:', pendingInstallment.date);
+          return [];
+        }
       }
 
       return [{
