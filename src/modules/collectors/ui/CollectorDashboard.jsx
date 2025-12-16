@@ -23,6 +23,9 @@ export default function CollectorDashboard({
     const [loading, setLoading] = useState(true);
     const [paymentToConfirm, setPaymentToConfirm] = useState(null);
     const [lastReceipt, setLastReceipt] = useState(null);
+    const [activeTab, setActiveTab] = useState('cobros');
+    const [showExpenseForm, setShowExpenseForm] = useState(false);
+    const [expenseForm, setExpenseForm] = useState({ category: '', amount: '', description: '' });
 
     // Load collector's assigned clients and their loans
     useEffect(() => {
@@ -159,6 +162,41 @@ Fecha: ${formatDate(new Date())}
         
 _PrestaPro by RENACE.TECH_`;
         window.open(`https://wa.me/${item.clientPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`);
+    };
+
+    // Handle expense submit
+    const handleExpenseSubmit = async () => {
+        try {
+            const token = localStorage.getItem('collectorToken');
+            const location = await getLocation();
+
+            const res = await fetch('/api/collectors/expenses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    collectorId: collector.id,
+                    category: expenseForm.category,
+                    amount: parseFloat(expenseForm.amount),
+                    description: expenseForm.description,
+                    location
+                })
+            });
+
+            if (res.ok) {
+                showToast?.('✅ Gasto registrado', 'success');
+                setShowExpenseForm(false);
+                setExpenseForm({ category: '', amount: '', description: '' });
+            } else {
+                const data = await res.json();
+                showToast?.(data.error || 'Error registrando gasto', 'error');
+            }
+        } catch (error) {
+            console.error('Expense error:', error);
+            showToast?.('Error registrando gasto', 'error');
+        }
     };
 
     if (loading) {
@@ -322,6 +360,145 @@ _PrestaPro by RENACE.TECH_`;
                     onCancel={() => setPaymentToConfirm(null)}
                 />
             )}
+
+            {/* Receipt Success Modal */}
+            {lastReceipt && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+                        <div className="bg-green-500 px-6 py-4 text-white text-center">
+                            <CheckCircle className="w-12 h-12 mx-auto mb-2" />
+                            <h3 className="text-lg font-bold">¡Pago Registrado!</h3>
+                        </div>
+
+                        <div className="p-6 text-center">
+                            <p className="text-3xl font-bold text-green-600 mb-2">
+                                {formatCurrency(lastReceipt.amount)}
+                            </p>
+                            <p className="text-sm text-slate-500 mb-4">
+                                {lastReceipt.clientName} - Cuota #{lastReceipt.number}
+                            </p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        const msg = `🧾 *Recibo de Pago*\nCliente: ${lastReceipt.clientName}\nMonto: ${formatCurrency(lastReceipt.amount)}\nFecha: ${formatDate(new Date())}\n\n_PrestaPro by RENACE.TECH_`;
+                                        window.open(`https://wa.me/${lastReceipt.clientPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`);
+                                    }}
+                                    className="flex-1 py-3 bg-green-100 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2"
+                                >
+                                    <Share2 size={18} /> WhatsApp
+                                </button>
+                                <button
+                                    onClick={() => window.print()}
+                                    className="flex-1 py-3 bg-blue-100 text-blue-700 font-bold rounded-xl flex items-center justify-center gap-2"
+                                >
+                                    <Printer size={18} /> Imprimir
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setLastReceipt(null)}
+                                className="w-full mt-4 py-3 text-slate-500 font-medium"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Expense Form Modal */}
+            {showExpenseForm && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+                            📝 Registrar Gasto
+                        </h3>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Categoría</label>
+                                <select
+                                    value={expenseForm.category}
+                                    onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                                    className="w-full p-3 border rounded-xl bg-slate-50 dark:bg-slate-700"
+                                >
+                                    <option value="">Seleccionar...</option>
+                                    <option value="FUEL">⛽ Gasolina</option>
+                                    <option value="FOOD">🍔 Comida</option>
+                                    <option value="TRANSPORT">🚌 Transporte</option>
+                                    <option value="PHONE">📱 Teléfono</option>
+                                    <option value="OTHER">📦 Otro</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Monto</label>
+                                <input
+                                    type="number"
+                                    value={expenseForm.amount}
+                                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                    className="w-full p-3 border rounded-xl bg-slate-50 dark:bg-slate-700 text-lg font-bold"
+                                    placeholder="0.00"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Descripción</label>
+                                <input
+                                    type="text"
+                                    value={expenseForm.description}
+                                    onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                                    className="w-full p-3 border rounded-xl bg-slate-50 dark:bg-slate-700"
+                                    placeholder="Opcional..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => setShowExpenseForm(false)}
+                                className="flex-1 py-3 border rounded-xl"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleExpenseSubmit}
+                                disabled={!expenseForm.category || !expenseForm.amount}
+                                className="flex-1 py-3 bg-indigo-500 text-white font-bold rounded-xl disabled:opacity-50"
+                            >
+                                Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bottom Navigation */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-6 py-3 flex justify-around z-40">
+                <button
+                    onClick={() => setActiveTab('cobros')}
+                    className={`flex flex-col items-center gap-1 ${activeTab === 'cobros' ? 'text-indigo-600' : 'text-slate-400'}`}
+                >
+                    <DollarSign size={20} />
+                    <span className="text-[10px] font-medium">Cobros</span>
+                </button>
+                <button
+                    onClick={() => setShowExpenseForm(true)}
+                    className="flex flex-col items-center gap-1 text-slate-400"
+                >
+                    <AlertTriangle size={20} />
+                    <span className="text-[10px] font-medium">Gastos</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('historial')}
+                    className={`flex flex-col items-center gap-1 ${activeTab === 'historial' ? 'text-indigo-600' : 'text-slate-400'}`}
+                >
+                    <Clock size={20} />
+                    <span className="text-[10px] font-medium">Historial</span>
+                </button>
+            </div>
         </div>
     );
 }
+

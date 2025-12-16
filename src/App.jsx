@@ -886,6 +886,9 @@ function App() {
     const CollectorDashboard = React.lazy(() =>
       import('./modules/collectors').then(m => ({ default: m.CollectorDashboard }))
     );
+    const ChangePasswordModal = React.lazy(() =>
+      import('./modules/collectors').then(m => ({ default: m.ChangePasswordModal }))
+    );
 
     return (
       <div className={theme === 'dark' ? 'dark' : ''}>
@@ -902,6 +905,16 @@ function App() {
             onChangePassword={() => setShowChangePassword(true)}
             showToast={showToast}
           />
+          {showChangePassword && (
+            <ChangePasswordModal
+              collectorId={collectorSession.collector.id}
+              onClose={() => setShowChangePassword(false)}
+              onSuccess={() => {
+                localStorage.setItem('mustChangePassword', 'false');
+              }}
+              showToast={showToast}
+            />
+          )}
         </Suspense>
       </div>
     );
