@@ -103,6 +103,83 @@ export const calculateSchedule = (amount, rate, term, frequency, startDate, type
     return schedule;
   }
 
+  // FIXED_PROFIT - Define target profit amount (Dominican lending model)
+  // Example: Lend $10,000, want to earn $2,000 profit = Total $12,000 / 12 cuotas = $1,000/cuota
+  if (type === 'FIXED_PROFIT') {
+    // 'rate' here is the PROFIT AMOUNT (not percentage)
+    const targetProfit = parseFloat(rate) || 0;
+    const totalToPay = principalAmount + targetProfit;
+    const fixedPayment = parseFloat((totalToPay / totalTerms).toFixed(2));
+    const fixedInterest = parseFloat((targetProfit / totalTerms).toFixed(2));
+    const fixedPrincipal = parseFloat((principalAmount / totalTerms).toFixed(2));
+
+    for (let i = 1; i <= totalTerms; i++) {
+      currentDate.setDate(currentDate.getDate() + daysPerPeriod);
+      balance = parseFloat((principalAmount - (fixedPrincipal * i)).toFixed(2));
+      if (balance < 0) balance = 0;
+
+      let payment = fixedPayment;
+      if (i === totalTerms) {
+        const sumPaid = fixedPayment * (totalTerms - 1);
+        payment = parseFloat((totalToPay - sumPaid).toFixed(2));
+        balance = 0;
+      }
+
+      schedule.push({
+        id: generateId(),
+        number: i,
+        date: currentDate.toISOString().split('T')[0],
+        payment,
+        interest: fixedInterest,
+        principal: fixedPrincipal,
+        balance,
+        status: 'PENDING',
+        paidAmount: 0,
+        paidDate: null
+      });
+    }
+    return schedule;
+  }
+
+  // FIXED_PAYMENT - Define exact installment amount
+  // Example: Each payment is exactly $1,500, calculate total and profit from that
+  if (type === 'FIXED_PAYMENT') {
+    // 'rate' here is the FIXED PAYMENT AMOUNT per period
+    const fixedPayment = parseFloat(rate) || 0;
+    const totalToPay = fixedPayment * totalTerms;
+    const totalProfit = totalToPay - principalAmount;
+    const fixedPrincipal = parseFloat((principalAmount / totalTerms).toFixed(2));
+    const fixedInterest = parseFloat((totalProfit / totalTerms).toFixed(2));
+
+    for (let i = 1; i <= totalTerms; i++) {
+      currentDate.setDate(currentDate.getDate() + daysPerPeriod);
+      balance = parseFloat((principalAmount - (fixedPrincipal * i)).toFixed(2));
+      if (balance < 0) balance = 0;
+
+      let payment = fixedPayment;
+      if (i === totalTerms) {
+        const sumPaid = fixedPayment * (totalTerms - 1);
+        payment = parseFloat((totalToPay - sumPaid).toFixed(2));
+        balance = 0;
+      }
+
+      schedule.push({
+        id: generateId(),
+        number: i,
+        date: currentDate.toISOString().split('T')[0],
+        payment,
+        interest: fixedInterest,
+        principal: fixedPrincipal,
+        balance,
+        status: 'PENDING',
+        paidAmount: 0,
+        paidDate: null
+      });
+    }
+    return schedule;
+  }
+
+
   // SISTEMA FRANCES (Original)
   if (ratePerPeriod === 0) {
     pmt = principalAmount / totalTerms;

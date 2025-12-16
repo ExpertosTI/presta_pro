@@ -546,7 +546,11 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa %</label>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    {createForm.amortizationType === 'FIXED_PROFIT' && 'Ganancia (RD$)'}
+                    {createForm.amortizationType === 'FIXED_PAYMENT' && 'Cuota Fija (RD$)'}
+                    {(createForm.amortizationType === 'FLAT' || createForm.amortizationType === 'FRENCH') && 'Tasa %'}
+                  </label>
                   <input
                     type="number"
                     min="0"
@@ -554,6 +558,10 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                     value={createForm.rate}
                     onChange={(e) => setCreateForm({ ...createForm, rate: e.target.value })}
+                    placeholder={
+                      createForm.amortizationType === 'FIXED_PROFIT' ? '2000' :
+                        createForm.amortizationType === 'FIXED_PAYMENT' ? '1500' : '20'
+                    }
                   />
                 </div>
                 <div>
@@ -612,13 +620,16 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   value={createForm.amortizationType}
                   onChange={(e) => setCreateForm({ ...createForm, amortizationType: e.target.value })}
                 >
-                  <option value="FLAT">Saldo Absoluto (Interés Simple)</option>
-                  <option value="FRENCH">Saldo Insoluto (Interés Compuesto)</option>
+                  <option value="FLAT">Interés Fijo (% sobre capital)</option>
+                  <option value="FIXED_PROFIT">Ganancia Fija (monto a ganar)</option>
+                  <option value="FIXED_PAYMENT">Cuota Fija (define monto cuota)</option>
+                  <option value="FRENCH">Saldo Insoluto (bancos)</option>
                 </select>
                 <p className="text-[10px] text-slate-400 mt-1">
-                  {createForm.amortizationType === 'FLAT'
-                    ? 'Ej: 10,000 al 20% = 12,000 total (común en financieras)'
-                    : 'Interés calculado sobre saldo restante (bancos)'}
+                  {createForm.amortizationType === 'FLAT' && 'Ej: 10,000 al 20% = 12,000 total'}
+                  {createForm.amortizationType === 'FIXED_PROFIT' && 'Define cuánto quieres ganar en total'}
+                  {createForm.amortizationType === 'FIXED_PAYMENT' && 'Define el monto exacto de cada cuota'}
+                  {createForm.amortizationType === 'FRENCH' && 'Interés sobre saldo restante (bancos)'}
                 </p>
               </div>
               <div className="flex gap-2 pt-2">
