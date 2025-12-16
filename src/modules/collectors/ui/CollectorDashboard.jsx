@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import Badge from '../../../shared/components/ui/Badge';
-import PaymentTicket from '../../../shared/components/ui/PaymentTicket';
+import DigitalReceipt from '../../../components/DigitalReceipt';
+import { printThermalReceipt } from '../../../services/thermalPrinter';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { PaymentConfirmationModal } from '../../payments';
 
@@ -446,22 +447,24 @@ _PrestaPro by RENACE.TECH_`;
                 />
             )}
 
-            {/* Receipt Success Modal - uses PaymentTicket with 58mm thermal print */}
+            {/* Receipt Success Modal - uses DigitalReceipt with thermal print like RoutesView */}
             {lastReceipt && (
-                <PaymentTicket
-                    receipt={{
-                        id: lastReceipt.id || `REC-${Date.now()}`,
-                        date: lastReceipt.date || new Date(),
-                        clientName: lastReceipt.clientName,
-                        clientPhone: lastReceipt.clientPhone,
-                        amount: lastReceipt.amount,
-                        penalty: lastReceipt.penalty || 0,
-                        total: lastReceipt.amount + (lastReceipt.penalty || 0),
-                        installmentNumber: lastReceipt.number,
-                        remainingBalance: lastReceipt.remainingBalance
-                    }}
+                <DigitalReceipt
+                    receipt={lastReceipt}
                     companyName="PrestaPro"
                     onClose={() => setLastReceipt(null)}
+                    onPrint={() => {
+                        printThermalReceipt({
+                            id: lastReceipt.id,
+                            date: lastReceipt.date || new Date(),
+                            clientName: lastReceipt.clientName,
+                            clientPhone: lastReceipt.clientPhone,
+                            amount: lastReceipt.amount,
+                            penaltyAmount: lastReceipt.penalty || 0,
+                            installmentNumber: lastReceipt.number,
+                            remainingBalance: lastReceipt.remainingBalance
+                        }, { companyName: 'PrestaPro' });
+                    }}
                 />
             )}
 
