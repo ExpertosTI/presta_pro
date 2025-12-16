@@ -242,3 +242,156 @@ export const printThermalTicket = (receipt, options = {}) => {
     iframe.contentWindow.dispatchEvent(new Event('load'));
   }
 };
+
+/**
+ * Print Text Receipt - Odoo POS style plain text format for 58mm thermal printers
+ * Uses monospace text with character alignment, minimal CSS - like ESC/POS output
+ * This format is more compatible with basic thermal printers
+ * 
+ * @param {Object} receipt - Receipt data
+ * @param {Object} options - { companyName, isCopy }
+ */
+export const printTextReceipt = (receipt, options = {}) => {
+  if (!receipt) return;
+
+  const { companyName = 'Presta Pro', isCopy = false } = options;
+  const LINE_WIDTH = 32; // Characters width for 58mm paper
+
+  // Helper functions
+  const center = (text) => {
+    const padding = Math.max(0, Math.floor((LINE_WIDTH - text.length) / 2));
+    return ' '.repeat(padding) + text;
+  };
+
+  const leftRight = (left, right) => {
+    const spaces = Math.max(1, LINE_WIDTH - left.length - right.length);
+    return left + ' '.repeat(spaces) + right;
+  };
+
+  const line = (char = '-') => char.repeat(LINE_WIDTH);
+
+  const formatMoney = (amount) => {
+    return 'RD$' + parseFloat(amount || 0).toFixed(2);
+  };
+
+  const formatDateShort = (date) => {
+    const d = new Date(date);
+    return d.toLocaleDateString('es-DO', {
+      day: '2-digit', month: '2-digit', year: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+  };
+
+  const baseAmount = parseFloat(receipt.amount || 0);
+  const penaltyAmount = parseFloat(receipt.penaltyAmount || receipt.penalty || 0);
+  const totalAmount = baseAmount + penaltyAmount;
+
+  // Build plain text receipt (Odoo POS style)
+  const lines = [];
+
+  // Copy banner
+  if (isCopy) {
+    lines.push(center('*** COPIA ***'));
+    lines.push('');
+  }
+
+  // Header
+  lines.push(center(companyName.toUpperCase()));
+  lines.push(center('COMPROBANTE DE PAGO'));
+  if (isCopy) lines.push(center('(REIMPRESO)'));
+  lines.push(line('='));
+
+  // Reference & Date
+  lines.push('Ref: ' + (receipt.id || '').slice(-8).toUpperCase());
+  lines.push('Fecha: ' + formatDateShort(receipt.date || new Date()));
+  lines.push(line('-'));
+
+  // Client
+  lines.push('CLIENTE:');
+  lines.push((receipt.clientName || 'Cliente').substring(0, LINE_WIDTH));
+  if (receipt.clientPhone) {
+    lines.push('Tel: ' + receipt.clientPhone);
+  }
+  lines.push(line('-'));
+
+  // Detail
+  lines.push('DETALLE:');
+  const cuotaLabel = receipt.isPartialPayment
+    ? `Abono Cuota #${receipt.installmentNumber || receipt.number || 1}`
+    : `Cuota #${receipt.installmentNumber || receipt.number || 1}`;
+  lines.push(leftRight(cuotaLabel, formatMoney(baseAmount)));
+
+  if (penaltyAmount > 0) {
+    lines.push(leftRight('Mora', formatMoney(penaltyAmount)));
+  }
+
+  if (receipt.remainingBalance !== undefined) {
+    lines.push(leftRight('Saldo Pend.', formatMoney(receipt.remainingBalance)));
+  }
+
+  lines.push(line('='));
+
+  // Total
+  lines.push(center('TOTAL PAGADO'));
+  lines.push(center(formatMoney(totalAmount)));
+  lines.push(line('='));
+
+  // Footer
+  lines.push('');
+  lines.push(center('Gracias por su pago!'));
+  lines.push(center('Conserve este comprobante'));
+  lines.push('');
+
+  // Convert to plain text HTML (monospace, no styling)
+  const textContent = lines.join('\n');
+
+  const ticketHTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ticket</title>
+<style>
+@page { size: 58mm auto; margin: 0; }
+@media print { body { width: 58mm; } }
+body {
+  font-family: 'Courier New', 'Lucida Console', monospace;
+  font-size: 10px;
+  line-height: 1.1;
+  margin: 0;
+  padding: 2mm;
+  white-space: pre;
+  background: white;
+  color: black;
+}
+</style>
+</head>
+<body>${textContent}</body>
+</html>`;
+
+  // Use iframe print (same working pattern)
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(ticketHTML);
+  doc.close();
+
+  iframe.contentWindow.addEventListener('load', () => {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        console.error('Print text receipt failed', e);
+      } finally {
+        setTimeout(() => document.body.removeChild(iframe), 60000);
+      }
+    }, 500);
+  });
+
+  if (iframe.contentWindow.document.readyState === 'complete') {
+    iframe.contentWindow.dispatchEvent(new Event('load'));
+  }
+};

@@ -489,7 +489,7 @@ export function RoutesView({
               <div
                 key={stop.id}
                 className={`glass p-4 rounded-xl transition-all ${status === 'PAID' ? 'opacity-60 border-emerald-300' :
-                    status === 'REFUSED' || status === 'NOT_HOME' ? 'opacity-75 border-amber-300' : ''
+                  status === 'REFUSED' || status === 'NOT_HOME' ? 'opacity-75 border-amber-300' : ''
                   }`}
               >
                 <div className="flex flex-col md:flex-row justify-between items-start gap-3">
@@ -864,13 +864,12 @@ export function RoutesView({
           companyName={systemSettings?.companyName || 'Presta Pro'}
           companyLogo={systemSettings?.companyLogo}
           onClose={() => setReceiptToShow(null)}
-          onPrint={() => {
-            if (setPrintReceipt && handlePrint) {
-              setPrintReceipt(receiptToShow);
-              setTimeout(() => handlePrint(), 100);
-            } else {
-              window.print();
-            }
+          onPrint={async () => {
+            // Use printTextReceipt (Odoo POS style plain text for 58mm thermal)
+            const { printTextReceipt } = await import('../../../shared/utils/printUtils');
+            printTextReceipt(receiptToShow, {
+              companyName: systemSettings?.companyName || 'Presta Pro'
+            });
           }}
         />
       )}
