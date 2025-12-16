@@ -58,17 +58,32 @@ const authMiddleware = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        // Validate required fields in token
-        if (!decoded.userId || !decoded.tenantId) {
-            console.error(`🚨 AUTH_MISSING_CLAIMS: Token missing userId or tenantId. IP: ${clientIP}`);
+        // Validate required fields in token - allow userId OR collectorId
+        if (!decoded.tenantId) {
+            console.error(`🚨 AUTH_MISSING_CLAIMS: Token missing tenantId. IP: ${clientIP}`);
             return res.status(403).json({ error: 'Token con datos incompletos. Por favor inicie sesión nuevamente.' });
         }
 
-        req.user = decoded; // { userId, tenantId, role, ... }
-        req.tenantId = decoded.tenantId; // Explicitly set for routes using req.tenantId
+        // Check if this is a collector token or user token
+        if (decoded.collectorId) {
+            // Collector token
+            req.user = decoded;
+            req.tenantId = decoded.tenantId;
+            req.collectorId = decoded.collectorId;
+            req.isCollector = true;
+            console.log(`✅ AUTH_COLLECTOR: Collector ${decoded.collectorId} authenticated`);
+        } else if (decoded.userId) {
+            // Regular user token
+            req.user = decoded;
+            req.tenantId = decoded.tenantId;
+            req.isCollector = false;
+        } else {
+            console.error(`🚨 AUTH_MISSING_CLAIMS: Token missing userId and collectorId. IP: ${clientIP}`);
+            return res.status(403).json({ error: 'Token con datos incompletos. Por favor inicie sesión nuevamente.' });
+        }
 
-        // Check if tenant is suspended (skip for super admins)
-        if (decoded.tenantId && decoded.role?.toUpperCase() !== 'SUPER_ADMIN') {
+        // Check if tenant is suspended (skip for super admins and collectors)
+        if (decoded.tenantId && decoded.role?.toUpperCase() !== 'SUPER_ADMIN' && !decoded.collectorId) {
             const prisma = require('../lib/prisma');
             const tenant = await prisma.tenant.findUnique({
                 where: { id: decoded.tenantId },

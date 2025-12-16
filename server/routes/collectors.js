@@ -573,6 +573,12 @@ router.get('/:id/clients', async (req, res) => {
             return res.status(401).json({ error: 'No autorizado' });
         }
 
+        // Security: If this is a collector request, they can only access their own data
+        if (req.isCollector && req.collectorId !== id) {
+            console.warn(`⚠️ COLLECTOR_ACCESS_DENIED: Collector ${req.collectorId} tried to access data for ${id}`);
+            return res.status(403).json({ error: 'No tienes permiso para ver estos datos' });
+        }
+
         // Verify collector belongs to tenant and matches id
         const collector = await prisma.collector.findFirst({
             where: { id, tenantId }
