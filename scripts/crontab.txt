@@ -1,0 +1,8 @@
+# PrestaPro Cron Jobs
+# Add this to server crontab: crontab -e
+
+# Daily database backup at 2:00 AM
+0 2 * * * /opt/presta_pro/scripts/backup.sh >> /var/log/prestapro_backup.log 2>&1
+
+# Weekly full backup (Sunday at 3:00 AM) 
+0 3 * * 0 /opt/presta_pro/scripts/backup.sh >> /var/log/prestapro_weekly_backup.log 2>&1

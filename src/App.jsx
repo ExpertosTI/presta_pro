@@ -58,7 +58,7 @@ const ExpensesView = React.lazy(() => import('./modules/expenses').then(module =
 const RequestsView = React.lazy(() => import('./modules/requests').then(module => ({ default: module.RequestsView })));
 const RoutesView = React.lazy(() => import('./modules/routes').then(module => ({ default: module.RoutesView })));
 const NotesView = React.lazy(() => import('./modules/notes').then(module => ({ default: module.NotesView })));
-const ReportsView = React.lazy(() => import('./modules/reports').then(module => ({ default: module.ReportsView })));
+// ReportsView removed - module not in use
 const PricingView = React.lazy(() => import('./modules/settings').then(module => ({ default: module.PricingView })));
 const SettingsView = React.lazy(() => import('./modules/settings').then(module => ({ default: module.SettingsView })));
 const DocumentsView = React.lazy(() => import('./modules/documents').then(module => ({ default: module.DocumentsView })));
@@ -792,8 +792,7 @@ function App() {
             }
           }}
         />;
-      case 'reports':
-        return <ReportsView loans={dbData.loans} expenses={dbData.expenses} />;
+      // case 'reports': removed
       case 'hr':
         return <HRView
           employees={dbData.employees}
@@ -999,7 +998,7 @@ function App() {
           </MenuSection>
 
           <MenuSection title="Administración">
-            <MenuItem id="reports" label="Reportes" icon={PieChart} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
+            {/* Reports menu item removed */}
             <MenuItem id="hr" label="RRHH" icon={UserCheck} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
             <MenuItem id="accounting" label="Contabilidad" icon={Wallet} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} />
             <MenuItem id="collectors-manage" label="Cobradores" icon={Users} activeTab={activeTab} onClick={(t) => { setActiveTab(t); setSidebarOpen(false); }} badge="V2" />
@@ -1031,7 +1030,7 @@ function App() {
             documents: 'Documentos',
             calculator: 'Calculadora',
             ai: 'Asistente IA',
-            reports: 'Reportes'
+            // reports removed
           }[activeTab] || activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
           setMobileMenuOpen={setSidebarOpen}
           theme={theme}
