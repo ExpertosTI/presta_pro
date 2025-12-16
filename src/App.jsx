@@ -866,8 +866,73 @@ function App() {
   };
 
 
-  // If not authenticated, show login
+  // Check if accessing collector login route
+  const isCollectorLogin = window.location.pathname.includes('collector-login');
+
+  // Check for existing collector session
+  const [collectorSession, setCollectorSession] = useState(() => {
+    const token = localStorage.getItem('collectorToken');
+    const data = localStorage.getItem('collectorData');
+    if (token && data) {
+      return { token, collector: JSON.parse(data) };
+    }
+    return null;
+  });
+
+  const [showChangePassword, setShowChangePassword] = useState(false);
+
+  // If collector is logged in, show collector dashboard
+  if (collectorSession) {
+    const CollectorDashboard = React.lazy(() =>
+      import('./modules/collectors').then(m => ({ default: m.CollectorDashboard }))
+    );
+
+    return (
+      <div className={theme === 'dark' ? 'dark' : ''}>
+        <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div></div>}>
+          <CollectorDashboard
+            collector={collectorSession.collector}
+            onLogout={() => {
+              localStorage.removeItem('collectorToken');
+              localStorage.removeItem('collectorData');
+              localStorage.removeItem('collectorTenant');
+              setCollectorSession(null);
+              window.location.href = '/';
+            }}
+            onChangePassword={() => setShowChangePassword(true)}
+            showToast={showToast}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
+  // If accessing collector login URL or not authenticated
   if (!token) {
+    // Show collector login if on collector-login path
+    if (isCollectorLogin) {
+      const CollectorLoginView = React.lazy(() =>
+        import('./modules/collectors').then(m => ({ default: m.CollectorLoginView }))
+      );
+
+      return (
+        <div className={theme === 'dark' ? 'dark' : ''}>
+          <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"></div></div>}>
+            <CollectorLoginView
+              onLogin={(data) => {
+                setCollectorSession({ token: data.token, collector: data.collector });
+                if (data.mustChangePassword) {
+                  setShowChangePassword(true);
+                }
+              }}
+              onSwitchToUserLogin={() => window.location.href = '/'}
+            />
+          </Suspense>
+        </div>
+      );
+    }
+
+    // Show regular login
     return (
       <div className={theme === 'dark' ? 'dark' : ''}>
         <LoginView
