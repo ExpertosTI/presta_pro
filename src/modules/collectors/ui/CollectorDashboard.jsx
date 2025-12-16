@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Users, DollarSign, Clock, Phone, LogOut, Key,
-    CheckCircle, MapPin, AlertTriangle, Share2, Printer
+    CheckCircle, MapPin, AlertTriangle, Share2, Printer, Navigation
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import Badge from '../../../shared/components/ui/Badge';
@@ -26,6 +26,7 @@ export default function CollectorDashboard({
     const [activeTab, setActiveTab] = useState('cobros');
     const [showExpenseForm, setShowExpenseForm] = useState(false);
     const [expenseForm, setExpenseForm] = useState({ category: '', amount: '', description: '' });
+    const [todayPayments, setTodayPayments] = useState([]);
 
     // Load collector's assigned clients and their loans
     useEffect(() => {
@@ -140,7 +141,23 @@ export default function CollectorDashboard({
 
             if (res.ok) {
                 showToast?.('✅ Pago registrado correctamente', 'success');
-                setLastReceipt(data.receipt);
+
+                // Add to today's payments for history
+                setTodayPayments(prev => [...prev, {
+                    clientName: paymentToConfirm.clientName,
+                    clientPhone: paymentToConfirm.clientPhone,
+                    number: paymentToConfirm.number,
+                    amount: options.customAmount || paymentToConfirm.amount,
+                    date: new Date()
+                }]);
+
+                setLastReceipt({
+                    ...data.receipt,
+                    clientName: paymentToConfirm.clientName,
+                    clientPhone: paymentToConfirm.clientPhone,
+                    amount: options.customAmount || paymentToConfirm.amount,
+                    number: paymentToConfirm.number
+                });
                 setPaymentToConfirm(null);
                 loadData();
             } else {
@@ -256,101 +273,168 @@ _PrestaPro by RENACE.TECH_`;
                     <p className="text-lg font-bold text-slate-900 dark:text-white">{formatCurrency(stats.totalPending)}</p>
                     <p className="text-[10px] text-slate-500">Por Cobrar</p>
                 </div>
+                <div className="flex-shrink-0 bg-white dark:bg-slate-800 rounded-xl p-4 min-w-[100px] text-center shadow">
+                    <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">{todayPayments.length}</p>
+                    <p className="text-[10px] text-slate-500">Cobrados</p>
+                </div>
             </div>
 
-            {/* Pending Collections */}
-            <div className="px-4">
-                <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                    📋 Cobros Pendientes
-                    <span className="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full">
-                        {pendingToday.length}
-                    </span>
-                </h2>
+            {/* Tab Content */}
+            {activeTab === 'cobros' ? (
+                <div className="px-4">
+                    <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                        📋 Cobros Pendientes
+                        <span className="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full">
+                            {pendingToday.length}
+                        </span>
+                    </h2>
 
-                {pendingToday.length === 0 ? (
-                    <Card className="p-8 text-center">
-                        <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                        <p className="text-slate-600 dark:text-slate-400">¡No hay cobros pendientes!</p>
-                    </Card>
-                ) : (
-                    <div className="space-y-3">
-                        {pendingToday.map((item, idx) => (
-                            <div
-                                key={`${item.loanId}-${item.id}`}
-                                className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4 border-indigo-500"
-                            >
-                                {/* Client Info */}
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-slate-900 dark:text-white truncate">
-                                            {item.clientName}
-                                        </p>
-                                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                                            <Phone size={12} />
-                                            <a href={`tel:${item.clientPhone}`} className="text-blue-600">
-                                                {item.clientPhone}
-                                            </a>
-                                        </div>
-                                        {item.clientAddress && (
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                                                <MapPin size={12} />
-                                                <span className="truncate">{item.clientAddress}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-right">
-                                        <Badge variant={item.isOverdue ? 'danger' : 'warning'}>
-                                            Cuota #{item.number}
-                                        </Badge>
-                                        {item.isOverdue && (
-                                            <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1 justify-end">
-                                                <AlertTriangle size={10} /> Vencida
+                    {pendingToday.length === 0 ? (
+                        <Card className="p-8 text-center">
+                            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                            <p className="text-slate-600 dark:text-slate-400">¡No hay cobros pendientes!</p>
+                        </Card>
+                    ) : (
+                        <div className="space-y-3">
+                            {pendingToday.map((item, idx) => (
+                                <div
+                                    key={`${item.loanId}-${item.id}`}
+                                    className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4 border-indigo-500"
+                                >
+                                    {/* Client Info */}
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-slate-900 dark:text-white truncate">
+                                                {item.clientName}
                                             </p>
-                                        )}
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                                <Phone size={12} />
+                                                <a href={`tel:${item.clientPhone}`} className="text-blue-600">
+                                                    {item.clientPhone}
+                                                </a>
+                                            </div>
+                                            {item.clientAddress && (
+                                                <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                                    <MapPin size={12} />
+                                                    <span className="truncate">{item.clientAddress}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="text-right">
+                                            <Badge variant={item.isOverdue ? 'danger' : 'warning'}>
+                                                Cuota #{item.number}
+                                            </Badge>
+                                            {item.isOverdue && (
+                                                <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1 justify-end">
+                                                    <AlertTriangle size={10} /> Vencida
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Amount and Actions */}
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                                                {formatCurrency(item.payment)}
+                                            </p>
+                                            <p className="text-[10px] text-slate-500">
+                                                Vence: {formatDate(item.date)}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            {/* Call */}
+                                            <a
+                                                href={`tel:${item.clientPhone}`}
+                                                className="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-600 rounded-full"
+                                            >
+                                                <Phone size={18} />
+                                            </a>
+
+                                            {/* GPS Navigation */}
+                                            {item.clientAddress && (
+                                                <button
+                                                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.clientAddress)}`)}
+                                                    className="w-10 h-10 flex items-center justify-center bg-purple-100 text-purple-600 rounded-full"
+                                                >
+                                                    <Navigation size={18} />
+                                                </button>
+                                            )}
+
+                                            {/* WhatsApp */}
+                                            <button
+                                                onClick={() => shareReceipt(item)}
+                                                className="w-10 h-10 flex items-center justify-center bg-green-100 text-green-600 rounded-full"
+                                            >
+                                                <Share2 size={18} />
+                                            </button>
+
+                                            {/* Cobrar Button */}
+                                            <button
+                                                onClick={() => setPaymentToConfirm({
+                                                    loanId: item.loanId,
+                                                    installmentId: item.id,
+                                                    clientName: item.clientName,
+                                                    clientPhone: item.clientPhone,
+                                                    number: item.number,
+                                                    date: item.date,
+                                                    amount: item.payment
+                                                })}
+                                                className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl shadow active:scale-95 transition-transform"
+                                            >
+                                                Cobrar
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ) : activeTab === 'historial' ? (
+                <div className="px-4">
+                    <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                        ✅ Cobros de Hoy
+                        <span className="bg-emerald-100 text-emerald-600 text-xs px-2 py-0.5 rounded-full">
+                            {todayPayments.length}
+                        </span>
+                    </h2>
 
-                                {/* Amount and Actions */}
+                    {todayPayments.length === 0 ? (
+                        <Card className="p-8 text-center">
+                            <Clock className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                            <p className="text-slate-600 dark:text-slate-400">No hay cobros registrados hoy</p>
+                        </Card>
+                    ) : (
+                        <div className="space-y-3">
+                            {todayPayments.map((payment, idx) => (
+                                <Card key={idx} className="p-4 border-l-4 border-emerald-500">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-bold text-slate-900 dark:text-white">{payment.clientName}</p>
+                                            <p className="text-xs text-slate-500">Cuota #{payment.number}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-lg font-bold text-emerald-600">{formatCurrency(payment.amount)}</p>
+                                            <p className="text-[10px] text-slate-500">{formatDate(payment.date)}</p>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                            <Card className="p-4 bg-emerald-50 dark:bg-emerald-900/20">
                                 <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                                            {formatCurrency(item.payment)}
-                                        </p>
-                                        <p className="text-[10px] text-slate-500">
-                                            Vence: {formatDate(item.date)}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        {/* WhatsApp */}
-                                        <button
-                                            onClick={() => shareReceipt(item)}
-                                            className="w-10 h-10 flex items-center justify-center bg-green-100 text-green-600 rounded-full"
-                                        >
-                                            <Share2 size={18} />
-                                        </button>
-
-                                        {/* Cobrar Button */}
-                                        <button
-                                            onClick={() => setPaymentToConfirm({
-                                                loanId: item.loanId,
-                                                installmentId: item.id,
-                                                clientName: item.clientName,
-                                                number: item.number,
-                                                date: item.date,
-                                                amount: item.payment
-                                            })}
-                                            className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl shadow active:scale-95 transition-transform"
-                                        >
-                                            Cobrar
-                                        </button>
-                                    </div>
+                                    <p className="font-bold text-emerald-700 dark:text-emerald-400">Total Cobrado</p>
+                                    <p className="text-xl font-bold text-emerald-600">
+                                        {formatCurrency(todayPayments.reduce((sum, p) => sum + (p.amount || 0), 0))}
+                                    </p>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+            ) : null}
 
             {/* Payment Confirmation Modal */}
             {paymentToConfirm && (
