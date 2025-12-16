@@ -865,10 +865,11 @@ export function RoutesView({
           companyLogo={systemSettings?.companyLogo}
           onClose={() => setReceiptToShow(null)}
           onPrint={async () => {
-            // Use printTextReceipt (Odoo POS style plain text for 58mm thermal)
-            const { printTextReceipt } = await import('../../../shared/utils/printUtils');
-            printTextReceipt(receiptToShow, {
+            // Use printModernTicket (HTML with logo, like Odoo POS)
+            const { printModernTicket } = await import('../../../shared/utils/printUtils');
+            printModernTicket(receiptToShow, {
               companyName: systemSettings?.companyName || 'Presta Pro',
+              companyLogo: systemSettings?.companyLogo || '',
               companyAddress: systemSettings?.companyAddress || '',
               companyPhone: systemSettings?.companyPhone || '',
               companyWhatsApp: systemSettings?.companyWhatsApp || ''

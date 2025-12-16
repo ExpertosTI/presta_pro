@@ -418,3 +418,265 @@ body {
     iframe.contentWindow.dispatchEvent(new Event('load'));
   }
 };
+
+/**
+ * Print Modern Ticket - HTML/CSS with logo support for 58mm thermal printers
+ * Similar to Odoo POS receipt format - works with printers that support graphics
+ * 
+ * @param {Object} receipt - Receipt data
+ * @param {Object} options - { companyName, companyLogo, companyAddress, companyPhone, companyWhatsApp, isCopy }
+ */
+export const printModernTicket = (receipt, options = {}) => {
+  if (!receipt) return;
+
+  const {
+    companyName = 'Presta Pro',
+    companyLogo = '',
+    companyAddress = '',
+    companyPhone = '',
+    companyWhatsApp = '',
+    isCopy = false
+  } = options;
+
+  const formatMoney = (amount) => {
+    return new Intl.NumberFormat('es-DO', {
+      style: 'currency',
+      currency: 'DOP',
+      minimumFractionDigits: 2
+    }).format(amount || 0);
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('es-DO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const baseAmount = parseFloat(receipt.amount || 0);
+  const penaltyAmount = parseFloat(receipt.penaltyAmount || receipt.penalty || 0);
+  const totalAmount = baseAmount + penaltyAmount;
+
+  const ticketHTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ticket ${isCopy ? '(COPIA)' : ''}</title>
+<style>
+@page { 
+  size: 58mm auto; 
+  margin: 0; 
+}
+* { 
+  margin: 0; 
+  padding: 0; 
+  box-sizing: border-box; 
+}
+body {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.3;
+  width: 58mm;
+  max-width: 58mm;
+  padding: 2mm;
+  background: white;
+  color: black;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.copy-banner {
+  background: #000;
+  color: #fff;
+  text-align: center;
+  font-weight: bold;
+  padding: 3px;
+  margin-bottom: 3mm;
+  font-size: 12px;
+}
+.header {
+  text-align: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 2mm;
+  margin-bottom: 2mm;
+}
+.logo {
+  max-width: 35mm;
+  max-height: 15mm;
+  margin: 0 auto 2mm;
+  display: block;
+}
+.company-name {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 1mm;
+}
+.company-info {
+  font-size: 9px;
+  color: #333;
+}
+.title {
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  margin: 2mm 0;
+  padding: 1mm 0;
+  background: #f0f0f0;
+}
+.ref-date {
+  font-size: 9px;
+  margin-bottom: 2mm;
+}
+.divider {
+  border-top: 1px dashed #000;
+  margin: 2mm 0;
+}
+.section-title {
+  font-weight: bold;
+  font-size: 10px;
+  background: #eee;
+  padding: 1mm 2mm;
+  margin-bottom: 1mm;
+}
+.client-box {
+  background: #f8f8f8;
+  padding: 2mm;
+  border: 1px solid #ddd;
+  margin-bottom: 2mm;
+}
+.client-name {
+  font-size: 12px;
+  font-weight: bold;
+}
+.client-phone {
+  font-size: 9px;
+  color: #666;
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 1mm 0;
+  font-size: 10px;
+}
+.detail-row.penalty {
+  color: #c00;
+}
+.total-box {
+  background: #000;
+  color: #fff;
+  text-align: center;
+  padding: 3mm 2mm;
+  margin: 2mm 0;
+}
+.total-label {
+  font-size: 10px;
+  margin-bottom: 1mm;
+}
+.total-amount {
+  font-size: 18px;
+  font-weight: bold;
+}
+.footer {
+  text-align: center;
+  font-size: 9px;
+  margin-top: 2mm;
+  padding-top: 2mm;
+  border-top: 1px dashed #000;
+}
+.footer-thanks {
+  font-weight: bold;
+  margin-bottom: 1mm;
+}
+@media print {
+  body { 
+    width: 58mm !important; 
+    max-width: 58mm !important;
+  }
+}
+</style>
+</head>
+<body>
+${isCopy ? '<div class="copy-banner">*** COPIA ***</div>' : ''}
+
+<div class="header">
+  ${companyLogo ? `<img src="${companyLogo}" class="logo" alt="${companyName}">` : ''}
+  <div class="company-name">${companyName}</div>
+  ${companyAddress ? `<div class="company-info">${companyAddress}</div>` : ''}
+  ${companyPhone ? `<div class="company-info">Tel: ${companyPhone}</div>` : ''}
+  ${companyWhatsApp ? `<div class="company-info">WhatsApp: ${companyWhatsApp}</div>` : ''}
+</div>
+
+<div class="title">COMPROBANTE DE PAGO${isCopy ? ' (REIMPRESO)' : ''}</div>
+
+<div class="ref-date">
+  <div><strong>Ref:</strong> ${(receipt.id || '').slice(-8).toUpperCase()}</div>
+  <div><strong>Fecha:</strong> ${formatDate(receipt.date || new Date())}</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="section-title">CLIENTE</div>
+<div class="client-box">
+  <div class="client-name">${receipt.clientName || 'Cliente'}</div>
+  ${receipt.clientPhone ? `<div class="client-phone">Tel: ${receipt.clientPhone}</div>` : ''}
+</div>
+
+<div class="section-title">DETALLE</div>
+<div class="detail-row">
+  <span>${receipt.isPartialPayment ? 'Abono' : 'Cuota'} #${receipt.installmentNumber || receipt.number || 1}</span>
+  <span><strong>${formatMoney(baseAmount)}</strong></span>
+</div>
+${penaltyAmount > 0 ? `
+<div class="detail-row penalty">
+  <span>Mora</span>
+  <span><strong>${formatMoney(penaltyAmount)}</strong></span>
+</div>
+` : ''}
+${receipt.remainingBalance !== undefined ? `
+<div class="detail-row">
+  <span>Saldo Pendiente</span>
+  <span>${formatMoney(receipt.remainingBalance)}</span>
+</div>
+` : ''}
+
+<div class="total-box">
+  <div class="total-label">TOTAL PAGADO</div>
+  <div class="total-amount">${formatMoney(totalAmount)}</div>
+</div>
+
+<div class="footer">
+  <div class="footer-thanks">¡Gracias por su pago!</div>
+  <div>Conserve este comprobante</div>
+</div>
+</body>
+</html>`;
+
+  // Use iframe print (same working pattern)
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(ticketHTML);
+  doc.close();
+
+  iframe.contentWindow.addEventListener('load', () => {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        console.error('Print modern ticket failed', e);
+      } finally {
+        setTimeout(() => document.body.removeChild(iframe), 60000);
+      }
+    }, 500);
+  });
+
+  if (iframe.contentWindow.document.readyState === 'complete') {
+    iframe.contentWindow.dispatchEvent(new Event('load'));
+  }
+};
