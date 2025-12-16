@@ -84,6 +84,9 @@ model Collector {
   lastLatitude   Float?    // Última ubicación GPS
   lastLongitude  Float?
   
+  // Security
+  mustChangePassword Boolean @default(true) // Force password change on first login
+  
   // Permisos (JSON con flags)
   permissions  Json      @default("{}")
   

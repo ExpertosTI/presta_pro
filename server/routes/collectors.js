@@ -348,6 +348,7 @@ router.post('/login', async (req, res) => {
 
         res.json({
             token,
+            mustChangePassword: collector.mustChangePassword ?? true,
             collector: {
                 id: collector.id,
                 name: collector.name,
@@ -365,6 +366,67 @@ router.post('/login', async (req, res) => {
     } catch (error) {
         console.error('Collector login error:', error);
         res.status(500).json({ error: 'Error en login' });
+    }
+});
+
+/**
+ * POST /api/collectors/change-password - Change collector password
+ * Requires collector token
+ */
+router.post('/change-password', async (req, res) => {
+    try {
+        const { currentPassword, newPassword, collectorId } = req.body;
+
+        if (!currentPassword || !newPassword || !collectorId) {
+            return res.status(400).json({ error: 'Todos los campos son requeridos' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+        }
+
+        // Find collector
+        const collector = await prisma.collector.findUnique({
+            where: { id: collectorId }
+        });
+
+        if (!collector || !collector.passwordHash) {
+            return res.status(404).json({ error: 'Cobrador no encontrado' });
+        }
+
+        // Verify current password
+        const validPassword = await bcrypt.compare(currentPassword, collector.passwordHash);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+        }
+
+        // Hash new password
+        const newPasswordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+        // Update password and set mustChangePassword to false
+        await prisma.collector.update({
+            where: { id: collectorId },
+            data: {
+                passwordHash: newPasswordHash,
+                mustChangePassword: false
+            }
+        });
+
+        // Log activity
+        await prisma.collectorActivity.create({
+            data: {
+                collectorId: collector.id,
+                tenantId: collector.tenantId,
+                action: 'CHANGE_PASSWORD',
+                ipAddress: req.ip,
+                deviceInfo: req.headers['user-agent']
+            }
+        });
+
+        res.json({ success: true, message: 'Contraseña actualizada correctamente' });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ error: 'Error al cambiar contraseña' });
     }
 });
 
