@@ -3,25 +3,25 @@
  * and prevent popup blockers.
  */
 export const printHtmlContent = (title, contentHtml) => {
-    // Create hidden iframe
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
+  // Create hidden iframe
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
 
-    document.body.appendChild(iframe);
+  document.body.appendChild(iframe);
 
-    const doc = iframe.contentWindow.document;
+  const doc = iframe.contentWindow.document;
 
-    // Safe content check
-    const safeContent = (contentHtml || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  // Safe content check
+  const safeContent = (contentHtml || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 
-    // Write content
-    doc.open();
-    doc.write(`
+  // Write content
+  doc.open();
+  doc.write(`
     <html>
       <head>
         <title>${title}</title>
@@ -40,32 +40,205 @@ export const printHtmlContent = (title, contentHtml) => {
       </body>
     </html>
   `);
-    doc.close();
+  doc.close();
 
-    // Print after image loading (if any)
-    iframe.contentWindow.addEventListener('load', () => {
-        // Small delay to ensure rendering
+  // Print after image loading (if any)
+  iframe.contentWindow.addEventListener('load', () => {
+    // Small delay to ensure rendering
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        console.error('Print failed', e);
+        alert('No se pudo iniciar la impresión. Intente nuevamente.');
+      } finally {
+        // Remove iframe after user interacts with print dialog (or after delay)
+        // Note: There is no standard event for "after print dialog closed".
+        // We'll leave it or remove it after a long timeout. 
+        // Removing immediately stops printing in some browsers (Firefox).
         setTimeout(() => {
-            try {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-            } catch (e) {
-                console.error('Print failed', e);
-                alert('No se pudo iniciar la impresión. Intente nuevamente.');
-            } finally {
-                // Remove iframe after user interacts with print dialog (or after delay)
-                // Note: There is no standard event for "after print dialog closed".
-                // We'll leave it or remove it after a long timeout. 
-                // Removing immediately stops printing in some browsers (Firefox).
-                setTimeout(() => {
-                    document.body.removeChild(iframe);
-                }, 60000);
-            }
-        }, 500);
-    });
+          document.body.removeChild(iframe);
+        }, 60000);
+      }
+    }, 500);
+  });
 
-    // Backup if load event doesn't fire (e.g. no external resources)
-    if (iframe.contentWindow.document.readyState === 'complete') {
-        iframe.contentWindow.dispatchEvent(new Event('load'));
-    }
+  // Backup if load event doesn't fire (e.g. no external resources)
+  if (iframe.contentWindow.document.readyState === 'complete') {
+    iframe.contentWindow.dispatchEvent(new Event('load'));
+  }
+};
+
+/**
+ * Print thermal ticket (58mm) - uses same working pattern as printHtmlContent
+ * @param {Object} receipt - Receipt data
+ * @param {Object} options - { companyName, isCopy }
+ */
+export const printThermalTicket = (receipt, options = {}) => {
+  if (!receipt) return;
+
+  const { companyName = 'Presta Pro', isCopy = false } = options;
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('es-DO', {
+      style: 'currency',
+      currency: 'DOP',
+    }).format(amount || 0);
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('es-DO', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const baseAmount = parseFloat(receipt.amount || 0);
+  const penaltyAmount = parseFloat(receipt.penaltyAmount || receipt.penalty || 0);
+  const totalAmount = baseAmount + penaltyAmount;
+
+  const ticketHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Ticket${isCopy ? ' (COPIA)' : ''}</title>
+    <style>
+        @page { size: 58mm auto; margin: 1mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            line-height: 1.2;
+            width: 54mm;
+            max-width: 54mm;
+            color: #000;
+            background: #fff;
+            padding: 2mm;
+        }
+        .copy-banner {
+            text-align: center;
+            font-weight: bold;
+            border: 2px solid #000;
+            padding: 3px;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+        .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; }
+        .company-name { font-size: 12px; font-weight: bold; }
+        .receipt-title { font-size: 9px; font-weight: bold; margin: 2px 0; }
+        .receipt-ref, .receipt-date { font-size: 7px; color: #333; }
+        .divider { border-top: 1px dashed #000; margin: 3px 0; }
+        .section { margin: 3px 0; }
+        .section-title { font-weight: bold; font-size: 8px; margin-bottom: 1px; }
+        .line { display: flex; justify-content: space-between; padding: 1px 0; font-size: 8px; }
+        .line-amount { font-weight: bold; }
+        .penalty { color: #c00; }
+        .total-section {
+            text-align: center;
+            padding: 4px 0;
+            margin: 4px 0;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+        }
+        .total-label { font-size: 8px; }
+        .total-amount { font-size: 14px; font-weight: bold; margin: 2px 0; }
+        .payment-type { font-size: 8px; font-weight: bold; }
+        .footer { text-align: center; margin-top: 4px; padding-top: 3px; border-top: 1px dashed #000; font-size: 7px; }
+        .footer-thanks { font-weight: bold; }
+        @media print {
+            body { width: 54mm !important; max-width: 54mm !important; }
+        }
+    </style>
+</head>
+<body>
+    ${isCopy ? '<div class="copy-banner">*** COPIA ***</div>' : ''}
+    
+    <div class="header">
+        <div class="company-name">${companyName}</div>
+        <div class="receipt-title">COMPROBANTE DE PAGO${isCopy ? ' (REIMPRESO)' : ''}</div>
+        <div class="receipt-ref">Ref: ${(receipt.id || '').slice(-8).toUpperCase()}</div>
+        <div class="receipt-date">${formatDate(receipt.date || new Date())}</div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">CLIENTE</div>
+        <div>${receipt.clientName || 'Cliente'}</div>
+        ${receipt.clientPhone ? `<div style="font-size:7px;">${receipt.clientPhone}</div>` : ''}
+    </div>
+
+    <div class="divider"></div>
+    
+    <div class="section">
+        <div class="section-title">DETALLE</div>
+        <div class="line">
+            <span>Cuota #${receipt.installmentNumber || receipt.number || 1}</span>
+            <span class="line-amount">${formatCurrency(baseAmount)}</span>
+        </div>
+        ${penaltyAmount > 0 ? `
+        <div class="line penalty">
+            <span>Mora</span>
+            <span class="line-amount">${formatCurrency(penaltyAmount)}</span>
+        </div>
+        ` : ''}
+        ${receipt.remainingBalance !== undefined ? `
+        <div class="line">
+            <span>Saldo Pendiente</span>
+            <span class="line-amount">${formatCurrency(receipt.remainingBalance)}</span>
+        </div>
+        ` : ''}
+    </div>
+    
+    <div class="total-section">
+        <div class="total-label">TOTAL PAGADO</div>
+        <div class="total-amount">${formatCurrency(totalAmount)}</div>
+        <div class="payment-type">PAGO DE PRÉSTAMO</div>
+    </div>
+    
+    <div class="footer">
+        <div class="footer-thanks">¡Gracias por su pago!</div>
+        <div>Conserve este comprobante</div>
+    </div>
+</body>
+</html>
+    `.trim();
+
+  // Use same iframe pattern that works for reports
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(ticketHTML);
+  doc.close();
+
+  iframe.contentWindow.addEventListener('load', () => {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        console.error('Print ticket failed', e);
+      } finally {
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 60000);
+      }
+    }, 500);
+  });
+
+  if (iframe.contentWindow.document.readyState === 'complete') {
+    iframe.contentWindow.dispatchEvent(new Event('load'));
+  }
 };

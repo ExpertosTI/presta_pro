@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { X, Share2, Printer, Download, CheckCircle } from 'lucide-react';
+import { printThermalTicket } from '../../utils/printUtils';
 
 export function PaymentTicket({ receipt, companyName = 'Renace.tech', systemSettings = {}, onClose, isCopy = false }) {
   if (!receipt) return null;
@@ -42,9 +43,12 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
 
 
   const handlePrint = () => {
-    // Use direct window.print() - CSS handles 58mm thermal formatting
-    window.print();
-    setTimeout(() => onClose?.(), 300);
+    // Use printThermalTicket (same iframe pattern as working accounting reports)
+    printThermalTicket(receipt, {
+      companyName: displayCompanyName,
+      isCopy
+    });
+    setTimeout(() => onClose?.(), 500);
   };
 
 
