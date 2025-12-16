@@ -868,7 +868,10 @@ export function RoutesView({
             // Use printTextReceipt (Odoo POS style plain text for 58mm thermal)
             const { printTextReceipt } = await import('../../../shared/utils/printUtils');
             printTextReceipt(receiptToShow, {
-              companyName: systemSettings?.companyName || 'Presta Pro'
+              companyName: systemSettings?.companyName || 'Presta Pro',
+              companyAddress: systemSettings?.companyAddress || '',
+              companyPhone: systemSettings?.companyPhone || '',
+              companyWhatsApp: systemSettings?.companyWhatsApp || ''
             });
           }}
         />

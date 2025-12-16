@@ -254,7 +254,13 @@ export const printThermalTicket = (receipt, options = {}) => {
 export const printTextReceipt = (receipt, options = {}) => {
   if (!receipt) return;
 
-  const { companyName = 'Presta Pro', isCopy = false } = options;
+  const {
+    companyName = 'Presta Pro',
+    companyAddress = '',
+    companyPhone = '',
+    companyWhatsApp = '',
+    isCopy = false
+  } = options;
   const LINE_WIDTH = 32; // Characters width for 58mm paper
 
   // Helper functions
@@ -295,8 +301,20 @@ export const printTextReceipt = (receipt, options = {}) => {
     lines.push('');
   }
 
-  // Header
+  // Header with company info
+  lines.push(center('****************************'));
   lines.push(center(companyName.toUpperCase()));
+  lines.push(center('****************************'));
+  if (companyAddress) {
+    lines.push(center(companyAddress.substring(0, LINE_WIDTH)));
+  }
+  if (companyPhone) {
+    lines.push(center('Tel: ' + companyPhone));
+  }
+  if (companyWhatsApp) {
+    lines.push(center('WhatsApp: ' + companyWhatsApp));
+  }
+  lines.push('');
   lines.push(center('COMPROBANTE DE PAGO'));
   if (isCopy) lines.push(center('(REIMPRESO)'));
   lines.push(line('='));
