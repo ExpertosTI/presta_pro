@@ -21,28 +21,50 @@ export const createLoanLogic = (loanData) => {
 };
 
 export const registerPaymentLogic = (loan, installmentId, options = {}, systemSettings = {}) => {
-    const { withPenalty = false, penaltyAmountOverride = null } = options;
+    const { withPenalty = false, penaltyAmount: penaltyAmountOverride = null, customAmount = null } = options;
     const installment = loan?.schedule.find(i => i.id === installmentId);
 
     if (!loan || !installment) return null;
 
     const previousTotalPaid = loan.totalPaid || 0;
-    const basePayment = installment.payment;
+    const fullPayment = installment.payment;
+
+    // Use customAmount if provided (for partial payments / abonos)
+    const basePayment = customAmount !== null && customAmount !== undefined
+        ? parseFloat(customAmount)
+        : fullPayment;
+
+    const isPartialPayment = basePayment < fullPayment;
+    const remainingOnInstallment = isPartialPayment ? (fullPayment - basePayment) : 0;
+
+    // Penalty calculation
     const penaltyRate = withPenalty ? (systemSettings.defaultPenaltyRate || 0) : 0;
-    const autoPenalty = withPenalty ? (basePayment * penaltyRate) / 100 : 0;
+    const autoPenalty = withPenalty ? (fullPayment * penaltyRate) / 100 : 0;
     const penaltyAmount = withPenalty
         ? (penaltyAmountOverride !== null ? penaltyAmountOverride : autoPenalty)
         : 0;
+
     const paymentAmount = basePayment + penaltyAmount;
     const newTotalPaid = previousTotalPaid + paymentAmount;
     const loanAmount = parseFloat(loan.amount || 0);
     const remainingBalance = Math.max(loanAmount - newTotalPaid, 0);
 
-    const updatedSchedule = loan.schedule.map(inst =>
-        inst.id === installmentId
-            ? { ...inst, status: 'PAID', paidAmount: inst.payment, paidDate: new Date().toISOString() }
-            : inst
-    );
+    // Update installment status
+    const updatedSchedule = loan.schedule.map(inst => {
+        if (inst.id === installmentId) {
+            const previousPaid = parseFloat(inst.paidAmount || 0);
+            const newPaidAmount = previousPaid + basePayment;
+            const installmentFullyPaid = newPaidAmount >= inst.payment;
+
+            return {
+                ...inst,
+                status: installmentFullyPaid ? 'PAID' : 'PARTIAL',
+                paidAmount: newPaidAmount,
+                paidDate: new Date().toISOString()
+            };
+        }
+        return inst;
+    });
 
     const allPaid = updatedSchedule.every(i => i.status === 'PAID');
 
@@ -62,6 +84,9 @@ export const registerPaymentLogic = (loan, installmentId, options = {}, systemSe
             remainingBalance,
             penaltyAmount,
             withPenalty,
+            isPartialPayment,
+            remainingOnInstallment,
+            fullInstallmentAmount: fullPayment,
         }
     };
 };

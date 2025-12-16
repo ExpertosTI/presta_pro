@@ -364,9 +364,9 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
           onConfirm={async (loanId, installmentId, options) => {
             const receipt = await registerPayment(loanId, installmentId, options);
             if (receipt) {
-              // Import and print thermal receipt
-              const { printThermalReceipt } = await import('../../../services/thermalPrinter');
-              printThermalReceipt(receipt, { companyName: 'Presta Pro' });
+              // Use printThermalTicket (same working iframe pattern as accounting reports)
+              const { printThermalTicket } = await import('../../../shared/utils/printUtils');
+              printThermalTicket(receipt, { companyName: 'Presta Pro' });
             }
             setPaymentToConfirm(null);
           }}
