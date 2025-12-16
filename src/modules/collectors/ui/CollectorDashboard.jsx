@@ -76,14 +76,14 @@ export default function CollectorDashboard({
         return loans.flatMap(loan => {
             const installments = Array.isArray(loan.installments) ? loan.installments : [];
             return installments
-                .filter(s => s.status === 'PENDING' && s.date?.split('T')[0] <= today)
-                .map(installment => ({
-                    ...installment,
+                .filter(inst => inst.status === 'PENDING' && inst.date?.split('T')[0] <= today)
+                .map(inst => ({
+                    ...inst,
                     loanId: loan.id,
                     clientName: loan.clientName,
                     clientPhone: loan.clientPhone,
                     clientAddress: loan.clientAddress,
-                    isOverdue: s.date?.split('T')[0] < today
+                    isOverdue: inst.date?.split('T')[0] < today
                 }));
         });
     }, [loans]);
