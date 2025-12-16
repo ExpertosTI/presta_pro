@@ -306,12 +306,15 @@ export const printTextReceipt = (receipt, options = {}) => {
   lines.push('Fecha: ' + formatDateShort(receipt.date || new Date()));
   lines.push(line('-'));
 
-  // Client
-  lines.push('CLIENTE:');
-  lines.push((receipt.clientName || 'Cliente').substring(0, LINE_WIDTH));
+  // Client - MORE PROMINENT
+  lines.push('');
+  lines.push(center('** CLIENTE **'));
+  const clientName = (receipt.clientName || 'Cliente').toUpperCase();
+  lines.push(center(clientName.substring(0, LINE_WIDTH)));
   if (receipt.clientPhone) {
-    lines.push('Tel: ' + receipt.clientPhone);
+    lines.push(center('Tel: ' + receipt.clientPhone));
   }
+  lines.push('');
   lines.push(line('-'));
 
   // Detail
@@ -331,13 +334,15 @@ export const printTextReceipt = (receipt, options = {}) => {
 
   lines.push(line('='));
 
-  // Total
+  // Total - VERY PROMINENT
+  lines.push('');
+  lines.push(center('**********************'));
   lines.push(center('TOTAL PAGADO'));
-  lines.push(center(formatMoney(totalAmount)));
-  lines.push(line('='));
+  lines.push(center('>>> ' + formatMoney(totalAmount) + ' <<<'));
+  lines.push(center('**********************'));
+  lines.push('');
 
   // Footer
-  lines.push('');
   lines.push(center('Gracias por su pago!'));
   lines.push(center('Conserve este comprobante'));
   lines.push('');
