@@ -1,14 +1,14 @@
-// Thermal Printer Service for 80mm receipts
+// Thermal Printer Service for 58mm receipts
 // This service handles printing receipts to thermal printers
 
-const PAPER_WIDTH = '80mm';
-const CONTENT_WIDTH = '76mm';
+const PAPER_WIDTH = '58mm';
+const CONTENT_WIDTH = '54mm';
 
 /**
- * Generate thermal receipt HTML for 80mm printer
+ * Generate thermal receipt HTML for 58mm printer
  */
 export function generateThermalReceiptHTML(receipt, companySettings = {}) {
-    const { companyName = 'Presta Pro', companyLogo = null } = companySettings;
+    const { companyName = 'Presta Pro', companyLogo = null, isCopy = false } = companySettings;
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('es-DO', {
@@ -36,7 +36,7 @@ export function generateThermalReceiptHTML(receipt, companySettings = {}) {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Comprobante de Pago</title>
+    <title>Comprobante de Pago${isCopy ? ' (COPIA)' : ''}</title>
     <style>
         @page {
             size: ${PAPER_WIDTH} auto;
@@ -176,10 +176,11 @@ export function generateThermalReceiptHTML(receipt, companySettings = {}) {
     </style>
 </head>
 <body>
+    ${isCopy ? '<div style="text-align:center;font-weight:bold;border:2px solid #000;padding:4px;margin-bottom:6px;font-size:14px;">*** COPIA ***</div>' : ''}
     <div class="header">
         ${companyLogo ? `<img src="${companyLogo}" class="logo" alt="${companyName}">` : ''}
         <div class="company-name">${companyName}</div>
-        <div class="receipt-title">COMPROBANTE DE PAGO</div>
+        <div class="receipt-title">COMPROBANTE DE PAGO${isCopy ? ' (REIMPRESO)' : ''}</div>
         <div class="receipt-id">Ref: TPPR3N4${(receipt.id || '').slice(-6).toUpperCase().padStart(6, '0')}</div>
         <div class="date">${formatDate(receipt.date || new Date())}</div>
     </div>
