@@ -3,8 +3,6 @@
   "productName": "RenKredit",
   "artifactName": "RenKredit-${version}-${arch}.exe",
   "copyright": "© Renace Tech",
-  "cscLink": "cert.pfx",
-  "cscKeyPassword": "123456",
   "win": {
     "target": "nsis",
     "icon": "favicon.ico",

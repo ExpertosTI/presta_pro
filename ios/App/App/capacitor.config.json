@@ -1,0 +1,12 @@
+{
+	"appId": "tech.renace.renkredit",
+	"appName": "RenKredit",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": true,
+		"hostname": "prestanace.renace.tech"
+	},
+	"android": {},
+	"packageClassList": []
+}
