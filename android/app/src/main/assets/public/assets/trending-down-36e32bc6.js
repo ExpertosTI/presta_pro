@@ -1,0 +1,1 @@
+import{c as n}from"./index-d07a4565.js";const e=n("ChevronRight",[["path",{d:"m9 18 6-6-6-6",key:"mthhwq"}]]),t=n("TrendingDown",[["polyline",{points:"22 17 13.5 8.5 8.5 13.5 2 7",key:"1r2t7k"}],["polyline",{points:"16 17 22 17 22 11",key:"11uiuu"}]]);export{e as C,t as T};
