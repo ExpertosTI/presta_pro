@@ -1,6 +1,6 @@
-# Seguridad - Presta Pro v1.10
+# Seguridad - RenKredit v1.10
 
-Este documento detalla las medidas de seguridad implementadas en Presta Pro para proteger los datos de usuarios y prevenir accesos no autorizados.
+Este documento detalla las medidas de seguridad implementadas en RenKredit para proteger los datos de usuarios y prevenir accesos no autorizados.
 
 ---
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# PostgreSQL Daily Backup Script for PrestaPro
+# PostgreSQL Daily Backup Script for RenKredit
 # Runs automatically via cron daily at 2:00 AM
 
 BACKUP_DIR="/backups"

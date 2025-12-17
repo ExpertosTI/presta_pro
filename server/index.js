@@ -30,7 +30,7 @@ const app = express();
 // Detrás de Nginx / reverse proxy, confiar en la IP de X-Forwarded-For para que express-rate-limit funcione bien
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 4000;
-const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me';
+const JWT_SECRET = process.env.JWT_SECRET || 'renkredit_dev_jwt_secret_change_me';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -51,7 +51,7 @@ if (process.env.NODE_ENV === 'production') {
     }
   });
 
-  if (JWT_SECRET === 'prestapro_dev_jwt_secret_change_me') {
+  if (JWT_SECRET === 'renkredit_dev_jwt_secret_change_me') {
     console.warn('⚠️ WARNING: Using default JWT_SECRET in production is not recommended');
   }
 }
@@ -82,9 +82,9 @@ const { validatePassword, validateEmail } = require('./lib/securityUtils');
 
 const SMTP_HOST = process.env.SMTP_HOST || '85.31.224.232';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25', 10);
-const SMTP_USER = process.env.SMTP_USER || 'noreply@prestapro.renace.tech';
+const SMTP_USER = process.env.SMTP_USER || 'noreply@renkredit.renace.tech';
 const SMTP_PASS = process.env.SMTP_PASS || '';
-const SMTP_FROM = process.env.SMTP_FROM || '"PRESTAPRO" <noreply@prestapro.renace.tech>';
+const SMTP_FROM = process.env.SMTP_FROM || '"RENKREDIT" <noreply@renkredit.renace.tech>';
 const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
 
 // ... (nodemailer setup logic unchanged)

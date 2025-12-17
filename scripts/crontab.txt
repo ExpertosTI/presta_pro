@@ -1,4 +1,4 @@
-# PrestaPro Cron Jobs
+# RenKredit Cron Jobs
 # Add this to server crontab: crontab -e
 
 # Daily database backup at 2:00 AM

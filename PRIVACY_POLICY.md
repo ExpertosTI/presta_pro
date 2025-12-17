@@ -1,4 +1,4 @@
-# Política de Privacidad y Rastreo - PRESTA PRO
+# Política de Privacidad y Rastreo - RENKREDIT
 
 **Última actualización:** 15 de diciembre de 2025
 

@@ -1,4 +1,4 @@
-# Créditos - Presta Pro v1.10
+# Créditos - RenKredit v1.10
 
 ## 🏢 Desarrollado por
 

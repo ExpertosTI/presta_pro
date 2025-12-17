@@ -26,7 +26,7 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('[SW] Background message received:', payload);
 
-    const notificationTitle = payload.notification?.title || 'PrestaPro';
+    const notificationTitle = payload.notification?.title || 'RenKredit';
     const notificationOptions = {
         body: payload.notification?.body || '',
         icon: '/icons/icon-192.png',

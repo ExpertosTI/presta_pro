@@ -1,4 +1,4 @@
-# Changelog - Presta Pro
+# Changelog - RenKredit
 
 Todos los cambios notables en este proyecto serán documentados en este archivo.
 

@@ -1,17 +1,16 @@
-# Presta Pro v1.10
+# RenKredit v1.10
 
-**Sistema Profesional de Gestión de Préstamos**  
-*Desarrollado por RENACE.TECH*
-
-![Version](https://img.shields.io/badge/version-1.10-blue.svg)
-![License](https://img.shields.io/badge/license-Proprietary-red.svg)
-![Platform](https://img.shields.io/badge/platform-Web%20%7C%20PWA%20%7C%20Mobile-green.svg)
+<div align="center">
+  <img src="public/logo.png" alt="RenKredit Logo" width="120" />
+  <h3>Sistema de Gestión de Préstamos</h3>
+  <p><strong>By RENACE.TECH</strong></p>
+</div>
 
 ---
 
 ## 📋 Descripción
 
-Presta Pro es una aplicación SaaS completa para la gestión de préstamos personales y microfinanzas. Diseñada para prestamistas individuales y empresas financieras en República Dominicana y Latinoamérica.
+RenKredit es una aplicación SaaS completa para la gestión de préstamos personales y microfinanzas. Diseñada para prestamistas individuales y empresas financieras en República Dominicana y Latinoamérica.
 
 ### ✨ Características Principales
 

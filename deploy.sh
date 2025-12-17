@@ -1,10 +1,11 @@
 #!/bin/bash
-# Script de Deployment - Presta Pro
+# Script de Deployment - RenKredit
 # Ejecutar en el servidor: /opt/presta_pro
 
 set -e  # Exit on error
 
-echo "🚀 Iniciando deployment de Presta Pro..."
+# Colores para output
+echo "🚀 Iniciando deployment de RenKredit..."
 echo "📍 Directorio: $(pwd)"
 echo "🌿 Branch: email-templates-fix"
 echo ""

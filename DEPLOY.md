@@ -1,6 +1,6 @@
-# Guía de Despliegue - Presta Pro v1.10
+# Guía de Despliegue - RenKredit v1.10
 
-Esta guía cubre el despliegue completo de Presta Pro en un servidor de producción.
+Esta guía cubre el despliegue completo de RenKredit en un servidor de producción.
 
 ---
 
