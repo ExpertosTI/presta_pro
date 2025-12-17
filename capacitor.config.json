@@ -1,6 +1,6 @@
 {
-  "appId": "tech.renace.prestapro",
-  "appName": "Presta Pro",
+  "appId": "tech.renace.renkredit",
+  "appName": "RenKredit",
   "webDir": "dist",
   "server": {
     "androidScheme": "https",

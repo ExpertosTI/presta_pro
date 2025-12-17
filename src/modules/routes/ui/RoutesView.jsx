@@ -883,14 +883,14 @@ export function RoutesView({
       {receiptToShow && (
         <DigitalReceipt
           receipt={receiptToShow}
-          companyName={systemSettings?.companyName || 'Presta Pro'}
+          companyName={systemSettings?.companyName || 'RenKredit'}
           companyLogo={systemSettings?.companyLogo}
           onClose={() => setReceiptToShow(null)}
           onPrint={async () => {
             // Use printModernTicket (HTML with logo, like Odoo POS)
             const { printModernTicket } = await import('../../../shared/utils/printUtils');
             printModernTicket(receiptToShow, {
-              companyName: systemSettings?.companyName || 'Presta Pro',
+              companyName: systemSettings?.companyName || 'RenKredit',
               companyLogo: systemSettings?.companyLogo || '',
               companyAddress: systemSettings?.companyAddress || '',
               companyPhone: systemSettings?.companyPhone || '',

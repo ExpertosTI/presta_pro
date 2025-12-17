@@ -52,7 +52,7 @@ const getStatusStyle = (status) => {
   return `bg-${color}-100 dark:bg-${color}-900/30 text-${color}-700 dark:text-${color}-300`;
 };
 
-const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', selectedClientId, onSelectClient, showToast }) => {
+const DocumentsView = ({ clients, loans = [], companyName = 'RenKredit', selectedClientId, onSelectClient, showToast }) => {
   const hasClients = Array.isArray(clients) && clients.length > 0;
   const currentClient = hasClients
     ? clients.find((c) => c.id === selectedClientId) || clients[0]
@@ -200,7 +200,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
     const idNumber = client?.idNumber || '__________________';
     const address = client?.address || '__________________';
     const phone = client?.phone || '__________________';
-    const company = companyName || 'Presta Pro';
+    const company = companyName || 'RenKredit';
     const today = new Date().toLocaleDateString('es-DO');
 
     // MEJORA 8: Auto-fill from loan
@@ -505,7 +505,7 @@ Fecha: ${today}`;
     try {
       const { generateClientDocument } = await import('../../../services/aiService');
       const lastLoan = selectedLoan || getLastLoanForClient(currentClient.id);
-      const effectiveCompanyName = companyName || 'Presta Pro';
+      const effectiveCompanyName = companyName || 'RenKredit';
       const generated = await generateClientDocument(templateType, currentClient, lastLoan, effectiveCompanyName, apiKey);
       if (generated && typeof generated === 'string') {
         setTemplateContent(generated.trim());
@@ -705,8 +705,8 @@ Fecha: ${today}`;
                 <button
                   onClick={() => setShowSignatureModal(true)}
                   className={`w-full p-2 border rounded-lg text-sm font-semibold flex items-center justify-center gap-2 ${signatureDataUrl
-                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
-                      : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
+                    : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
                     }`}
                 >
                   <PenTool size={14} />

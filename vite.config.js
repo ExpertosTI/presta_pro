@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo.png', 'icon-180.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Presta Pro - Sistema de Préstamos',
-        short_name: 'PrestaPro',
+        name: 'RenKredit - Sistema de Préstamos',
+        short_name: 'RenKredit',
         description: 'Sistema de gestión de préstamos',
         start_url: './',
         scope: './',

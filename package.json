@@ -1,10 +1,10 @@
 {
-  "name": "presta-pro",
+  "name": "renkredit",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
   "version": "0.0.0",
-  "description": "Presta Pro Windows App",
+  "description": "RenKredit - Sistema de Gestión de Préstamos",
   "author": "Renace Tech",
   "scripts": {
     "dev": "vite",

@@ -20,7 +20,7 @@ export function SettingsView({
   setActiveTab,
 }) {
   const [form, setForm] = useState({
-    companyName: systemSettings.companyName || 'Presta Pro',
+    companyName: systemSettings.companyName || 'RenKredit',
     mainCurrency: systemSettings.mainCurrency || 'DOP',
     defaultPenaltyRate: systemSettings.defaultPenaltyRate ?? 5,
     themeColor: systemSettings.themeColor || 'indigo',
@@ -130,7 +130,7 @@ export function SettingsView({
   const handleResetToDefaults = () => {
     if (!window.confirm('¿Restaurar todos los ajustes a valores predeterminados?')) return;
     const defaults = {
-      companyName: 'Presta Pro',
+      companyName: 'RenKredit',
       mainCurrency: 'DOP',
       defaultPenaltyRate: 5,
       themeColor: 'indigo',

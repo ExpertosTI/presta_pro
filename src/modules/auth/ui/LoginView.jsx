@@ -227,8 +227,8 @@ export function LoginView({ onLogin }) {
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-4 md:p-8 transform transition-all duration-500 hover:shadow-indigo-500/20">
                     <div className="flex flex-col items-center mb-0 md:mb-6 text-center">
                         {/* Logo: Responsive sizes - Much Larger and stuck to title */}
-                        <img src={logo} alt="Presta Pro" className="w-32 h-32 md:w-52 md:h-52 object-contain drop-shadow-2xl mb-0 hover:scale-105 transition-transform" />
-                        <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight leading-none -mt-4 relative z-10">Presta Pro</h1>
+                        <img src={logo} alt="RenKredit" className="w-32 h-32 md:w-52 md:h-52 object-contain drop-shadow-2xl mb-0 hover:scale-105 transition-transform" />
+                        <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight leading-none -mt-4 relative z-10">RenKredit</h1>
                         <p className="text-blue-200 text-[10px] md:text-base mt-1 md:mt-1 font-light leading-tight">Gestión Inteligente de Préstamos</p>
                     </div>
 
@@ -442,7 +442,7 @@ export function LoginView({ onLogin }) {
                             </div>
 
                             <div className="text-center pt-4 border-t border-slate-800 mt-4">
-                                <p className="text-slate-400 text-sm mb-2">¿Nuevo en Presta Pro?</p>
+                                <p className="text-slate-400 text-sm mb-2">¿Nuevo en RenKredit?</p>
                                 <button
                                     type="button"
                                     onClick={() => setIsRegistering(true)}

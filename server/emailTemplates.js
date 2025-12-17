@@ -1,8 +1,8 @@
-// Email Templates for Presta Pro
-// Branding: PRESTAPRO by RENACE.TECH
+// Email Templates for RenKredit
+// Branding: RENKREDIT by RENACE.TECH
 // Modern, Dynamic Email Templates with Premium Design
 
-const BRAND_NAME = 'PRESTAPRO';
+const BRAND_NAME = 'RENKREDIT';
 const BRAND_TAGLINE = 'by RENACE.TECH';
 const BRAND_COLOR = '#2563eb'; // Primary Blue
 const BRAND_COLOR_DARK = '#1d4ed8'; // Darker Blue for hover
@@ -17,7 +17,7 @@ const LOGO_DATA_URI = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy5
 /**
  * Base HTML template with premium branding
  */
-const getEmailTemplate = (content, tenantName = 'PRESTAPRO', showTenantInHeader = true) => `
+const getEmailTemplate = (content, tenantName = 'RENKREDIT', showTenantInHeader = true) => `
 <!DOCTYPE html>
 <html lang="es" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>

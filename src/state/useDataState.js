@@ -24,7 +24,7 @@ export function useDataState() {
 
     const [systemSettings, setSystemSettings] = useState(() =>
         safeLoad('rt_settings', {
-            companyName: 'Presta Pro',
+            companyName: 'RenKredit',
             mainCurrency: 'DOP',
             defaultPenaltyRate: 5,
             themeColor: 'indigo',

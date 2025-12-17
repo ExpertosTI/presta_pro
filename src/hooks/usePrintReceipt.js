@@ -28,7 +28,7 @@ const DEFAULT_SETTINGS = {
  * Format receipt data for printing (Odoo export_for_printing pattern)
  */
 export function exportReceiptForPrinting(receipt, options = {}) {
-    const { companyName = 'Presta Pro', companyLogo = null, isCopy = false } = options;
+    const { companyName = 'RenKredit', companyLogo = null, isCopy = false } = options;
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('es-DO', {
@@ -313,7 +313,7 @@ export function usePrintReceipt(options = {}) {
         try {
             // Step 1: Export for printing (Odoo pattern)
             const receiptData = exportReceiptForPrinting(receipt, {
-                companyName: settings.companyName || 'Presta Pro',
+                companyName: settings.companyName || 'RenKredit',
                 companyLogo: settings.companyLogo,
                 isCopy,
             });

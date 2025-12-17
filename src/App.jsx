@@ -148,7 +148,7 @@ function App() {
       clientDocuments: {},
       goals: { monthly: 500000, daily: 15000 },
       systemSettings: {
-        companyName: parsedSettings.companyName || 'Presta Pro',
+        companyName: parsedSettings.companyName || 'RenKredit',
         currency: 'DOP',
         allowLatePayments: true,
         interestMethod: 'simple',
@@ -206,7 +206,7 @@ function App() {
       clients: [], loans: [], expenses: [], receipts: [], requests: [],
       notes: [], employees: [], collectors: [], routes: [],
       goals: { monthly: 500000, daily: 15000 },
-      systemSettings: { companyName: 'Presta Pro' }
+      systemSettings: { companyName: 'RenKredit' }
     });
   };
 
@@ -253,7 +253,7 @@ function App() {
         settingsService.get(),
       ]);
 
-      const settings = settingsRes || { companyName: 'Presta Pro' };
+      const settings = settingsRes || { companyName: 'RenKredit' };
 
       // Consolidated single setDbData call to avoid double render and data loss
       setDbData(prev => ({

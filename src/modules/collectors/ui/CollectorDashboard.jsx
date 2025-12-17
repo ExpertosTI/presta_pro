@@ -451,7 +451,7 @@ _PrestaPro by RENACE.TECH_`;
             {lastReceipt && (
                 <DigitalReceipt
                     receipt={lastReceipt}
-                    companyName="PrestaPro"
+                    companyName="RenKredit"
                     onClose={() => setLastReceipt(null)}
                     onPrint={() => {
                         printThermalReceipt({
@@ -463,7 +463,7 @@ _PrestaPro by RENACE.TECH_`;
                             penaltyAmount: lastReceipt.penalty || 0,
                             installmentNumber: lastReceipt.number,
                             remainingBalance: lastReceipt.remainingBalance
-                        }, { companyName: 'PrestaPro' });
+                        }, { companyName: 'RenKredit' });
                     }}
                 />
             )}
