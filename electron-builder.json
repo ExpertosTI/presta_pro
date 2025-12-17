@@ -1,7 +1,7 @@
 {
-  "appId": "tech.renace.prestapro",
-  "productName": "PrestaPro",
-  "artifactName": "PrestaPro-${version}-${arch}.exe",
+  "appId": "tech.renace.renkredit",
+  "productName": "RenKredit",
+  "artifactName": "RenKredit-${version}-${arch}.exe",
   "copyright": "© Renace Tech",
   "cscLink": "cert.pfx",
   "cscKeyPassword": "123456",
@@ -15,7 +15,7 @@
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "shortcutName": "PrestaPro",
+    "shortcutName": "RenKredit",
     "installerIcon": "favicon.ico",
     "uninstallerIcon": "favicon.ico",
     "installerHeaderIcon": "favicon.ico"
