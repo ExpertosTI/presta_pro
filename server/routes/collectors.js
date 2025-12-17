@@ -12,7 +12,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const emailService = require('../services/emailService');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
+// SECURITY: JWT_SECRET must be set via environment variable
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+    console.error('❌ FATAL: JWT_SECRET not set in production');
+    process.exit(1);
+}
+const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'dev_only_insecure_secret_not_for_production';
 const SALT_ROUNDS = 12;
 const { authMiddleware } = require('../middleware/authMiddleware');
 
@@ -345,7 +351,7 @@ router.post('/login', async (req, res) => {
             tenantId: tenant.id,
             role: 'collector',
             permissions: collector.permissions
-        }, JWT_SECRET, { expiresIn: '12h' });
+        }, EFFECTIVE_JWT_SECRET, { expiresIn: '12h' });
 
         res.json({
             token,

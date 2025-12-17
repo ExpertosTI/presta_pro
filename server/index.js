@@ -30,30 +30,35 @@ const app = express();
 // Detrás de Nginx / reverse proxy, confiar en la IP de X-Forwarded-For para que express-rate-limit funcione bien
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 4000;
-const JWT_SECRET = process.env.JWT_SECRET || 'renkredit_dev_jwt_secret_change_me';
+
+// SECURITY: JWT_SECRET validation - MUST be set in production
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('❌ FATAL: JWT_SECRET environment variable is required in production');
+  process.exit(1);
+}
+const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'dev_only_insecure_secret_not_for_production';
+
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-// --- SECURITY: Environment Variable Validation (warnings only, don't kill server) ---
+// --- SECURITY: Environment Variable Validation ---
 const REQUIRED_ENV_VARS = ['DATABASE_URL'];
 const RECOMMENDED_ENV_VARS = ['JWT_SECRET', 'GOOGLE_CLIENT_ID', 'SMTP_HOST', 'APP_BASE_URL'];
 
 REQUIRED_ENV_VARS.forEach(varName => {
   if (!process.env[varName]) {
-    console.warn(`⚠️ WARNING: Missing environment variable: ${varName}`);
+    console.error(`❌ FATAL: Missing required environment variable: ${varName}`);
+    if (process.env.NODE_ENV === 'production') process.exit(1);
   }
 });
 
 if (process.env.NODE_ENV === 'production') {
   RECOMMENDED_ENV_VARS.forEach(varName => {
     if (!process.env[varName]) {
-      console.warn(`⚠️ WARNING: Missing recommended environment variable for production: ${varName}`);
+      console.warn(`⚠️ WARNING: Missing recommended environment variable: ${varName}`);
     }
   });
-
-  if (JWT_SECRET === 'renkredit_dev_jwt_secret_change_me') {
-    console.warn('⚠️ WARNING: Using default JWT_SECRET in production is not recommended');
-  }
 }
 
 // Importar rutas nuevas
@@ -362,7 +367,7 @@ app.post('/api/tenants/register', async (req, res) => {
 
     const token = jwt.sign(
       { userId: adminUser.id, tenantId: tenant.id, role: adminUser.role },
-      JWT_SECRET,
+      EFFECTIVE_JWT_SECRET,
       { expiresIn: '12h' }
     );
 
@@ -1155,7 +1160,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
     const token = jwt.sign(
       { userId: user.id, tenantId: user.tenantId, role: user.role },
-      JWT_SECRET,
+      EFFECTIVE_JWT_SECRET,
       { expiresIn: '12h' }
     );
 
@@ -1247,7 +1252,7 @@ app.post('/api/auth/google', async (req, res) => {
 
       const jwtToken = jwt.sign(
         { userId: user.id, tenantId: user.tenantId, role: user.role },
-        JWT_SECRET,
+        EFFECTIVE_JWT_SECRET,
         { expiresIn: '12h' }
       );
 

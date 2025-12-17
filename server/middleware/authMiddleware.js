@@ -1,5 +1,16 @@
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me';
+
+// SECURITY: JWT_SECRET must be set via environment variable - no fallback in production
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.error('❌ FATAL: JWT_SECRET environment variable is required');
+    if (process.env.NODE_ENV === 'production') {
+        process.exit(1);
+    } else {
+        console.warn('⚠️ Using insecure default for development ONLY');
+    }
+}
+const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'dev_only_insecure_secret_not_for_production';
 
 // Track failed auth attempts (simple in-memory, use Redis in production for multi-instance)
 const failedAttempts = new Map();
@@ -56,7 +67,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, EFFECTIVE_JWT_SECRET);
 
         // Validate required fields in token - allow userId OR collectorId
         if (!decoded.tenantId) {
