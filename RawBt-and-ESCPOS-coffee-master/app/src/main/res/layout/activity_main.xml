@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="0dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <Button
+            android:id="@+id/test1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Hello, world"
+            android:onClick="test_Hello"
+            />
+
+
+        <Button
+            android:id="@+id/test02"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Barcode"
+            android:onClick="test_Barcode"
+            />
+
+        <Button
+            android:id="@+id/test03"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="[-] BitImage"
+            android:onClick="test_BitImage"
+            />
+
+        <Button
+            android:id="@+id/test04"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CodeTable"
+            android:onClick="test_CodeTable"
+            />
+
+        <Button
+            android:id="@+id/test05"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="[-] Dithering"
+            android:onClick="test_Dithering"
+            />
+
+        <Button
+            android:id="@+id/test01"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Get start"
+            android:onClick="test_Getstart"
+            />
+
+        <Button
+            android:id="@+id/test06"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="[-] Graphics"
+            android:onClick="test_Graphics"
+            />
+
+        <Button
+            android:id="@+id/test07"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pulsepin"
+            android:onClick="test_Pulsepin"
+            />
+
+        <Button
+            android:id="@+id/test08"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="[-] Raster image"
+            android:onClick="test_RasterImage"
+            />
+
+        <Button
+            android:id="@+id/test09"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Text style"
+            android:onClick="test_TextStyle"
+            />
+
+        <Button
+            android:id="@+id/test10"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Text style. for 58mm width"
+            android:onClick="test_TextStyle58mm"
+            />
+
+        <TextView
+            android:id="@+id/textView8"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:padding="8dp"
+            android:text="@string/license" />
+
+    </LinearLayout>
+
+</android.support.constraint.ConstraintLayout>

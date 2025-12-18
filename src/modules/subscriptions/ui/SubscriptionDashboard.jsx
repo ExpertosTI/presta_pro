@@ -246,15 +246,51 @@ export function SubscriptionDashboard({ showToast }) {
                             </label>
                         </div>
 
-                        {/* Upload Proof */}
-                        <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-xl text-center mb-4">
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Sube tu comprobante de transferencia</p>
-                            <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                                <Upload size={18} />
-                                {uploading ? 'Subiendo...' : 'Subir Comprobante'}
-                                <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileUpload} disabled={uploading} />
-                            </label>
-                            <p className="text-xs text-slate-400 mt-2">JPG, PNG, PDF (Max 5MB)</p>
+                        {/* Payment Options */}
+                        <div className="space-y-4 mb-4">
+                            {/* PayPal Button */}
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        setUploading(true);
+                                        const result = await subscriptionService.createPayPalOrder(selectedPlan.id, selectedPeriod === 'quarterly' ? 'monthly' : selectedPeriod);
+                                        if (result.approveUrl) {
+                                            window.location.href = result.approveUrl;
+                                        } else {
+                                            showToast?.('Error al crear orden de PayPal', 'error');
+                                        }
+                                    } catch (e) {
+                                        console.error('PayPal error:', e);
+                                        showToast?.('Error al procesar pago con PayPal', 'error');
+                                    } finally {
+                                        setUploading(false);
+                                    }
+                                }}
+                                disabled={uploading}
+                                className="w-full py-3 bg-[#0070ba] hover:bg-[#003087] text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                            >
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                    <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.629h6.847c2.273 0 3.94.565 4.948 1.678.489.538.812 1.136.974 1.778.17.666.17 1.452-.003 2.406l-.004.025v.657l.511.291c.432.247.78.528 1.047.846.331.396.557.877.671 1.43.12.575.08 1.26-.118 2.033-.227.89-.602 1.665-1.112 2.3-.46.573-1.05 1.04-1.748 1.387-.668.331-1.444.579-2.306.736-.838.153-1.765.23-2.757.23H11.35a1.35 1.35 0 0 0-1.332 1.137l-.035.214-.551 3.491-.026.155a.27.27 0 0 1-.266.228H7.076z" />
+                                </svg>
+                                {uploading ? 'Procesando...' : 'Pagar con PayPal'}
+                            </button>
+
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-600"></div>
+                                <span className="text-xs text-slate-400">o paga con transferencia</span>
+                                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-600"></div>
+                            </div>
+
+                            {/* Upload Proof */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-xl text-center">
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Sube tu comprobante de transferencia</p>
+                                <label className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    <Upload size={18} />
+                                    {uploading ? 'Subiendo...' : 'Subir Comprobante'}
+                                    <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileUpload} disabled={uploading} />
+                                </label>
+                                <p className="text-xs text-slate-400 mt-2">JPG, PNG, PDF (Max 5MB)</p>
+                            </div>
                         </div>
 
                         <button onClick={() => setSelectedPlan(null)} className="w-full py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">

@@ -47,10 +47,37 @@ export const cancelSubscription = async () => {
     return response;
 };
 
+/**
+ * Create PayPal order for subscription payment
+ */
+export const createPayPalOrder = async (planId, interval = 'monthly') => {
+    const response = await axiosInstance.post('/subscriptions/paypal/create-order', { planId, interval });
+    return response;
+};
+
+/**
+ * Capture PayPal payment after user approval
+ */
+export const capturePayPalOrder = async (orderId) => {
+    const response = await axiosInstance.post('/subscriptions/paypal/capture-order', { orderId });
+    return response;
+};
+
+/**
+ * Get PayPal order status
+ */
+export const getPayPalOrderStatus = async (orderId) => {
+    const response = await axiosInstance.get(`/subscriptions/paypal/order/${orderId}`);
+    return response;
+};
+
 export default {
     getMySubscription,
     getPlans,
     createPaymentIntent,
     uploadPaymentProof,
-    cancelSubscription
+    cancelSubscription,
+    createPayPalOrder,
+    capturePayPalOrder,
+    getPayPalOrderStatus
 };
