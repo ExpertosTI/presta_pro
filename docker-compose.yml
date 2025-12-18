@@ -6,8 +6,8 @@ services:
     ports:
       - "4000:4000"  # Exponer API al host
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-prestapro}:${DB_PASSWORD:?DB_PASSWORD required}@prestapro_db:5432/${DB_NAME:-prestapro}?schema=public
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - DATABASE_URL=postgresql://${DB_USER:-prestapro}:${DB_PASSWORD:-prestapro}@prestapro_db:5432/${DB_NAME:-prestapro}?schema=public
+      - JWT_SECRET=${JWT_SECRET:-defaultsecret}
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-25}
       - SMTP_USER=${SMTP_USER:-}
@@ -31,7 +31,7 @@ services:
     environment:
       - POSTGRES_DB=${DB_NAME:-prestapro}
       - POSTGRES_USER=${DB_USER:-prestapro}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-prestapro}
     volumes:
       - prestapro_db_data:/var/lib/postgresql/data
       - /backups:/backups  # Access backups from DB container
