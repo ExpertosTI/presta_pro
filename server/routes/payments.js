@@ -134,7 +134,19 @@ router.post('/', async (req, res) => {
             // No fallar el pago por error de email
         }
 
-        res.status(201).json(newReceipt);
+        // Calcular saldo pendiente para incluir en respuesta
+        const remainingBalance = updatedInstallments
+            .filter(i => i.status !== 'PAID')
+            .reduce((sum, i) => sum + (i.payment || 0), 0);
+
+        res.status(201).json({
+            receipt: {
+                ...newReceipt,
+                installmentNumber: installment?.number || installmentNumber || 0,
+                remainingBalance,
+                penalty: finalPenalty
+            }
+        });
     } catch (error) {
         console.error('Error registering payment:', error);
         res.status(500).json({ error: 'Error al registrar pago' });
