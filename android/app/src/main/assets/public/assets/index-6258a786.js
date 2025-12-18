@@ -1,1 +1,0 @@
-import{j as r,A as m}from"./index-d07a4565.js";import"./vendor-8a332d8f.js";function x({chatHistory:e,setChatHistory:s,dbData:i,showToast:t,ownerName:o,companyName:l}){return r.jsx("div",{className:"h-full",children:r.jsx(m,{chatHistory:e,setChatHistory:s,dbData:i,showToast:t,ownerName:o,companyName:l})})}export{x as AIView};
