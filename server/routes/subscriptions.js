@@ -828,5 +828,195 @@ router.post('/reject-payment/:paymentId', async (req, res) => {
     }
 });
 
+// ============================================
+// PAYPAL PAYMENT ENDPOINTS
+// ============================================
+
+const paypalService = require('../services/paypalService');
+
+/**
+ * POST /api/subscriptions/paypal/create-order
+ * Crear orden de pago PayPal
+ */
+router.post('/paypal/create-order', async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        const { planId, interval = 'monthly' } = req.body;
+
+        if (!planId || !['PRO', 'ENTERPRISE'].includes(planId)) {
+            return res.status(400).json({ error: 'Plan inválido. Usa PRO o ENTERPRISE.' });
+        }
+
+        const baseUrl = process.env.APP_BASE_URL || 'https://prestanace.renace.tech';
+
+        const order = await paypalService.createOrder({
+            planId,
+            interval,
+            tenantId,
+            returnUrl: `${baseUrl}/#/subscription?paypal=success`,
+            cancelUrl: `${baseUrl}/#/subscription?paypal=cancelled`,
+        });
+
+        // Guardar referencia de la orden pendiente
+        await prisma.payment.create({
+            data: {
+                subscriptionId: (await prisma.subscription.findUnique({ where: { tenantId } }))?.id,
+                method: 'PAYPAL',
+                status: 'PENDING',
+                amount: parseFloat(order.order.purchase_units[0].amount.value) * 100, // Convertir a centavos
+                currency: 'USD',
+                plan: planId,
+                interval,
+                externalId: order.orderId,
+                notes: `PayPal Order: ${order.orderId}`,
+            },
+        });
+
+        res.json({
+            success: true,
+            orderId: order.orderId,
+            approveUrl: order.approveUrl,
+        });
+
+    } catch (error) {
+        console.error('PayPal create order error:', error);
+        res.status(500).json({ error: 'Error al crear orden de PayPal' });
+    }
+});
+
+/**
+ * POST /api/subscriptions/paypal/capture-order
+ * Capturar pago de orden aprobada por el usuario
+ */
+router.post('/paypal/capture-order', async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        const { orderId } = req.body;
+
+        if (!orderId) {
+            return res.status(400).json({ error: 'orderId es requerido' });
+        }
+
+        // Capturar el pago
+        const capture = await paypalService.captureOrder(orderId);
+
+        if (!capture.success) {
+            return res.status(400).json({ error: 'El pago no se completó correctamente' });
+        }
+
+        // Actualizar el registro de pago
+        const payment = await prisma.payment.findFirst({
+            where: { externalId: orderId },
+        });
+
+        if (payment) {
+            await prisma.payment.update({
+                where: { id: payment.id },
+                data: {
+                    status: 'VERIFIED',
+                    verifiedAt: new Date(),
+                    notes: `PayPal Capture: ${capture.captureId}. Pagador: ${capture.payerEmail}`,
+                },
+            });
+        }
+
+        // Activar la suscripción
+        const plan = PLANS[capture.planId] || PLANS.PRO;
+        const periodEnd = paypalService.calculateExpirationDate(capture.interval);
+
+        await prisma.subscription.upsert({
+            where: { tenantId },
+            update: {
+                plan: capture.planId,
+                status: 'ACTIVE',
+                currentPeriodStart: new Date(),
+                currentPeriodEnd: periodEnd,
+                limits: JSON.stringify(plan.limits),
+            },
+            create: {
+                tenantId,
+                plan: capture.planId,
+                status: 'ACTIVE',
+                currentPeriodStart: new Date(),
+                currentPeriodEnd: periodEnd,
+                limits: JSON.stringify(plan.limits),
+            },
+        });
+
+        // Enviar correo de confirmación
+        const tenant = await prisma.tenant.findUnique({
+            where: { id: tenantId },
+            include: { users: true },
+        });
+
+        const ownerEmail = tenant?.users?.find(u => u.role === 'OWNER')?.email;
+        if (ownerEmail) {
+            try {
+                await transporter.sendMail({
+                    from: FROM_EMAIL,
+                    to: ownerEmail,
+                    subject: `✅ Tu suscripción ${plan.name} está activa - RenKredit`,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <h2 style="color: #22c55e;">¡Pago Confirmado!</h2>
+                            <p>Hola ${tenant?.name || ''},</p>
+                            <p>Tu pago de <strong>$${capture.amount} USD</strong> ha sido procesado exitosamente con PayPal.</p>
+                            <p>Tu plan <strong>${plan.name}</strong> está activo hasta: <strong>${periodEnd.toLocaleDateString('es-DO')}</strong></p>
+                            <p>¡Gracias por confiar en RenKredit!</p>
+                        </div>
+                    `,
+                });
+            } catch (emailErr) {
+                console.error('Confirmation email error:', emailErr);
+            }
+        }
+
+        // Notificar a admin
+        for (const adminEmail of ADMIN_EMAILS) {
+            try {
+                await transporter.sendMail({
+                    from: FROM_EMAIL,
+                    to: adminEmail,
+                    subject: `💰 Nuevo pago PayPal: ${tenant?.name} - ${plan.name}`,
+                    html: `<p><strong>${tenant?.name}</strong> pagó <strong>$${capture.amount} USD</strong> por ${plan.name} vía PayPal (${capture.payerEmail})</p>`,
+                });
+            } catch (e) { /* ignore */ }
+        }
+
+        res.json({
+            success: true,
+            subscription: {
+                plan: capture.planId,
+                status: 'ACTIVE',
+                periodEnd,
+            },
+            payment: {
+                amount: capture.amount,
+                currency: capture.currency,
+                payerEmail: capture.payerEmail,
+            },
+        });
+
+    } catch (error) {
+        console.error('PayPal capture error:', error);
+        res.status(500).json({ error: 'Error al procesar el pago de PayPal' });
+    }
+});
+
+/**
+ * GET /api/subscriptions/paypal/order/:orderId
+ * Verificar estado de una orden
+ */
+router.get('/paypal/order/:orderId', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const orderDetails = await paypalService.getOrderDetails(orderId);
+        res.json(orderDetails);
+    } catch (error) {
+        console.error('PayPal get order error:', error);
+        res.status(500).json({ error: 'Error al obtener detalles de la orden' });
+    }
+});
+
 module.exports = router;
 
