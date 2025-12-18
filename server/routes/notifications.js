@@ -1,6 +1,6 @@
 /**
  * Notifications API Routes
- * PrestaPro by Renace.tech
+ * RenKredit by Renace.tech
  */
 
 const express = require('express');
@@ -256,7 +256,7 @@ router.post('/test-email', async (req, res) => {
           <p style="color: #64748b;">Si recibes este correo, tu configuración de email está funcionando correctamente.</p>
           <p style="color: #94a3b8; font-size: 12px; margin-top: 24px;">Enviado desde ${emailService.BRAND_NAME}</p>
         </div>
-      `, tenant?.name || 'PrestaPro')
+      `, tenant?.name || 'RenKredit')
         });
 
         if (result.success) {
@@ -292,7 +292,7 @@ router.post('/send-report', async (req, res) => {
                     ${reportHtml}
                 </div>
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #64748b; font-size: 12px;">
-                    Enviado desde <strong>Presta Pro</strong>
+                    Enviado desde <strong>RenKredit</strong>
                 </div>
             </div>
         `;

@@ -10,14 +10,14 @@ const AZUL_CONFIG = {
     test: {
         pageUrl: 'https://pruebas.azul.com.do/paymentpage/',
         merchantId: process.env.AZUL_MERCHANT_ID || '',
-        merchantName: process.env.AZUL_MERCHANT_NAME || 'Presta Pro',
+        merchantName: process.env.AZUL_MERCHANT_NAME || 'RenKredit',
         auth1: process.env.AZUL_AUTH1 || '',
         auth2: process.env.AZUL_AUTH2 || '',
     },
     production: {
         pageUrl: 'https://pagos.azul.com.do/paymentpage/',
         merchantId: process.env.AZUL_MERCHANT_ID || '',
-        merchantName: process.env.AZUL_MERCHANT_NAME || 'Presta Pro',
+        merchantName: process.env.AZUL_MERCHANT_NAME || 'RenKredit',
         auth1: process.env.AZUL_AUTH1 || '',
         auth2: process.env.AZUL_AUTH2 || '',
     }

@@ -1,7 +1,7 @@
 /**
  * Unified Notification Service
  * Creates in-app notification + sends push + optionally email
- * PrestaPro by Renace.tech
+ * RenKredit by Renace.tech
  */
 
 const prisma = require('../lib/prisma');
@@ -84,7 +84,7 @@ const createNotification = async ({
                         <h2 style="color: #2563eb; margin-bottom: 16px;">${title}</h2>
                         <p style="color: #475569; line-height: 1.6;">${message}</p>
                         ${actionUrl ? `<p><a href="${actionUrl}" style="color: #2563eb;">Ver más →</a></p>` : ''}
-                    `, tenant?.name || 'Presta Pro')
+                    `, tenant?.name || 'RenKredit')
                 }).catch(err => console.error('[NOTIFY] Email error:', err.message));
             }
         }
