@@ -48,6 +48,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Skip caching API calls
+        navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -62,16 +64,32 @@ export default defineConfig({
     }),
   ],
   build: {
-    sourcemap: false, // Disable source maps in production for security
-    minify: 'esbuild', // Use esbuild for faster minification
+    sourcemap: false,
+    minify: 'terser', // Use terser for better compression
+    target: 'es2015', // For older Android WebViews
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log in production
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.debug'],
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
-          charts: ['recharts'],
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-charts': ['recharts'],
+          'vendor-ui': ['lucide-react'],
+          'vendor-auth': ['@react-oauth/google', 'jwt-decode'],
         },
       },
     },
-    chunkSizeWarningLimit: 1000, // Increase limit for larger chunks
+
+    chunkSizeWarningLimit: 500, // Smaller chunks for better loading
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'recharts', 'lucide-react'],
   },
 })
+
