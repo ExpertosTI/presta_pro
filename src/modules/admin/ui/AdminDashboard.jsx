@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Building2, CreditCard, ScrollText, Search,
     TrendingUp, Users, DollarSign, AlertTriangle, CheckCircle,
-    XCircle, Clock, Eye, Ban, PlayCircle, FileText, Megaphone, Send
+    XCircle, Clock, Eye, Ban, PlayCircle, FileText, Megaphone, Send,
+    MoreVertical, RefreshCw, CalendarPlus, Key, Mail, History, ArrowDownCircle, X
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency, formatDateTime, formatDate } from '../../../shared/utils/formatters';
@@ -31,6 +32,30 @@ export function AdminDashboard({ showToast }) {
     const [sendEmail, setSendEmail] = useState(false);
     const [broadcastSending, setBroadcastSending] = useState(false);
     const [broadcastResult, setBroadcastResult] = useState(null);
+
+    // New action modals state
+    const [changePlanModal, setChangePlanModal] = useState(null); // tenant object
+    const [selectedPlan, setSelectedPlan] = useState('PRO');
+    const [selectedMonths, setSelectedMonths] = useState(1);
+    const [planReason, setPlanReason] = useState('');
+
+    const [extendModal, setExtendModal] = useState(null);
+    const [extendDays, setExtendDays] = useState(30);
+    const [extendReason, setExtendReason] = useState('');
+
+    const [resetPasswordModal, setResetPasswordModal] = useState(null);
+
+    const [emailModal, setEmailModal] = useState(null);
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailMessage, setEmailMessage] = useState('');
+
+    const [historyModal, setHistoryModal] = useState(null);
+    const [historyLogs, setHistoryLogs] = useState([]);
+
+    const [downgradeModal, setDowngradeModal] = useState(null);
+    const [downgradeReason, setDowngradeReason] = useState('');
+
+    const [actionMenuOpen, setActionMenuOpen] = useState(null); // tenant.id
 
 
     useEffect(() => {
@@ -160,6 +185,83 @@ export function AdminDashboard({ showToast }) {
             setBroadcastResult({ error: e.message });
         } finally {
             setBroadcastSending(false);
+        }
+    };
+
+    // New handlers for tenant management
+    const handleChangePlan = async () => {
+        if (!changePlanModal) return;
+        try {
+            await adminService.changePlan(changePlanModal.id, selectedPlan, selectedMonths, planReason);
+            showToast?.(`Plan actualizado a ${selectedPlan}`, 'success');
+            setChangePlanModal(null);
+            setSelectedPlan('PRO');
+            setSelectedMonths(1);
+            setPlanReason('');
+            loadData();
+        } catch (e) {
+            showToast?.('Error cambiando plan', 'error');
+        }
+    };
+
+    const handleExtendSubscription = async () => {
+        if (!extendModal || !extendDays) return;
+        try {
+            await adminService.extendSubscription(extendModal.id, extendDays, extendReason);
+            showToast?.(`Suscripción extendida ${extendDays} días`, 'success');
+            setExtendModal(null);
+            setExtendDays(30);
+            setExtendReason('');
+            loadData();
+        } catch (e) {
+            showToast?.('Error extendiendo suscripción', 'error');
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!resetPasswordModal) return;
+        try {
+            const result = await adminService.resetPassword(resetPasswordModal.id);
+            showToast?.(`Contraseña enviada a ${result.email || 'usuario'}`, 'success');
+            setResetPasswordModal(null);
+        } catch (e) {
+            showToast?.('Error reseteando contraseña', 'error');
+        }
+    };
+
+    const handleSendEmail = async () => {
+        if (!emailModal || !emailSubject.trim() || !emailMessage.trim()) return;
+        try {
+            await adminService.sendDirectEmail(emailModal.id, emailSubject, emailMessage);
+            showToast?.('Email enviado', 'success');
+            setEmailModal(null);
+            setEmailSubject('');
+            setEmailMessage('');
+        } catch (e) {
+            showToast?.('Error enviando email', 'error');
+        }
+    };
+
+    const handleViewHistory = async (tenant) => {
+        try {
+            const result = await adminService.getTenantHistory(tenant.id);
+            setHistoryLogs(result.logs || []);
+            setHistoryModal(tenant);
+        } catch (e) {
+            showToast?.('Error cargando historial', 'error');
+        }
+    };
+
+    const handleDowngrade = async () => {
+        if (!downgradeModal) return;
+        try {
+            await adminService.downgradePlan(downgradeModal.id, downgradeReason);
+            showToast?.('Plan degradado a FREE', 'success');
+            setDowngradeModal(null);
+            setDowngradeReason('');
+            loadData();
+        } catch (e) {
+            showToast?.('Error degradando plan', 'error');
         }
     };
 
@@ -296,7 +398,7 @@ export function AdminDashboard({ showToast }) {
                                                     <span><CreditCard size={14} className="inline mr-1" />{tenant.subscription?.plan || 'FREE'}</span>
                                                 </div>
                                             </div>
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-2 items-center">
                                                 {tenant.suspendedAt ? (
                                                     <button
                                                         onClick={() => handleActivateTenant(tenant.id)}
@@ -314,6 +416,63 @@ export function AdminDashboard({ showToast }) {
                                                         Suspender
                                                     </button>
                                                 )}
+                                                {/* Action Menu */}
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={() => setActionMenuOpen(actionMenuOpen === tenant.id ? null : tenant.id)}
+                                                        className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                                                    >
+                                                        <MoreVertical size={18} />
+                                                    </button>
+                                                    {actionMenuOpen === tenant.id && (
+                                                        <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 py-1">
+                                                            <button
+                                                                onClick={() => { setChangePlanModal(tenant); setActionMenuOpen(null); }}
+                                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            >
+                                                                <RefreshCw size={16} className="text-blue-500" />
+                                                                Cambiar Plan
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setExtendModal(tenant); setActionMenuOpen(null); }}
+                                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            >
+                                                                <CalendarPlus size={16} className="text-green-500" />
+                                                                Extender Suscripción
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setResetPasswordModal(tenant); setActionMenuOpen(null); }}
+                                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            >
+                                                                <Key size={16} className="text-amber-500" />
+                                                                Resetear Contraseña
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setEmailModal(tenant); setActionMenuOpen(null); }}
+                                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            >
+                                                                <Mail size={16} className="text-purple-500" />
+                                                                Enviar Email
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { handleViewHistory(tenant); setActionMenuOpen(null); }}
+                                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                            >
+                                                                <History size={16} className="text-slate-500" />
+                                                                Ver Historial
+                                                            </button>
+                                                            {tenant.subscription?.plan !== 'FREE' && (
+                                                                <button
+                                                                    onClick={() => { setDowngradeModal(tenant); setActionMenuOpen(null); }}
+                                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                                >
+                                                                    <ArrowDownCircle size={16} />
+                                                                    Degradar a FREE
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </Card>
@@ -642,6 +801,273 @@ export function AdminDashboard({ showToast }) {
                                 className="flex-1 py-2.5 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-500"
                             >
                                 Activar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Change Plan Modal */}
+            {changePlanModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                                Cambiar Plan - {changePlanModal.name}
+                            </h3>
+                            <button onClick={() => setChangePlanModal(null)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Plan</label>
+                                <div className="flex gap-2">
+                                    {['FREE', 'PRO', 'ENTERPRISE'].map(p => (
+                                        <button
+                                            key={p}
+                                            onClick={() => setSelectedPlan(p)}
+                                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${selectedPlan === p
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                                }`}
+                                        >
+                                            {p}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Duración (meses)</label>
+                                <div className="flex gap-2">
+                                    {[1, 3, 6, 12].map(m => (
+                                        <button
+                                            key={m}
+                                            onClick={() => setSelectedMonths(m)}
+                                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${selectedMonths === m
+                                                    ? 'bg-green-600 text-white'
+                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                                }`}
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Razón (opcional)</label>
+                                <input
+                                    type="text"
+                                    value={planReason}
+                                    onChange={(e) => setPlanReason(e.target.value)}
+                                    placeholder="Ej: Promoción especial"
+                                    className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setChangePlanModal(null)} className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                Cancelar
+                            </button>
+                            <button onClick={handleChangePlan} className="flex-1 py-2.5 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-500">
+                                Cambiar Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Extend Subscription Modal */}
+            {extendModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                                Extender Suscripción - {extendModal.name}
+                            </h3>
+                            <button onClick={() => setExtendModal(null)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Días a agregar</label>
+                                <div className="flex gap-2 mb-3">
+                                    {[7, 15, 30, 90].map(d => (
+                                        <button
+                                            key={d}
+                                            onClick={() => setExtendDays(d)}
+                                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${extendDays === d
+                                                    ? 'bg-green-600 text-white'
+                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                                                }`}
+                                        >
+                                            +{d}
+                                        </button>
+                                    ))}
+                                </div>
+                                <input
+                                    type="number"
+                                    value={extendDays}
+                                    onChange={(e) => setExtendDays(parseInt(e.target.value) || 0)}
+                                    className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Razón (opcional)</label>
+                                <input
+                                    type="text"
+                                    value={extendReason}
+                                    onChange={(e) => setExtendReason(e.target.value)}
+                                    placeholder="Ej: Compensación por problema técnico"
+                                    className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setExtendModal(null)} className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                Cancelar
+                            </button>
+                            <button onClick={handleExtendSubscription} disabled={!extendDays} className="flex-1 py-2.5 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-500 disabled:opacity-50">
+                                Extender
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reset Password Modal */}
+            {resetPasswordModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
+                            Resetear Contraseña
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 mb-2">
+                            ¿Enviar nueva contraseña al administrador de <strong>{resetPasswordModal.name}</strong>?
+                        </p>
+                        <p className="text-sm text-amber-600 dark:text-amber-400 mb-6">
+                            ⚠️ Se generará una contraseña temporal y se enviará por email.
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setResetPasswordModal(null)} className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                Cancelar
+                            </button>
+                            <button onClick={handleResetPassword} className="flex-1 py-2.5 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-500">
+                                Enviar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Send Email Modal */}
+            {emailModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                                Enviar Email - {emailModal.name}
+                            </h3>
+                            <button onClick={() => setEmailModal(null)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Asunto</label>
+                                <input
+                                    type="text"
+                                    value={emailSubject}
+                                    onChange={(e) => setEmailSubject(e.target.value)}
+                                    placeholder="Asunto del email"
+                                    className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mensaje</label>
+                                <textarea
+                                    value={emailMessage}
+                                    onChange={(e) => setEmailMessage(e.target.value)}
+                                    rows={5}
+                                    placeholder="Escribe tu mensaje..."
+                                    className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 resize-none"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setEmailModal(null)} className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                Cancelar
+                            </button>
+                            <button onClick={handleSendEmail} disabled={!emailSubject.trim() || !emailMessage.trim()} className="flex-1 py-2.5 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50">
+                                Enviar Email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* History Modal */}
+            {historyModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                                Historial - {historyModal.name}
+                            </h3>
+                            <button onClick={() => setHistoryModal(null)} className="text-slate-400 hover:text-slate-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            {historyLogs.length === 0 ? (
+                                <p className="text-center text-slate-500 py-8">No hay historial</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {historyLogs.map(log => (
+                                        <div key={log.id} className="border-l-2 border-blue-500 pl-4 py-2">
+                                            <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">{log.action}</p>
+                                            <p className="text-xs text-slate-500">{formatDateTime(log.createdAt)}</p>
+                                            {log.reason && <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{log.reason}</p>}
+                                            <p className="text-xs text-slate-400 mt-1">Por: {log.adminEmail}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <button onClick={() => setHistoryModal(null)} className="mt-4 w-full py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Downgrade Modal */}
+            {downgradeModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-bold text-red-600 mb-4">
+                            ⚠️ Degradar a Plan Gratuito
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 mb-4">
+                            ¿Degradar <strong>{downgradeModal.name}</strong> al plan FREE?
+                        </p>
+                        <p className="text-sm text-red-500 mb-4">
+                            El cliente perderá acceso a las funciones premium inmediatamente.
+                        </p>
+                        <input
+                            type="text"
+                            value={downgradeReason}
+                            onChange={(e) => setDowngradeReason(e.target.value)}
+                            placeholder="Razón (requerida)"
+                            className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 mb-4"
+                        />
+                        <div className="flex gap-3">
+                            <button onClick={() => { setDowngradeModal(null); setDowngradeReason(''); }} className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                Cancelar
+                            </button>
+                            <button onClick={handleDowngrade} disabled={!downgradeReason.trim()} className="flex-1 py-2.5 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-500 disabled:opacity-50">
+                                Degradar
                             </button>
                         </div>
                     </div>

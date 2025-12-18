@@ -97,6 +97,83 @@ export const sendBroadcast = async (title, message, sendEmail = false) => {
     return response;
 };
 
+/**
+ * Change tenant's subscription plan
+ * @param {string} tenantId - Tenant ID
+ * @param {string} plan - Plan: FREE, PRO, ENTERPRISE
+ * @param {number} months - Duration in months
+ * @param {string} reason - Reason for change
+ */
+export const changePlan = async (tenantId, plan, months, reason) => {
+    const response = await axiosInstance.put(`/admin/tenants/${tenantId}/plan`, {
+        plan,
+        months,
+        reason
+    });
+    return response;
+};
+
+/**
+ * Extend tenant's subscription
+ * @param {string} tenantId - Tenant ID
+ * @param {number} days - Days to add
+ * @param {string} reason - Reason for extension
+ */
+export const extendSubscription = async (tenantId, days, reason) => {
+    const response = await axiosInstance.post(`/admin/tenants/${tenantId}/extend`, {
+        days,
+        reason
+    });
+    return response;
+};
+
+/**
+ * Reset password for a tenant's user
+ * @param {string} tenantId - Tenant ID
+ * @param {string} userId - Optional specific user ID
+ */
+export const resetPassword = async (tenantId, userId = null) => {
+    const response = await axiosInstance.post(`/admin/tenants/${tenantId}/reset-password`, {
+        userId
+    });
+    return response;
+};
+
+/**
+ * Send direct email to tenant
+ * @param {string} tenantId - Tenant ID
+ * @param {string} subject - Email subject
+ * @param {string} message - Email body
+ */
+export const sendDirectEmail = async (tenantId, subject, message) => {
+    const response = await axiosInstance.post(`/admin/tenants/${tenantId}/send-email`, {
+        subject,
+        message
+    });
+    return response;
+};
+
+/**
+ * Get admin action history for a tenant
+ * @param {string} tenantId - Tenant ID
+ */
+export const getTenantHistory = async (tenantId) => {
+    const response = await axiosInstance.get(`/admin/tenants/${tenantId}/history`);
+    return response;
+};
+
+/**
+ * Downgrade tenant to FREE plan
+ * @param {string} tenantId - Tenant ID
+ * @param {string} reason - Reason for downgrade
+ */
+export const downgradePlan = async (tenantId, reason) => {
+    const response = await axiosInstance.post(`/admin/tenants/${tenantId}/downgrade`, {
+        reason
+    });
+    return response;
+};
+
 export default {
     getDashboard,
     getTenants,
@@ -108,5 +185,11 @@ export default {
     verifyPayment,
     rejectPayment,
     getLogs,
-    sendBroadcast
+    sendBroadcast,
+    changePlan,
+    extendSubscription,
+    resetPassword,
+    sendDirectEmail,
+    getTenantHistory,
+    downgradePlan
 };

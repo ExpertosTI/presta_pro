@@ -242,11 +242,11 @@ router.post('/tenants/:id/suspend', async (req, res) => {
             console.log(`[SUSPEND] Sending email to ${tenantOwner.email}...`);
             await emailService.sendEmail({
                 to: tenantOwner.email,
-                subject: '⚠️ Tu cuenta ha sido suspendida - Presta Pro',
+                subject: '⚠️ Tu cuenta ha sido suspendida - RenKredit',
                 html: emailService.wrapEmailTemplate(`
                     <h2 style="color: #dc2626; margin-bottom: 20px;">Cuenta Suspendida</h2>
                     <p>Hola ${tenantOwner.name || 'Usuario'},</p>
-                    <p>Tu cuenta en <strong>Presta Pro</strong> ha sido suspendida.</p>
+                    <p>Tu cuenta en <strong>RenKredit</strong> ha sido suspendida.</p>
                     
                     <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin: 20px 0;">
                         <p style="margin: 0; color: #991b1b;"><strong>Motivo:</strong></p>
@@ -334,18 +334,18 @@ router.post('/tenants/:id/activate', async (req, res) => {
         if (tenantOwner?.email) {
             await emailService.sendEmail({
                 to: tenantOwner.email,
-                subject: '✅ Tu cuenta ha sido reactivada - Presta Pro',
+                subject: '✅ Tu cuenta ha sido reactivada - RenKredit',
                 html: emailService.wrapEmailTemplate(`
                     <h2 style="color: #16a34a; margin-bottom: 20px;">¡Tu Cuenta Está Activa!</h2>
                     <p>Hola ${tenantOwner.name || 'Usuario'},</p>
-                    <p>Tu cuenta en <strong>Presta Pro</strong> ha sido reactivada correctamente.</p>
+                    <p>Tu cuenta en <strong>RenKredit</strong> ha sido reactivada correctamente.</p>
                     
                     <div style="background: #dcfce7; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; margin: 20px 0;">
                         <p style="margin: 0; color: #166534;">Ya puedes acceder normalmente al sistema con tus credenciales habituales.</p>
                     </div>
                     
                     <p>¡Gracias por confiar en nosotros!</p>
-                    <p><a href="https://prestapro.renace.tech" style="color: #2563eb;">Ir a Presta Pro</a></p>
+                    <p><a href="https://renkredit.renace.tech" style="color: #2563eb;">Ir a RenKredit</a></p>
                 `)
             }).catch(err => console.error('Error sending activation email:', err));
         }
@@ -713,6 +713,521 @@ router.post('/broadcast', async (req, res) => {
     } catch (error) {
         console.error('Broadcast error:', error);
         res.status(500).json({ error: 'Error enviando broadcast' });
+    }
+});
+
+// ============================================
+// PLAN & SUBSCRIPTION MANAGEMENT
+// ============================================
+
+// Plan definitions (same as subscriptions.js)
+const PLANS = {
+    FREE: {
+        id: 'FREE',
+        name: 'Gratis',
+        limits: { maxClients: 10, maxLoans: 5, maxUsers: 1, aiQueries: 0 }
+    },
+    PRO: {
+        id: 'PRO',
+        name: 'Plan Profesional',
+        limits: { maxClients: 100, maxLoans: 50, maxUsers: 5, aiQueries: 100 }
+    },
+    ENTERPRISE: {
+        id: 'ENTERPRISE',
+        name: 'Plan Empresarial',
+        limits: { maxClients: -1, maxLoans: -1, maxUsers: -1, aiQueries: -1 }
+    }
+};
+
+/**
+ * PUT /api/admin/tenants/:id/plan - Change tenant's subscription plan
+ * Body: { plan: 'FREE'|'PRO'|'ENTERPRISE', months: 1|3|6|12, reason: string }
+ */
+router.put('/tenants/:id/plan', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { plan, months = 1, reason } = req.body;
+
+        if (!PLANS[plan]) {
+            return res.status(400).json({ error: 'Plan inválido. Use FREE, PRO o ENTERPRISE.' });
+        }
+
+        const tenant = await prisma.tenant.findUnique({
+            where: { id },
+            include: { subscription: true, users: true }
+        });
+
+        if (!tenant) {
+            return res.status(404).json({ error: 'Empresa no encontrada' });
+        }
+
+        const previousPlan = tenant.subscription?.plan || 'FREE';
+        const now = new Date();
+        const periodEnd = new Date(now);
+        periodEnd.setMonth(periodEnd.getMonth() + parseInt(months));
+
+        // Update or create subscription
+        const subscription = await prisma.subscription.upsert({
+            where: { tenantId: id },
+            update: {
+                plan,
+                status: 'ACTIVE',
+                currentPeriodStart: now,
+                currentPeriodEnd: periodEnd,
+                limits: JSON.stringify(PLANS[plan].limits)
+            },
+            create: {
+                tenantId: id,
+                plan,
+                status: 'ACTIVE',
+                currentPeriodStart: now,
+                currentPeriodEnd: periodEnd,
+                limits: JSON.stringify(PLANS[plan].limits)
+            }
+        });
+
+        // Log action
+        await prisma.adminLog.create({
+            data: {
+                adminId: req.user?.id || req.user?.userId,
+                adminEmail: req.user.email || 'admin',
+                action: 'CHANGE_PLAN',
+                targetType: 'SUBSCRIPTION',
+                targetId: id,
+                previousValue: { plan: previousPlan },
+                newValue: { plan, months, periodEnd: periodEnd.toISOString() },
+                reason: reason || `Cambio de plan a ${plan}`,
+                ipAddress: req.ip
+            }
+        });
+
+        // Send email notification to tenant
+        const tenantUser = tenant.users.find(u => u.email);
+        if (tenantUser?.email) {
+            await emailService.sendEmail({
+                to: tenantUser.email,
+                subject: `📋 Tu plan ha sido actualizado a ${PLANS[plan].name} - RenKredit`,
+                html: emailService.wrapEmailTemplate(`
+                    <h2 style="color: #059669; margin-bottom: 20px;">Plan Actualizado</h2>
+                    <p>Hola ${tenantUser.name || 'Usuario'},</p>
+                    <p>Tu plan en <strong>RenKredit</strong> ha sido actualizado por un administrador.</p>
+                    
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                        <p style="margin: 0 0 10px;"><strong>Plan anterior:</strong> ${previousPlan}</p>
+                        <p style="margin: 0 0 10px;"><strong>Nuevo plan:</strong> ${PLANS[plan].name}</p>
+                        <p style="margin: 0;"><strong>Válido hasta:</strong> ${periodEnd.toLocaleDateString('es-DO')}</p>
+                    </div>
+                    
+                    ${reason ? `<p><strong>Nota:</strong> ${reason}</p>` : ''}
+                    <p>¡Gracias por confiar en nosotros!</p>
+                `)
+            }).catch(err => console.error('Error sending plan change email:', err));
+        }
+
+        // Create notification
+        await prisma.notification.create({
+            data: {
+                tenantId: id,
+                type: 'SUBSCRIPTION',
+                title: '📋 Plan Actualizado',
+                message: `Tu plan ha sido actualizado a ${PLANS[plan].name}. Válido hasta ${periodEnd.toLocaleDateString('es-DO')}.`
+            }
+        });
+
+        res.json({
+            success: true,
+            message: `Plan actualizado a ${PLANS[plan].name}`,
+            subscription: {
+                plan,
+                status: 'ACTIVE',
+                currentPeriodEnd: periodEnd
+            }
+        });
+    } catch (error) {
+        console.error('Change plan error:', error);
+        res.status(500).json({ error: 'Error actualizando plan' });
+    }
+});
+
+/**
+ * POST /api/admin/tenants/:id/extend - Extend subscription period
+ * Body: { days: number, reason: string }
+ */
+router.post('/tenants/:id/extend', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { days, reason } = req.body;
+
+        if (!days || days < 1) {
+            return res.status(400).json({ error: 'Debe especificar días válidos (mínimo 1)' });
+        }
+
+        const subscription = await prisma.subscription.findUnique({
+            where: { tenantId: id },
+            include: { tenant: { include: { users: true } } }
+        });
+
+        if (!subscription) {
+            return res.status(404).json({ error: 'Suscripción no encontrada' });
+        }
+
+        // Calculate new end date
+        const currentEnd = subscription.currentPeriodEnd || new Date();
+        const newEnd = new Date(currentEnd);
+        newEnd.setDate(newEnd.getDate() + parseInt(days));
+
+        await prisma.subscription.update({
+            where: { tenantId: id },
+            data: {
+                currentPeriodEnd: newEnd,
+                status: 'ACTIVE'
+            }
+        });
+
+        // Log action
+        await prisma.adminLog.create({
+            data: {
+                adminId: req.user?.id || req.user?.userId,
+                adminEmail: req.user.email || 'admin',
+                action: 'EXTEND_SUBSCRIPTION',
+                targetType: 'SUBSCRIPTION',
+                targetId: id,
+                previousValue: { periodEnd: currentEnd.toISOString() },
+                newValue: { periodEnd: newEnd.toISOString(), daysAdded: days },
+                reason: reason || `Extensión de ${days} días`,
+                ipAddress: req.ip
+            }
+        });
+
+        // Notify tenant
+        const tenantUser = subscription.tenant?.users.find(u => u.email);
+        if (tenantUser?.email) {
+            await emailService.sendEmail({
+                to: tenantUser.email,
+                subject: '⏰ Tu suscripción ha sido extendida - RenKredit',
+                html: emailService.wrapEmailTemplate(`
+                    <h2 style="color: #2563eb; margin-bottom: 20px;">Suscripción Extendida</h2>
+                    <p>¡Buenas noticias! Tu suscripción ha sido extendida.</p>
+                    
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                        <p style="margin: 0 0 10px;"><strong>Días agregados:</strong> ${days}</p>
+                        <p style="margin: 0;"><strong>Nueva fecha de vencimiento:</strong> ${newEnd.toLocaleDateString('es-DO')}</p>
+                    </div>
+                    
+                    ${reason ? `<p><strong>Nota:</strong> ${reason}</p>` : ''}
+                `)
+            }).catch(err => console.error('Error sending extension email:', err));
+        }
+
+        await prisma.notification.create({
+            data: {
+                tenantId: id,
+                type: 'SUBSCRIPTION',
+                title: '⏰ Suscripción Extendida',
+                message: `Se han agregado ${days} días a tu suscripción. Nueva fecha de vencimiento: ${newEnd.toLocaleDateString('es-DO')}.`
+            }
+        });
+
+        res.json({
+            success: true,
+            message: `Suscripción extendida ${days} días`,
+            newPeriodEnd: newEnd
+        });
+    } catch (error) {
+        console.error('Extend subscription error:', error);
+        res.status(500).json({ error: 'Error extendiendo suscripción' });
+    }
+});
+
+/**
+ * POST /api/admin/tenants/:id/reset-password - Reset user password
+ * Body: { userId?: string } - If not provided, resets admin/owner's password
+ */
+router.post('/tenants/:id/reset-password', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId } = req.body;
+        const bcrypt = require('bcrypt');
+
+        // Find user
+        let user;
+        if (userId) {
+            user = await prisma.user.findFirst({
+                where: { id: userId, tenantId: id }
+            });
+        } else {
+            user = await prisma.user.findFirst({
+                where: {
+                    tenantId: id,
+                    role: { in: ['ADMIN', 'OWNER', 'admin', 'owner', 'SUPER_ADMIN'] }
+                }
+            });
+            // Fallback to any user
+            if (!user) {
+                user = await prisma.user.findFirst({ where: { tenantId: id } });
+            }
+        }
+
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        // Generate temporary password
+        const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+        const passwordHash = await bcrypt.hash(tempPassword, 12);
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { passwordHash }
+        });
+
+        // Log action
+        await prisma.adminLog.create({
+            data: {
+                adminId: req.user?.id || req.user?.userId,
+                adminEmail: req.user.email || 'admin',
+                action: 'RESET_PASSWORD',
+                targetType: 'USER',
+                targetId: user.id,
+                reason: `Contraseña reseteada por admin`,
+                ipAddress: req.ip
+            }
+        });
+
+        // Send email with new password
+        if (user.email) {
+            await emailService.sendEmail({
+                to: user.email,
+                subject: '🔑 Tu contraseña ha sido restablecida - RenKredit',
+                html: emailService.wrapEmailTemplate(`
+                    <h2 style="color: #dc2626; margin-bottom: 20px;">Contraseña Restablecida</h2>
+                    <p>Hola ${user.name || 'Usuario'},</p>
+                    <p>Un administrador ha restablecido tu contraseña.</p>
+                    
+                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin: 20px 0; text-align: center;">
+                        <p style="margin: 0 0 10px; color: #991b1b;"><strong>Tu nueva contraseña temporal:</strong></p>
+                        <p style="margin: 0; font-size: 24px; font-family: monospace; background: #fee2e2; padding: 10px; border-radius: 4px;">${tempPassword}</p>
+                    </div>
+                    
+                    <p style="color: #dc2626;"><strong>⚠️ Por seguridad, cambia esta contraseña inmediatamente después de iniciar sesión.</strong></p>
+                    <p><a href="${process.env.APP_URL || 'https://prestapro.renace.tech'}" style="color: #2563eb;">Ir a RenKredit</a></p>
+                `)
+            }).catch(err => console.error('Error sending password reset email:', err));
+        }
+
+        res.json({
+            success: true,
+            message: `Contraseña restablecida para ${user.email}`,
+            email: user.email
+        });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ error: 'Error restableciendo contraseña' });
+    }
+});
+
+/**
+ * POST /api/admin/tenants/:id/send-email - Send direct email to tenant
+ * Body: { subject: string, message: string }
+ */
+router.post('/tenants/:id/send-email', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { subject, message } = req.body;
+
+        if (!subject || !message) {
+            return res.status(400).json({ error: 'Asunto y mensaje son requeridos' });
+        }
+
+        const tenant = await prisma.tenant.findUnique({
+            where: { id },
+            include: { users: true }
+        });
+
+        if (!tenant) {
+            return res.status(404).json({ error: 'Empresa no encontrada' });
+        }
+
+        const tenantUser = tenant.users.find(u => u.email);
+        if (!tenantUser?.email) {
+            return res.status(400).json({ error: 'El tenant no tiene email configurado' });
+        }
+
+        await emailService.sendEmail({
+            to: tenantUser.email,
+            subject: `[RenKredit Admin] ${subject}`,
+            html: emailService.wrapEmailTemplate(`
+                <h2 style="color: #1e40af; margin-bottom: 20px;">Mensaje del Administrador</h2>
+                <div style="background: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+                    ${message.replace(/\n/g, '<br>')}
+                </div>
+                <p style="color: #64748b; font-size: 12px; margin-top: 20px;">
+                    Este mensaje fue enviado por el equipo de administración de RenKredit.
+                </p>
+            `, tenant.name)
+        });
+
+        // Log action
+        await prisma.adminLog.create({
+            data: {
+                adminId: req.user?.id || req.user?.userId,
+                adminEmail: req.user.email || 'admin',
+                action: 'SEND_EMAIL',
+                targetType: 'TENANT',
+                targetId: id,
+                reason: `Email enviado: ${subject}`,
+                ipAddress: req.ip
+            }
+        });
+
+        // Also create in-app notification
+        await prisma.notification.create({
+            data: {
+                tenantId: id,
+                type: 'SYSTEM',
+                title: '📧 ' + subject,
+                message: message.substring(0, 500)
+            }
+        });
+
+        res.json({
+            success: true,
+            message: `Email enviado a ${tenantUser.email}`
+        });
+    } catch (error) {
+        console.error('Send email error:', error);
+        res.status(500).json({ error: 'Error enviando email' });
+    }
+});
+
+/**
+ * GET /api/admin/tenants/:id/history - Get admin action history for tenant
+ */
+router.get('/tenants/:id/history', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { page = 1, limit = 20 } = req.query;
+
+        const [logs, total] = await Promise.all([
+            prisma.adminLog.findMany({
+                where: { targetId: id },
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * limit,
+                take: parseInt(limit)
+            }),
+            prisma.adminLog.count({ where: { targetId: id } })
+        ]);
+
+        res.json({
+            logs,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get history error:', error);
+        res.status(500).json({ error: 'Error obteniendo historial' });
+    }
+});
+
+/**
+ * POST /api/admin/tenants/:id/downgrade - Downgrade tenant to FREE plan immediately
+ * Body: { reason: string }
+ */
+router.post('/tenants/:id/downgrade', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        const subscription = await prisma.subscription.findUnique({
+            where: { tenantId: id },
+            include: { tenant: { include: { users: true } } }
+        });
+
+        if (!subscription) {
+            return res.status(404).json({ error: 'Suscripción no encontrada' });
+        }
+
+        const previousPlan = subscription.plan;
+
+        if (previousPlan === 'FREE') {
+            return res.status(400).json({ error: 'El tenant ya tiene el plan gratuito' });
+        }
+
+        // Downgrade to FREE with 30-day trial
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 30);
+
+        await prisma.subscription.update({
+            where: { tenantId: id },
+            data: {
+                plan: 'FREE',
+                status: 'ACTIVE',
+                currentPeriodStart: new Date(),
+                currentPeriodEnd: trialEnd,
+                trialEndsAt: trialEnd,
+                limits: JSON.stringify(PLANS.FREE.limits)
+            }
+        });
+
+        // Log action
+        await prisma.adminLog.create({
+            data: {
+                adminId: req.user?.id || req.user?.userId,
+                adminEmail: req.user.email || 'admin',
+                action: 'DOWNGRADE_PLAN',
+                targetType: 'SUBSCRIPTION',
+                targetId: id,
+                previousValue: { plan: previousPlan },
+                newValue: { plan: 'FREE' },
+                reason: reason || 'Degradado a plan gratuito',
+                ipAddress: req.ip
+            }
+        });
+
+        // Notify tenant
+        const tenantUser = subscription.tenant?.users.find(u => u.email);
+        if (tenantUser?.email) {
+            await emailService.sendEmail({
+                to: tenantUser.email,
+                subject: '⚠️ Tu plan ha sido modificado - RenKredit',
+                html: emailService.wrapEmailTemplate(`
+                    <h2 style="color: #d97706; margin-bottom: 20px;">Plan Actualizado</h2>
+                    <p>Hola ${tenantUser.name || 'Usuario'},</p>
+                    <p>Tu plan en RenKredit ha sido modificado.</p>
+                    
+                    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                        <p style="margin: 0 0 10px;"><strong>Plan anterior:</strong> ${previousPlan}</p>
+                        <p style="margin: 0 0 10px;"><strong>Nuevo plan:</strong> Gratis</p>
+                        <p style="margin: 0;"><strong>Límites actuales:</strong> 10 clientes, 5 préstamos</p>
+                    </div>
+                    
+                    ${reason ? `<p><strong>Motivo:</strong> ${reason}</p>` : ''}
+                    <p>Si tienes preguntas, contacta a soporte.</p>
+                `)
+            }).catch(err => console.error('Error sending downgrade email:', err));
+        }
+
+        await prisma.notification.create({
+            data: {
+                tenantId: id,
+                type: 'SUBSCRIPTION',
+                title: '⚠️ Plan Modificado',
+                message: `Tu plan ha sido cambiado a Gratis. ${reason || 'Contacta soporte para más información.'}`
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Plan degradado a FREE',
+            previousPlan
+        });
+    } catch (error) {
+        console.error('Downgrade error:', error);
+        res.status(500).json({ error: 'Error degradando plan' });
     }
 });
 
