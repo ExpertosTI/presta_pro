@@ -2,9 +2,32 @@
  * Printing Service - ESC/POS Commands Generator
  * RenKredit by Renace.tech
  * 
- * Genera comandos ESC/POS para impresoras térmicas y los envía via RawBt
- * Compatible con: Bluetooth, WiFi, USB via app RawBt
+ * Genera comandos ESC/POS para impresoras térmicas
+ * Soporta:
+ *   1. Plugin nativo Bluetooth (preferido) - Sin dependencias externas
+ *   2. RawBt app (fallback) - Requiere app externa
  */
+
+// Detectar plugin nativo
+let BluetoothPrinter = null;
+const initNativePlugin = async () => {
+    if (typeof window !== 'undefined' && window.Capacitor) {
+        try {
+            const plugins = window.Capacitor.Plugins;
+            if (plugins && plugins.BluetoothPrinter) {
+                BluetoothPrinter = plugins.BluetoothPrinter;
+                console.log('[Printing] Native Bluetooth plugin detected');
+                return true;
+            }
+        } catch (e) {
+            console.log('[Printing] Native plugin not available');
+        }
+    }
+    return false;
+};
+
+// Inicializar al cargar
+initNativePlugin();
 
 // Comandos ESC/POS básicos
 const ESC = 0x1B;
@@ -12,6 +35,7 @@ const GS = 0x1D;
 const LF = 0x0A;
 
 const ESCPOS = {
+
     // Inicializar impresora
     INIT: [ESC, 0x40],
 
@@ -390,8 +414,11 @@ function generateReceiptNumber() {
  * Servicio principal de impresión
  */
 const PrintingService = {
+    // Estado de conexión
+    connectedPrinter: null,
+
     /**
-     * Verificar si está disponible (Android con Capacitor)
+     * Verificar si está disponible
      */
     isAvailable() {
         return typeof window !== 'undefined' &&
@@ -400,31 +427,119 @@ const PrintingService = {
     },
 
     /**
-     * Imprimir via RawBt
+     * Verificar si hay plugin nativo disponible
+     */
+    hasNativePlugin() {
+        return BluetoothPrinter !== null;
+    },
+
+    /**
+     * Verificar Bluetooth disponible y habilitado
+     */
+    async checkBluetooth() {
+        if (!this.hasNativePlugin()) {
+            return { available: false, enabled: false, native: false };
+        }
+        try {
+            const result = await BluetoothPrinter.isAvailable();
+            return { ...result, native: true };
+        } catch (e) {
+            return { available: false, enabled: false, native: true, error: e.message };
+        }
+    },
+
+    /**
+     * Obtener dispositivos Bluetooth emparejados
+     */
+    async getPairedDevices() {
+        if (!this.hasNativePlugin()) {
+            return { devices: [], native: false };
+        }
+        try {
+            const result = await BluetoothPrinter.getPairedDevices();
+            return { ...result, native: true };
+        } catch (e) {
+            return { devices: [], native: true, error: e.message };
+        }
+    },
+
+    /**
+     * Conectar a impresora por dirección MAC
+     */
+    async connect(address) {
+        if (!this.hasNativePlugin()) {
+            return { connected: false, error: 'Plugin nativo no disponible' };
+        }
+        try {
+            const result = await BluetoothPrinter.connect({ address });
+            if (result.connected) {
+                this.connectedPrinter = { name: result.name, address };
+            }
+            return result;
+        } catch (e) {
+            return { connected: false, error: e.message };
+        }
+    },
+
+    /**
+     * Desconectar de la impresora
+     */
+    async disconnect() {
+        if (!this.hasNativePlugin()) return { disconnected: true };
+        try {
+            await BluetoothPrinter.disconnect();
+            this.connectedPrinter = null;
+            return { disconnected: true };
+        } catch (e) {
+            return { disconnected: false, error: e.message };
+        }
+    },
+
+    /**
+     * Verificar conexión activa
+     */
+    async isConnected() {
+        if (!this.hasNativePlugin()) return { connected: false };
+        try {
+            return await BluetoothPrinter.isConnected();
+        } catch (e) {
+            return { connected: false };
+        }
+    },
+
+    /**
+     * Imprimir documento ESCPOSBuilder
+     * Usa plugin nativo si está conectado, RawBt como fallback
      */
     async print(builder) {
-        const url = builder.getRawBtUrl();
-
-        if (this.isAvailable()) {
-            // En Android, abrir URL con el esquema rawbt:
-            const { App } = await import('@capacitor/app');
+        // Intentar con plugin nativo primero
+        if (this.hasNativePlugin()) {
             try {
-                // Usar Browser para abrir deep link
-                const { Browser } = await import('@capacitor/browser');
-                await Browser.open({ url, windowName: '_system' });
+                const status = await BluetoothPrinter.isConnected();
+                if (status.connected) {
+                    const base64 = builder.getBase64();
+                    const result = await BluetoothPrinter.printRaw({ data: base64 });
+                    return { success: result.success, method: 'native' };
+                }
             } catch (e) {
-                // Fallback: intentar con App.openUrl si disponible
-                console.log('Trying alternative method...');
-                window.open(url, '_system');
+                console.log('[Print] Native failed, trying RawBt:', e.message);
             }
-        } else {
-            // En web, mostrar preview o copiar datos
-            console.log('Printing not available, showing preview');
-            console.log('RawBt URL:', url);
-            return { success: false, message: 'Impresión solo disponible en Android' };
         }
 
-        return { success: true };
+        // Fallback a RawBt
+        if (this.isAvailable()) {
+            const url = builder.getRawBtUrl();
+            try {
+                const { Browser } = await import('@capacitor/browser');
+                await Browser.open({ url, windowName: '_system' });
+                return { success: true, method: 'rawbt' };
+            } catch (e) {
+                window.open(url, '_system');
+                return { success: true, method: 'rawbt-fallback' };
+            }
+        }
+
+        return { success: false, message: 'Impresión solo disponible en Android' };
     },
 
     /**
@@ -462,11 +577,11 @@ const PrintingService = {
             .doubleSize()
             .line('RenKredit')
             .normalSize()
-            .line('Test de Impresión')
+            .line('Test de Impresora')
             .separator()
             .alignLeft()
-            .line('Este es un test de la')
-            .line('impresora térmica.')
+            .line('Conexion directa Bluetooth')
+            .line('Sin apps externas!')
             .separator()
             .leftRight('Izquierda', 'Derecha')
             .feed(1)
@@ -483,8 +598,10 @@ const PrintingService = {
     // Exponer clases para uso avanzado
     ESCPOSBuilder,
     ReceiptTemplates,
-    ESCPOS
+    ESCPOS,
+    BluetoothPrinter: () => BluetoothPrinter
 };
 
 export default PrintingService;
 export { ESCPOSBuilder, ReceiptTemplates, ESCPOS };
+
