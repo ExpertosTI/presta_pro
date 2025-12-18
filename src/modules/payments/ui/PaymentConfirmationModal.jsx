@@ -9,40 +9,50 @@ export default function PaymentConfirmationModal({
     const [customPaymentAmount, setCustomPaymentAmount] = useState('');
     const [showPenaltyInput, setShowPenaltyInput] = useState(false);
     const [penaltyAmountInput, setPenaltyAmountInput] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Initialize with suggested amount when modal opens, or leave empty to encourage explicit entry?
     // User complained "it registered whatever it wanted". 
     // Let's default to empty string but use a placeholder.
     // If user submits empty, we logic handle it.
 
-    const handleConfirm = () => {
-        let options = {};
+    const handleConfirm = async () => {
+        // Prevent double-click
+        if (isSubmitting) return;
+        setIsSubmitting(true);
 
-        // 1. Custom Amount Logic
-        const inputVal = parseFloat(customPaymentAmount);
+        try {
+            let options = {};
 
-        if (!isNaN(inputVal)) {
-            // If user typed a number (even 0), use it.
-            options.customAmount = inputVal;
-        } else {
-            // If empty string, user didn't type anything.
-            // Logic decision: Do we default to full amount? 
-            // User said "I put an amount". If they put an amount, it shouldn't be NaN.
-            // IF the browser extension blocked the input event, it would be empty.
-            // Let's use the original amount as fallback IF empty, BUT alert user if it's suspicious?
-            // No, standard UX is fallback to default payment.
-            options.customAmount = paymentToConfirm.amount;
-        }
+            // 1. Custom Amount Logic
+            const inputVal = parseFloat(customPaymentAmount);
 
-        // 2. Penalty Logic
-        if (showPenaltyInput) {
-            const penaltyVal = parseFloat(penaltyAmountInput) || 0;
-            if (penaltyVal > 0) {
-                options = { ...options, withPenalty: true, penaltyAmount: penaltyVal };
+            if (!isNaN(inputVal)) {
+                // If user typed a number (even 0), use it.
+                options.customAmount = inputVal;
+            } else {
+                // If empty string, user didn't type anything.
+                // Logic decision: Do we default to full amount? 
+                // User said "I put an amount". If they put an amount, it shouldn't be NaN.
+                // IF the browser extension blocked the input event, it would be empty.
+                // Let's use the original amount as fallback IF empty, BUT alert user if it's suspicious?
+                // No, standard UX is fallback to default payment.
+                options.customAmount = paymentToConfirm.amount;
             }
-        }
 
-        onConfirm(paymentToConfirm.loanId, paymentToConfirm.installmentId, options);
+            // 2. Penalty Logic
+            if (showPenaltyInput) {
+                const penaltyVal = parseFloat(penaltyAmountInput) || 0;
+                if (penaltyVal > 0) {
+                    options = { ...options, withPenalty: true, penaltyAmount: penaltyVal };
+                }
+            }
+
+            await onConfirm(paymentToConfirm.loanId, paymentToConfirm.installmentId, options);
+        } catch (error) {
+            console.error('Error confirming payment:', error);
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -124,9 +134,13 @@ export default function PaymentConfirmationModal({
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={handleConfirm}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white text-base font-bold py-3 rounded-xl shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98]"
+                        disabled={isSubmitting}
+                        className={`w-full text-white text-base font-bold py-3 rounded-xl shadow-lg transition-all transform ${isSubmitting
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-green-600 hover:bg-green-700 shadow-green-600/20 hover:shadow-green-600/30 active:scale-[0.98]'
+                            }`}
                     >
-                        Confirmar pago
+                        {isSubmitting ? 'Procesando...' : 'Confirmar pago'}
                     </button>
                     <button
                         onClick={onCancel}
