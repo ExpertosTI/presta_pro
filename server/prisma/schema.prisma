@@ -121,6 +121,11 @@ model Client {
   receipts    Receipt[]
   loanRequests LoanRequest[]
   documents   ClientDocument[]
+  
+  @@index([tenantId])
+  @@index([phone])
+  @@index([name])
+  @@index([collectorId])
 }
 
 model Loan {
@@ -155,6 +160,11 @@ model Loan {
   installments    LoanInstallment[]
   receipts        Receipt[]
   freePayments    FreePayment[]
+  
+  @@index([tenantId])
+  @@index([status])
+  @@index([clientId])
+  @@index([createdAt])
 }
 
 model LoanInstallment {
