@@ -158,7 +158,7 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                                     <div>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">Detalle</p>
                                         <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">
-                                            {receipt.isPartialPayment ? `Abono a Cuota #${receipt.installmentNumber}` : `Cuota #${receipt.installmentNumber}`}
+                                            {receipt.isPartialPayment ? `Abono a Cuota #${receipt.installmentNumber || receipt.number || 1}` : `Cuota #${receipt.installmentNumber || receipt.number || 1}`}
                                         </p>
                                         {finalPenaltyAmount > 0 && (
                                             <p className="text-xs text-amber-600 font-semibold">Incluye mora: {formatCurrency(finalPenaltyAmount)}</p>
