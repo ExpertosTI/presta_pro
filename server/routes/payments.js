@@ -119,7 +119,7 @@ router.post('/', async (req, res) => {
 
                 await emailService.sendPaymentConfirmation({
                     to: client.email,
-                    tenantName: tenant?.name || 'Presta Pro',
+                    tenantName: tenant?.name || 'RenKredit',
                     clientName: client.name,
                     amount: finalAmount + finalPenalty,
                     installmentNumber: installment?.number || installmentNumber || 0,

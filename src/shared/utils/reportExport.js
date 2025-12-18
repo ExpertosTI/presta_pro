@@ -10,7 +10,7 @@ import { formatCurrency, formatDate, formatDateTime } from './formatters';
  * Generate and download real Excel file (.xlsx)
  */
 export function exportToExcel(data, filename = 'reporte') {
-  const { receipts, expenses, loans, companyName = 'Presta Pro', dateRange } = data;
+  const { receipts, expenses, loans, companyName = 'RenKredit', dateRange } = data;
 
   // Create workbook
   const wb = XLSX.utils.book_new();
@@ -111,7 +111,7 @@ export function exportToExcel(data, filename = 'reporte') {
  * Generate and download PDF report
  */
 export function exportToPDF(data, filename = 'reporte') {
-  const { receipts, expenses, loans, companyName = 'Presta Pro', companyLogo, dateRange } = data;
+  const { receipts, expenses, loans, companyName = 'RenKredit', companyLogo, dateRange } = data;
 
   const totalCobrado = (receipts || []).reduce((acc, r) => acc + parseFloat(r.amount || 0), 0);
   const totalGastos = (expenses || []).reduce((acc, e) => acc + parseFloat(e.amount || 0), 0);
@@ -245,7 +245,7 @@ export function exportToPDF(data, filename = 'reporte') {
       
       <div class="footer">
         <p>Este reporte fue generado automáticamente por ${companyName}</p>
-        <p>Presta Pro by Renace.Tech</p>
+        <p>RenKredit by Renace.Tech</p>
       </div>
     </body>
     </html>

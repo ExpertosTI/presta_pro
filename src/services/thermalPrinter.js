@@ -8,7 +8,7 @@ const CONTENT_WIDTH = '54mm';
  * Generate thermal receipt HTML for 58mm printer
  */
 export function generateThermalReceiptHTML(receipt, companySettings = {}) {
-    const { companyName = 'Presta Pro', companyLogo = null, isCopy = false } = companySettings;
+    const { companyName = 'RenKredit', companyLogo = null, isCopy = false } = companySettings;
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('es-DO', {

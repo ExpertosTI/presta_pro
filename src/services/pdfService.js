@@ -10,7 +10,7 @@ export const generateReceiptPDF = (receipt) => {
     });
 
     doc.setFontSize(12);
-    doc.text('PRESTA PRO', 40, 10, { align: 'center' });
+    doc.text('RENKREDIT', 40, 10, { align: 'center' });
 
     doc.setFontSize(8);
     doc.text('Recibo de Pago', 40, 15, { align: 'center' });

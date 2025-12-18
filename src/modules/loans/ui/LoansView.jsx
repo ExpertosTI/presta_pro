@@ -239,7 +239,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       // Dynamic import to avoid circular dependency issues if any, though direct import is fine here
       const { generateLoanContract } = await import('../../../services/aiService');
-      const contract = await generateLoanContract(selectedLoan, selectedClient, "Presta Pro", apiKey);
+      const contract = await generateLoanContract(selectedLoan, selectedClient, "RenKredit", apiKey);
       setContractContent(contract);
       setShowContractModal(true);
     } catch (error) {
@@ -274,7 +274,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
       <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2563eb; padding-bottom: 15px;">
           <h1 style="margin: 0; color: #1e40af; font-size: 24px;">CALENDARIO DE PAGOS</h1>
-          <p style="margin: 5px 0 0; color: #64748b; font-size: 12px;">Presta Pro by Renace.tech</p>
+          <p style="margin: 5px 0 0; color: #64748b; font-size: 12px;">RenKredit by Renace.tech</p>
         </div>
         
         <div style="display: flex; justify-content: space-between; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px;">
@@ -337,7 +337,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
         </div>
         
         <p style="margin-top: 20px; text-align: center; font-size: 10px; color: #94a3b8;">
-          Generado el ${new Date().toLocaleString('es-DO')} • Presta Pro
+          Generado el ${new Date().toLocaleString('es-DO')} • RenKredit
         </p>
       </div>
     `;
@@ -366,7 +366,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
             if (receipt) {
               // Use printThermalTicket (same working iframe pattern as accounting reports)
               const { printThermalTicket } = await import('../../../shared/utils/printUtils');
-              printThermalTicket(receipt, { companyName: 'Presta Pro' });
+              printThermalTicket(receipt, { companyName: 'RenKredit' });
             }
             setPaymentToConfirm(null);
           }}

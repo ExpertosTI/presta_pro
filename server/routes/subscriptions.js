@@ -9,7 +9,7 @@ const nodemailer = require('nodemailer');
 // Email config - use same defaults as server/index.js and emailService.js
 const SMTP_HOST = process.env.SMTP_HOST || '85.31.224.232';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25');
-const SMTP_USER = process.env.SMTP_USER || 'noreply@prestapro.renace.tech';
+const SMTP_USER = process.env.SMTP_USER || 'noreply@renkredit.renace.tech';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 
 const transporter = nodemailer.createTransport({
@@ -26,7 +26,7 @@ const transporter = nodemailer.createTransport({
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
 const ADMIN_EMAIL_2 = process.env.ADMIN_NOTIFY_EMAIL_2 || 'klkpopklk1@gmail.com'; // 2MASTER for subscription confirmations
 const ADMIN_EMAILS = [ADMIN_EMAIL, ADMIN_EMAIL_2]; // Both receive alerts
-const FROM_EMAIL = process.env.SMTP_FROM || '"PRESTAPRO" <noreply@prestapro.renace.tech>';
+const FROM_EMAIL = process.env.SMTP_FROM || '"RENKREDIT" <noreply@renkredit.renace.tech>';
 
 // Multer config for proof uploads
 const uploadsDir = path.join(__dirname, '../uploads/proofs');
@@ -316,7 +316,7 @@ router.post('/upload-proof', upload.single('proof'), async (req, res) => {
             await transporter.sendMail({
                 from: FROM_EMAIL,
                 to: ADMIN_EMAILS.join(','),
-                subject: `[PrestaPro] ⚡ Nuevo Comprobante - ${tenant?.name || tId} - ${planDetails.name}`,
+                subject: `[RenKredit] ⚡ Nuevo Comprobante - ${tenant?.name || tId} - ${planDetails.name}`,
                 html: `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8fafc;">
                         <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -394,7 +394,7 @@ router.post('/upload-proof', upload.single('proof'), async (req, res) => {
                 await transporter.sendMail({
                     from: FROM_EMAIL,
                     to: user.email,
-                    subject: `[PrestaPro] Comprobante Recibido - Pendiente de Verificación`,
+                    subject: `[RenKredit] Comprobante Recibido - Pendiente de Verificación`,
                     html: `
                         <h2>¡Comprobante Recibido!</h2>
                         <p>Hola ${user.name || ''},</p>
@@ -403,7 +403,7 @@ router.post('/upload-proof', upload.single('proof'), async (req, res) => {
                         <p>Nuestro equipo verificará el pago en las próximas 24 horas hábiles.</p>
                         <p>Recibirás un correo de confirmación cuando tu plan sea activado.</p>
                         <hr>
-                        <p>Gracias por confiar en PrestaPro.</p>
+                        <p>Gracias por confiar en RenKredit.</p>
                     `
                 });
             } catch (emailErr) {
@@ -486,7 +486,7 @@ router.post('/verify-payment', async (req, res) => {
                     await transporter.sendMail({
                         from: FROM_EMAIL,
                         to: user.email,
-                        subject: `[PrestaPro] ¡Plan Activado! - ${plan.name}`,
+                        subject: `[RenKredit] ¡Plan Activado! - ${plan.name}`,
                         html: `
                             <h2>🎉 ¡Tu plan ha sido activado!</h2>
                             <p>Hola ${user.name || ''},</p>
@@ -497,7 +497,7 @@ router.post('/verify-payment', async (req, res) => {
                                 ${plan.features.map(f => `<li>${f}</li>`).join('')}
                             </ul>
                             <hr>
-                            <p>¡Gracias por usar PrestaPro!</p>
+                            <p>¡Gracias por usar RenKredit!</p>
                         `
                     });
                 } catch (emailErr) {
@@ -538,7 +538,7 @@ router.post('/verify-payment', async (req, res) => {
                     await transporter.sendMail({
                         from: FROM_EMAIL,
                         to: user.email,
-                        subject: `[PrestaPro] Pago Rechazado`,
+                        subject: `[RenKredit] Pago Rechazado`,
                         html: `
                             <h2>Pago No Verificado</h2>
                             <p>Hola ${user.name || ''},</p>
@@ -699,7 +699,7 @@ router.post('/approve-payment/:paymentId', async (req, res) => {
                 await transporter.sendMail({
                     from: FROM_EMAIL,
                     to: user.email,
-                    subject: `[PrestaPro] 🎉 ¡Tu ${planDetails.name} ha sido activado!`,
+                    subject: `[RenKredit] 🎉 ¡Tu ${planDetails.name} ha sido activado!`,
                     html: `
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                             <div style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -732,7 +732,7 @@ router.post('/approve-payment/:paymentId', async (req, res) => {
                                 </div>
                                 
                                 <p style="margin-top: 30px; color: #64748b; font-size: 14px; text-align: center;">
-                                    Gracias por confiar en PrestaPro 💙
+                                    Gracias por confiar en RenKredit 💙
                                 </p>
                             </div>
                         </div>
@@ -804,7 +804,7 @@ router.post('/reject-payment/:paymentId', async (req, res) => {
                 await transporter.sendMail({
                     from: FROM_EMAIL,
                     to: user.email,
-                    subject: `[PrestaPro] Pago no verificado`,
+                    subject: `[RenKredit] Pago no verificado`,
                     html: `
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                             <h2>Pago no verificado</h2>

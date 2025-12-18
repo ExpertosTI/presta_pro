@@ -68,7 +68,7 @@ export default function CollectorLoginView({ onLogin, onSwitchToUserLogin }) {
                         <User className="w-10 h-10 text-indigo-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-white">Portal Cobrador</h1>
-                    <p className="text-indigo-300 text-sm">PRESTA PRO by RENACE.TECH</p>
+                    <p className="text-indigo-300 text-sm">RENKREDIT by RENACE.TECH</p>
                 </div>
 
                 {/* Form */}

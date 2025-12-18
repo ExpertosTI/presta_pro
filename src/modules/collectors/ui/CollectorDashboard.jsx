@@ -179,7 +179,7 @@ Cuota: #${item.number}
 Monto: ${formatCurrency(item.payment)}
 Fecha: ${formatDate(new Date())}
         
-_PrestaPro by RENACE.TECH_`;
+_RenKredit by RENACE.TECH_`;
         window.open(`https://wa.me/${item.clientPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`);
     };
 

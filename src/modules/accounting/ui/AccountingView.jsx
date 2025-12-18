@@ -260,7 +260,7 @@ export function AccountingView({ loans = [], expenses = [], receipts = [], syste
       receipts: filteredReceipts,
       expenses: filteredExpenses,
       loans: filteredLoans,
-      companyName: systemSettings.companyName || 'Presta Pro',
+      companyName: systemSettings.companyName || 'RenKredit',
       companyLogo: systemSettings.companyLogo,
       dateRange: dateFrom || dateTo ? { from: dateFrom || 'Inicio', to: dateTo || 'Hoy' } : null,
     });
@@ -271,7 +271,7 @@ export function AccountingView({ loans = [], expenses = [], receipts = [], syste
       receipts: filteredReceipts,
       expenses: filteredExpenses,
       loans: filteredLoans,
-      companyName: systemSettings.companyName || 'Presta Pro',
+      companyName: systemSettings.companyName || 'RenKredit',
       dateRange: dateFrom || dateTo ? { from: dateFrom || 'Inicio', to: dateTo || 'Hoy' } : null,
     }, 'reportes');
   };

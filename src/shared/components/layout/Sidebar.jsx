@@ -9,7 +9,7 @@ export function Sidebar({ activeTab, setActiveTab, children, companyName }) {
           <img src={logoSmall} alt="Logo" className="w-6 h-6 object-contain" />
         </div>
         <div>
-          <h1 className="font-bold text-lg text-white tracking-tight leading-none">Presta Pro</h1>
+          <h1 className="font-bold text-lg text-white tracking-tight leading-none">RenKredit</h1>
           <p className="text-[10px] text-slate-500 font-medium tracking-wider mt-0.5">PANEL DE CONTROL</p>
         </div>
       </div>

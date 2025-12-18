@@ -135,7 +135,7 @@ router.post('/', async (req, res) => {
             const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
             await emailService.sendCollectorWelcomeEmail({
                 to: email,
-                tenantName: tenant?.name || 'PrestaPro',
+                tenantName: tenant?.name || 'RenKredit',
                 tenantSlug: tenant?.slug,
                 collectorName: name,
                 username: finalUsername,
@@ -239,7 +239,7 @@ router.post('/:id/reset-password', async (req, res) => {
             const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
             await emailService.sendCollectorWelcomeEmail({
                 to: collector.email,
-                tenantName: tenant?.name || 'PrestaPro',
+                tenantName: tenant?.name || 'RenKredit',
                 collectorName: collector.name,
                 username: collector.username,
                 temporaryPassword: newPassword

@@ -12,7 +12,7 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "vite build && electron-packager . PrestaPro --platform=win32 --arch=x64 --out=release_portable_v2 --overwrite --icon=public/logo.png",
+    "electron:build": "vite build && electron-packager . RenKredit --platform=win32 --arch=x64 --out=release_portable_v2 --overwrite --icon=public/logo.png",
     "electron:installer": "vite build && electron-builder -c electron-builder.json"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "@capacitor/ios": "^7.4.4",
     "@google/genai": "^1.33.0",
     "@react-oauth/google": "^0.12.2",
+    "auto-launch": "^5.0.6",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "html2canvas": "^1.4.1",

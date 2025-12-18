@@ -78,7 +78,7 @@ export const printHtmlContent = (title, contentHtml) => {
 export const printThermalTicket = (receipt, options = {}) => {
   if (!receipt) return;
 
-  const { companyName = 'Presta Pro', isCopy = false } = options;
+  const { companyName = 'RenKredit', isCopy = false } = options;
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-DO', {
@@ -255,7 +255,7 @@ export const printTextReceipt = (receipt, options = {}) => {
   if (!receipt) return;
 
   const {
-    companyName = 'Presta Pro',
+    companyName = 'RenKredit',
     companyAddress = '',
     companyPhone = '',
     companyWhatsApp = '',
@@ -430,7 +430,7 @@ export const printModernTicket = (receipt, options = {}) => {
   if (!receipt) return;
 
   const {
-    companyName = 'Presta Pro',
+    companyName = 'RenKredit',
     companyLogo = '',
     companyAddress = '',
     companyPhone = '',

@@ -644,9 +644,9 @@ app.get('/api/tenants/verify', async (req, res) => {
           .sendMail({
             from: SMTP_FROM,
             to: ADMIN_NOTIFY_EMAIL,
-            subject: 'Cuenta de financiera verificada en Presta Pro',
-            text: `Se ha verificado la cuenta en Presta Pro.\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
-            html: `<p>Se ha <strong>verificado</strong> una cuenta en Presta Pro.</p>
+            subject: 'Cuenta de financiera verificada en RenKredit',
+            text: `Se ha verificado la cuenta en RenKredit.\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
+            html: `<p>Se ha <strong>verificado</strong> una cuenta en RenKredit.</p>
               <ul>
                 <li><strong>Nombre:</strong> ${updatedTenant.name}</li>
                 <li><strong>Slug:</strong> ${updatedTenant.slug}</li>
@@ -1536,7 +1536,7 @@ app.post('/api/subscriptions/upload-proof', authMiddleware, upload.single('proof
             </div>
           </div>
           <div class="footer">
-            <p>Presta Pro by Renace.Tech</p>
+            <p>RenKredit by Renace.Tech</p>
           </div>
         </div>
       </body>
@@ -1545,7 +1545,7 @@ app.post('/api/subscriptions/upload-proof', authMiddleware, upload.single('proof
 
     if (mailTransporter) {
       await mailTransporter.sendMail({
-        from: `"Presta Pro" <${SMTP_USER || 'noreply@renace.tech'}>`,
+        from: `"RenKredit" <${SMTP_USER || 'noreply@renace.tech'}>`,
         to: adminEmail,
         subject: `💳 Comprobante de Pago - ${tenant?.name || 'Nuevo Cliente'} - Plan ${plan}`,
         html: emailHtml,

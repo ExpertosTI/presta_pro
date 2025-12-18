@@ -1,6 +1,6 @@
 /**
  * Email Service - Centralized email sending with templates
- * PrestaPro by Renace.tech
+ * RenKredit by Renace.tech
  */
 
 const nodemailer = require('nodemailer');
@@ -9,13 +9,13 @@ const prisma = require('../lib/prisma');
 // SMTP Configuration
 const SMTP_HOST = process.env.SMTP_HOST || '85.31.224.232';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25');
-const SMTP_USER = process.env.SMTP_USER || 'noreply@prestapro.renace.tech';
+const SMTP_USER = process.env.SMTP_USER || 'noreply@renkredit.renace.tech';
 const SMTP_PASS = process.env.SMTP_PASS || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || '"PRESTA PRO" <noreply@prestapro.renace.tech>';
+const FROM_EMAIL = process.env.FROM_EMAIL || '"RENKREDIT" <noreply@renkredit.renace.tech>';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@renace.tech';
 
 // Brand constants
-const BRAND_NAME = 'PRESTA PRO';
+const BRAND_NAME = 'RENKREDIT';
 const BRAND_TAGLINE = 'by RENACE.TECH';
 const BRAND_COLOR = '#2563eb';
 const HEADER_BG = '#3b82f6'; // Lighter blue for better contrast
