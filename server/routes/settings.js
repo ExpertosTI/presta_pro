@@ -35,6 +35,19 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Helper function to generate slug from company name
+const generateSlug = (name) => {
+    return name
+        .toLowerCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove accents
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Remove consecutive hyphens
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+};
+
 // PUT /api/settings - Actualizar configuración
 router.put('/', async (req, res) => {
     try {
@@ -44,14 +57,33 @@ router.put('/', async (req, res) => {
             return res.status(400).json({ error: 'El nombre de la empresa es requerido' });
         }
 
+        // Generate slug from company name
+        const newSlug = generateSlug(companyName);
+
+        // Check if slug is already taken by another tenant
+        const existingTenant = await prisma.tenant.findFirst({
+            where: {
+                slug: newSlug,
+                NOT: { id: req.user.tenantId }
+            }
+        });
+
+        // If slug is taken, add a unique suffix
+        let finalSlug = newSlug;
+        if (existingTenant) {
+            finalSlug = `${newSlug}-${Date.now().toString(36).slice(-4)}`;
+        }
+
         const updatedTenant = await prisma.tenant.update({
             where: { id: req.user.tenantId },
             data: {
                 name: companyName,
+                slug: finalSlug,
                 settings: otherSettings
             },
             select: {
                 name: true,
+                slug: true,
                 settings: true
             }
         });
@@ -62,12 +94,13 @@ router.put('/', async (req, res) => {
             resourceId: req.user.tenantId,
             userId: req.user?.userId,
             tenantId: req.user.tenantId,
-            details: { companyName, ...otherSettings },
+            details: { companyName, slug: finalSlug, ...otherSettings },
             ipAddress: req.ip
         });
 
         const settings = {
             companyName: updatedTenant.name,
+            tenantSlug: updatedTenant.slug,
             ...(updatedTenant.settings || {})
         };
 
