@@ -76,6 +76,7 @@ const notificationsRouter = require('./routes/notifications');
 const adminRouter = require('./routes/admin');
 const loanRequestsRouter = require('./routes/loan-requests');
 const routeClosingsRouter = require('./routes/route-closings');
+const publicApplicationsRouter = require('./routes/public-applications');
 const { initializeSchedulers } = require('./schedulers/reportScheduler');
 
 
@@ -255,6 +256,9 @@ app.use('/api/notifications', authMiddleware, notificationsRouter);
 app.use('/api/loan-requests', authMiddleware, loanRequestsRouter);
 app.use('/api/route-closings', authMiddleware, routeClosingsRouter);
 app.use('/api/admin', authMiddleware, requireAdmin, adminRouter);
+
+// Public routes (no authentication required)
+app.use('/api/public', publicApplicationsRouter);
 
 // Public endpoint for collector login (redundant if handled by router, removing to avoid confusion)
 // app.post('/api/collectors/login', collectorsRouter);

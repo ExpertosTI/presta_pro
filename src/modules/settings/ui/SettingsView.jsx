@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { registerUser } from '../../../logic/authLogic';
 import { settingsService } from '../../../services/api';
+import { ShareLinkCard } from './ShareLinkCard';
 
 // Use relative URLs - nginx will proxy to backend
 const API_BASE_URL = '';
@@ -291,6 +292,14 @@ export function SettingsView({
           </button>
         </div>
       </Card>
+
+      {/* Public Loan Application Link */}
+      {auth?.user?.tenantSlug && (
+        <ShareLinkCard
+          tenantSlug={auth.user.tenantSlug}
+          companyName={systemSettings?.companyName || 'RenKredit'}
+        />
+      )}
 
       <Card>
         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 border-b border-slate-100 dark:border-slate-800 pb-2">Configuración del Sistema</h3>

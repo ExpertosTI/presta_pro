@@ -868,6 +868,26 @@ function App() {
   // Check if accessing collector login route
   const isCollectorLogin = window.location.pathname.includes('collector-login');
 
+  // Check if accessing public loan application route
+  const publicLoanMatch = window.location.pathname.match(/^\/aplicar\/([^\/]+)/);
+  const isPublicLoanApplication = !!publicLoanMatch;
+  const publicLoanTenantSlug = publicLoanMatch ? publicLoanMatch[1] : null;
+
+  // If accessing public loan application, render it without auth
+  if (isPublicLoanApplication && publicLoanTenantSlug) {
+    const PublicLoanForm = React.lazy(() =>
+      import('./modules/public-portal').then(m => ({ default: m.PublicLoanForm }))
+    );
+
+    return (
+      <div className={theme === 'dark' ? 'dark' : ''}>
+        <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full"></div></div>}>
+          <PublicLoanForm tenantSlug={publicLoanTenantSlug} />
+        </Suspense>
+      </div>
+    );
+  }
+
   // Check for existing collector session
   const [collectorSession, setCollectorSession] = useState(() => {
     const token = localStorage.getItem('collectorToken');

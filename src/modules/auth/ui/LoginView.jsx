@@ -54,7 +54,8 @@ export function LoginView({ onLogin }) {
                     email: data.user.email,
                     token: data.token,
                     role: data.user.role,
-                    tenantId: data.tenant.id
+                    tenantId: data.tenant.id,
+                    tenantSlug: data.tenant.slug
                 });
             } else if (data.accountExpired) {
                 // Account expired - offer resend option
@@ -193,6 +194,7 @@ export function LoginView({ onLogin }) {
                         token: data.token,
                         role: data.user.role,
                         tenantId: data.tenant.id,
+                        tenantSlug: data.tenant.slug,
                         photoUrl: data.user.photoUrl
                     });
                 } else if (data.accountExpired) {
