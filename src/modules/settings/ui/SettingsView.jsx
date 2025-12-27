@@ -49,6 +49,7 @@ export function SettingsView({
   const [userError, setUserError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
+  const [tenantSlug, setTenantSlug] = useState(systemSettings?.tenantSlug || auth?.user?.tenantSlug || null);
 
   /* Sincronizar formulario cuando llegan settings del backend */
   React.useEffect(() => {
@@ -114,10 +115,14 @@ export function SettingsView({
 
     try {
       // Persist to backend
-      await settingsService.update(newSettings);
-      setSystemSettings(newSettings);
+      const response = await settingsService.update(newSettings);
+      // Update tenantSlug from backend response
+      if (response?.tenantSlug) {
+        setTenantSlug(response.tenantSlug);
+      }
+      setSystemSettings({ ...newSettings, tenantSlug: response?.tenantSlug });
       // Persist to localStorage as backup
-      localStorage.setItem('systemSettings', JSON.stringify(newSettings));
+      localStorage.setItem('systemSettings', JSON.stringify({ ...newSettings, tenantSlug: response?.tenantSlug }));
       if (showToast) showToast('Ajustes guardados en servidor', 'success');
     } catch (err) {
       console.error('Error saving settings:', err);
@@ -309,8 +314,8 @@ export function SettingsView({
 
       {/* Public Loan Application Link */}
       <ShareLinkCard
-        tenantSlug={auth?.user?.tenantSlug}
-        companyName={systemSettings?.companyName || 'RenKredit'}
+        tenantSlug={tenantSlug}
+        companyName={form.companyName || 'RenKredit'}
       />
 
       <Card>
