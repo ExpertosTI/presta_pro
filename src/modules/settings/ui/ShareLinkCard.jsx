@@ -5,17 +5,64 @@ import { Share2, Copy, Check, QrCode, ExternalLink, Download } from 'lucide-reac
  * ShareLinkCard - Component to display and share the public loan application link
  * Includes QR code generation and copy/share functionality
  */
-export const ShareLinkCard = ({ tenantSlug, companyName }) => {
+export const ShareLinkCard = ({ tenantSlug: propSlug, companyName }) => {
     const [copied, setCopied] = useState(false);
     const [qrDataUrl, setQrDataUrl] = useState(null);
+    const [tenantSlug, setTenantSlug] = useState(propSlug || null);
+    const [loading, setLoading] = useState(!propSlug);
 
     // Construct the public link
     const baseUrl = window.location.origin;
-    const publicLink = `${baseUrl}/aplicar/${tenantSlug}`;
+    const publicLink = tenantSlug ? `${baseUrl}/aplicar/${tenantSlug}` : null;
+
+    // Fetch tenant slug from settings if not provided
+    useEffect(() => {
+        const fetchTenantSlug = async () => {
+            if (propSlug) {
+                setTenantSlug(propSlug);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    setLoading(false);
+                    return;
+                }
+
+                const response = await fetch('/api/settings', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Try to get slug from settings or generate from company name
+                    if (data.tenantSlug) {
+                        setTenantSlug(data.tenantSlug);
+                    } else if (data.companyName) {
+                        // Generate slug from company name
+                        const generatedSlug = data.companyName
+                            .toLowerCase()
+                            .trim()
+                            .replace(/\s+/g, '-')
+                            .replace(/[^a-z0-9-]/g, '');
+                        setTenantSlug(generatedSlug);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching tenant slug:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTenantSlug();
+    }, [propSlug]);
 
     // Generate QR code using external API (no dependencies needed)
     useEffect(() => {
-        if (tenantSlug) {
+        if (tenantSlug && publicLink) {
             // Using QR Server API - free, no signup required
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(publicLink)}&bgcolor=1e293b&color=a78bfa`;
             setQrDataUrl(qrUrl);
@@ -115,8 +162,8 @@ export const ShareLinkCard = ({ tenantSlug, companyName }) => {
                         <button
                             onClick={handleCopy}
                             className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all ${copied
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-slate-700 hover:bg-slate-600 text-white'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-slate-700 hover:bg-slate-600 text-white'
                                 }`}
                         >
                             {copied ? (

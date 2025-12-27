@@ -13,6 +13,7 @@ router.get('/', async (req, res) => {
             where: { id: req.user.tenantId },
             select: {
                 name: true,
+                slug: true,
                 settings: true
             }
         });
@@ -23,6 +24,7 @@ router.get('/', async (req, res) => {
 
         const settings = {
             companyName: tenant.name,
+            tenantSlug: tenant.slug,
             ...(tenant.settings || {})
         };
 
