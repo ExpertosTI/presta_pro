@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [
     react(),
     VitePWA({
@@ -13,8 +13,8 @@ export default defineConfig({
         name: 'RenKredit - Sistema de Préstamos',
         short_name: 'RenKredit',
         description: 'Sistema de gestión de préstamos',
-        start_url: './',
-        scope: './',
+        start_url: '/',
+        scope: '/',
         display: 'standalone',
         background_color: '#0f172a',
         theme_color: '#6366f1',
