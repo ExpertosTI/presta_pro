@@ -108,6 +108,23 @@ export const ShareLinkCard = ({ tenantSlug: propSlug, companyName }) => {
         }
     };
 
+    // Show loading or nothing while fetching
+    if (loading) {
+        return (
+            <div className="bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-2xl p-6 border border-purple-500/20">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                        <QrCode className="w-5 h-5 text-purple-400 animate-pulse" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-white">Link de Solicitud Pública</h3>
+                        <p className="text-sm text-gray-400">Cargando...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (!tenantSlug) {
         return null;
     }

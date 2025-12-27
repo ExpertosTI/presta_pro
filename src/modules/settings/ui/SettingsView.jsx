@@ -277,19 +277,33 @@ export function SettingsView({
       <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Ajustes</h2>
 
       {/* Subscription Status Card */}
-      <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+      <Card className={`${auth?.user?.role === 'SUPER_ADMIN'
+        ? 'bg-gradient-to-r from-amber-600 to-orange-600'
+        : 'bg-gradient-to-r from-blue-600 to-indigo-600'} text-white`}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-sm font-medium text-blue-100">Tu Plan Actual</p>
-            <h3 className="text-2xl font-bold">Plan Gratuito</h3>
-            <p className="text-sm text-blue-200 mt-1">10 clientes • 5 préstamos • 1 usuario</p>
+            <p className="text-sm font-medium opacity-80">
+              {auth?.user?.role === 'SUPER_ADMIN' ? 'Cuenta Administrador' : 'Tu Plan Actual'}
+            </p>
+            <h3 className="text-2xl font-bold">
+              {auth?.user?.role === 'SUPER_ADMIN'
+                ? '🛡️ Super Admin'
+                : (systemSettings?.subscriptionPlan || 'Plan Gratuito')}
+            </h3>
+            <p className="text-sm opacity-80 mt-1">
+              {auth?.user?.role === 'SUPER_ADMIN'
+                ? 'Acceso completo a todas las funcionalidades'
+                : '10 clientes • 5 préstamos • 1 usuario'}
+            </p>
           </div>
-          <button
-            onClick={() => setActiveTab && setActiveTab('pricing')}
-            className="px-4 py-2 bg-white text-blue-600 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors shadow-lg"
-          >
-            Mejorar Plan
-          </button>
+          {auth?.user?.role !== 'SUPER_ADMIN' && (
+            <button
+              onClick={() => setActiveTab && setActiveTab('pricing')}
+              className="px-4 py-2 bg-white text-blue-600 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors shadow-lg"
+            >
+              Mejorar Plan
+            </button>
+          )}
         </div>
       </Card>
 
