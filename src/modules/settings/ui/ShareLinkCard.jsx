@@ -1,82 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Share2, Copy, Check, QrCode, ExternalLink, Download } from 'lucide-react';
+import { Share2, Copy, Check, QrCode, ExternalLink, Download, RefreshCw } from 'lucide-react';
 
 /**
  * ShareLinkCard - Component to display and share the public loan application link
  * Includes QR code generation and copy/share functionality
+ * 
+ * IMPORTANT: This component uses the tenantSlug prop directly.
+ * Parent component is responsible for providing the correct slug.
  */
-export const ShareLinkCard = ({ tenantSlug: propSlug, companyName }) => {
+export const ShareLinkCard = ({ tenantSlug, companyName }) => {
     const [copied, setCopied] = useState(false);
-    const [qrDataUrl, setQrDataUrl] = useState(null);
-    const [tenantSlug, setTenantSlug] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [qrLoaded, setQrLoaded] = useState(false);
 
-    // Construct the public link
+    // Construct the public link - use prop directly
     const baseUrl = window.location.origin;
     const publicLink = tenantSlug ? `${baseUrl}/aplicar/${tenantSlug}` : null;
 
-    // Sync propSlug to state whenever it changes
+    // QR code URL - regenerates when tenantSlug changes
+    const qrUrl = tenantSlug
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(publicLink)}&bgcolor=1e293b&color=a78bfa`
+        : null;
+
+    // Reset QR loaded state when slug changes
     useEffect(() => {
-        if (propSlug) {
-            setTenantSlug(propSlug);
-            setLoading(false);
-        }
-    }, [propSlug]);
-
-    // Fetch tenant slug from backend on mount if not provided via prop
-    useEffect(() => {
-        // Skip if we already have a slug from props
-        if (propSlug) return;
-
-        const fetchTenantSlug = async () => {
-            try {
-                const token = localStorage.getItem('authToken');
-                if (!token) {
-                    setLoading(false);
-                    return;
-                }
-
-                const response = await fetch('/api/settings', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.tenantSlug) {
-                        setTenantSlug(data.tenantSlug);
-                    } else if (data.companyName) {
-                        // Generate slug from company name as fallback
-                        const generatedSlug = data.companyName
-                            .toLowerCase()
-                            .trim()
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '')
-                            .replace(/[^a-z0-9\s-]/g, '')
-                            .replace(/\s+/g, '-')
-                            .replace(/-+/g, '-');
-                        setTenantSlug(generatedSlug);
-                    }
-                }
-            } catch (err) {
-                console.error('Error fetching tenant slug:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTenantSlug();
-    }, []); // Only run on mount
-
-    // Generate QR code using external API (no dependencies needed)
-    useEffect(() => {
-        if (tenantSlug && publicLink) {
-            // Using QR Server API - free, no signup required
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(publicLink)}&bgcolor=1e293b&color=a78bfa`;
-            setQrDataUrl(qrUrl);
-        }
-    }, [tenantSlug, publicLink]);
+        setQrLoaded(false);
+    }, [tenantSlug]);
 
     const handleCopy = async () => {
+        if (!publicLink) return;
         try {
             await navigator.clipboard.writeText(publicLink);
             setCopied(true);
@@ -87,6 +38,7 @@ export const ShareLinkCard = ({ tenantSlug: propSlug, companyName }) => {
     };
 
     const handleShare = async () => {
+        if (!publicLink) return;
         if (navigator.share) {
             try {
                 await navigator.share({
@@ -96,44 +48,38 @@ export const ShareLinkCard = ({ tenantSlug: propSlug, companyName }) => {
                 });
             } catch (err) {
                 if (err.name !== 'AbortError') {
-                    // Fallback to copy
                     handleCopy();
                 }
             }
         } else {
-            // Fallback for browsers without Web Share API
             handleCopy();
         }
     };
 
     const handleDownloadQR = () => {
-        if (qrDataUrl) {
+        if (qrUrl) {
             const link = document.createElement('a');
-            link.href = qrDataUrl;
+            link.href = qrUrl;
             link.download = `qr-solicitud-${tenantSlug}.png`;
             link.click();
         }
     };
 
-    // Show loading or nothing while fetching
-    if (loading) {
+    // Show message if no slug available
+    if (!tenantSlug) {
         return (
             <div className="bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-2xl p-6 border border-purple-500/20">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                        <QrCode className="w-5 h-5 text-purple-400 animate-pulse" />
+                        <QrCode className="w-5 h-5 text-purple-400" />
                     </div>
                     <div>
                         <h3 className="font-bold text-white">Link de Solicitud Pública</h3>
-                        <p className="text-sm text-gray-400">Cargando...</p>
+                        <p className="text-sm text-yellow-400">⚠️ Guarda la configuración para generar el link</p>
                     </div>
                 </div>
             </div>
         );
-    }
-
-    if (!tenantSlug) {
-        return null;
     }
 
     return (
@@ -152,11 +98,12 @@ export const ShareLinkCard = ({ tenantSlug: propSlug, companyName }) => {
                 {/* QR Code */}
                 <div className="flex flex-col items-center">
                     <div className="bg-slate-800 p-3 rounded-xl mb-3">
-                        {qrDataUrl ? (
+                        {qrUrl ? (
                             <img
-                                src={qrDataUrl}
+                                src={qrUrl}
                                 alt="QR Code"
-                                className="w-40 h-40 rounded-lg"
+                                className={`w-40 h-40 rounded-lg transition-opacity ${qrLoaded ? 'opacity-100' : 'opacity-50'}`}
+                                onLoad={() => setQrLoaded(true)}
                             />
                         ) : (
                             <div className="w-40 h-40 bg-slate-700 rounded-lg animate-pulse flex items-center justify-center">

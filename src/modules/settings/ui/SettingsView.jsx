@@ -51,8 +51,27 @@ export function SettingsView({
   const [resendMessage, setResendMessage] = useState('');
   const [tenantSlug, setTenantSlug] = useState(systemSettings?.tenantSlug || auth?.user?.tenantSlug || null);
 
+  // Fetch tenantSlug from backend on mount
+  React.useEffect(() => {
+    const fetchTenantSlug = async () => {
+      try {
+        const settings = await settingsService.get();
+        if (settings?.tenantSlug) {
+          setTenantSlug(settings.tenantSlug);
+        }
+      } catch (err) {
+        console.error('Error fetching tenant slug:', err);
+      }
+    };
+    fetchTenantSlug();
+  }, []);
+
   /* Sincronizar formulario cuando llegan settings del backend */
   React.useEffect(() => {
+    // Also sync tenantSlug when systemSettings changes
+    if (systemSettings?.tenantSlug) {
+      setTenantSlug(systemSettings.tenantSlug);
+    }
     setForm(prev => ({
       ...prev,
       companyName: systemSettings.companyName || prev.companyName,
