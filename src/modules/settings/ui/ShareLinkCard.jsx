@@ -8,22 +8,27 @@ import { Share2, Copy, Check, QrCode, ExternalLink, Download } from 'lucide-reac
 export const ShareLinkCard = ({ tenantSlug: propSlug, companyName }) => {
     const [copied, setCopied] = useState(false);
     const [qrDataUrl, setQrDataUrl] = useState(null);
-    const [tenantSlug, setTenantSlug] = useState(propSlug || null);
-    const [loading, setLoading] = useState(!propSlug);
+    const [tenantSlug, setTenantSlug] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     // Construct the public link
     const baseUrl = window.location.origin;
     const publicLink = tenantSlug ? `${baseUrl}/aplicar/${tenantSlug}` : null;
 
-    // Fetch tenant slug from settings if not provided
+    // Sync propSlug to state whenever it changes
     useEffect(() => {
-        const fetchTenantSlug = async () => {
-            if (propSlug) {
-                setTenantSlug(propSlug);
-                setLoading(false);
-                return;
-            }
+        if (propSlug) {
+            setTenantSlug(propSlug);
+            setLoading(false);
+        }
+    }, [propSlug]);
 
+    // Fetch tenant slug from backend on mount if not provided via prop
+    useEffect(() => {
+        // Skip if we already have a slug from props
+        if (propSlug) return;
+
+        const fetchTenantSlug = async () => {
             try {
                 const token = localStorage.getItem('authToken');
                 if (!token) {
@@ -37,16 +42,18 @@ export const ShareLinkCard = ({ tenantSlug: propSlug, companyName }) => {
 
                 if (response.ok) {
                     const data = await response.json();
-                    // Try to get slug from settings or generate from company name
                     if (data.tenantSlug) {
                         setTenantSlug(data.tenantSlug);
                     } else if (data.companyName) {
-                        // Generate slug from company name
+                        // Generate slug from company name as fallback
                         const generatedSlug = data.companyName
                             .toLowerCase()
                             .trim()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .replace(/[^a-z0-9\s-]/g, '')
                             .replace(/\s+/g, '-')
-                            .replace(/[^a-z0-9-]/g, '');
+                            .replace(/-+/g, '-');
                         setTenantSlug(generatedSlug);
                     }
                 }
@@ -58,7 +65,7 @@ export const ShareLinkCard = ({ tenantSlug: propSlug, companyName }) => {
         };
 
         fetchTenantSlug();
-    }, [propSlug]);
+    }, []); // Only run on mount
 
     // Generate QR code using external API (no dependencies needed)
     useEffect(() => {
