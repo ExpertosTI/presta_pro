@@ -167,19 +167,19 @@ export default function DashboardView({
             )}
 
             {/* Header with filter */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Panel de Control</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Resumen financiero de tu negocio</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100">Panel de Control</h2>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Resumen financiero de tu negocio</p>
                 </div>
-                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto w-full sm:w-auto scrollbar-none">
                     {Object.entries(filterLabels).map(([key, label]) => (
                         <button
                             key={key}
                             onClick={() => setFilter(key)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === key
+                            className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold transition-all touch-manipulation min-h-[36px] ${filter === key
                                 ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                                 }`}
                         >
                             {label}
@@ -264,7 +264,7 @@ export default function DashboardView({
             </div>
 
             {/* Period Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <Card>
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="font-bold text-slate-800 dark:text-slate-100">Ingresos ({filterLabels[filter]})</h3>
@@ -343,21 +343,21 @@ export default function DashboardView({
                             <p className="text-sm text-slate-500 dark:text-slate-400">Sin cuotas vencidas</p>
                         </div>
                     ) : (
-                        <ul className="space-y-2 max-h-48 overflow-y-auto">
+                        <ul className="space-y-1.5 max-h-56 overflow-y-auto overscroll-contain">
                             {overdueInstallments.slice(0, 5).map((inst, idx) => (
                                 <li
                                     key={`${inst.loanId}-${inst.id}-${idx}`}
-                                    className="flex items-center justify-between p-2 bg-rose-50 dark:bg-rose-900/20 rounded-lg cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-800/30 transition-colors"
+                                    className="flex items-center justify-between px-3 py-2.5 bg-rose-50 dark:bg-rose-900/20 rounded-xl cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-800/30 transition-colors touch-manipulation min-h-[48px] active:scale-[0.98]"
                                     onClick={() => onNavigate && onNavigate('loans', { loanId: inst.loanId, clientId: inst.clientId })}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <AlertTriangle size={14} className="text-rose-500" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{inst.clientName}</p>
-                                            <p className="text-xs text-slate-500">Cuota #{inst.number} • {inst.daysOverdue} días vencida</p>
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <AlertTriangle size={14} className="text-rose-500 flex-shrink-0" />
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{inst.clientName}</p>
+                                            <p className="text-xs text-slate-500">Cuota #{inst.number} • {inst.daysOverdue}d vencida</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                                         <span className="text-sm font-bold text-rose-600">{formatCurrency(inst.payment)}</span>
                                         <ChevronRight size={14} className="text-slate-400" />
                                     </div>
@@ -386,18 +386,18 @@ export default function DashboardView({
                             <p className="text-sm text-slate-500 dark:text-slate-400">Sin cobros programados hoy</p>
                         </div>
                     ) : (
-                        <ul className="space-y-2 max-h-48 overflow-y-auto">
+                        <ul className="space-y-1.5 max-h-56 overflow-y-auto overscroll-contain">
                             {dueToday.map((inst, idx) => (
                                 <li
                                     key={`${inst.loanId}-${inst.id}-${idx}`}
-                                    className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors"
+                                    className="flex items-center justify-between px-3 py-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors touch-manipulation min-h-[48px] active:scale-[0.98]"
                                     onClick={() => onNavigate && onNavigate('loans', { loanId: inst.loanId, clientId: inst.clientId })}
                                 >
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{inst.clientName}</p>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{inst.clientName}</p>
                                         <p className="text-xs text-slate-500">Cuota #{inst.number}</p>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                                         <span className="text-sm font-bold text-blue-600">{formatCurrency(inst.payment)}</span>
                                         <ChevronRight size={14} className="text-slate-400" />
                                     </div>

@@ -3,7 +3,7 @@ import logoSmall from '../../../logo.png';
 
 export function Sidebar({ activeTab, setActiveTab, children, companyName }) {
   return (
-    <aside className="flex flex-col w-64 bg-slate-950 text-slate-300 border-r border-slate-800 h-screen shadow-2xl z-50">
+    <aside className="flex flex-col w-64 bg-slate-950 text-slate-300 border-r border-slate-800 h-screen md:h-full shadow-2xl z-50 safe-area-insets">
       <div className="p-6 flex items-center gap-3 border-b border-slate-800/50">
         <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20">
           <img src={logoSmall} alt="Logo" className="w-6 h-6 object-contain" />
@@ -14,7 +14,7 @@ export function Sidebar({ activeTab, setActiveTab, children, companyName }) {
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-6 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+      <nav className="flex-1 overflow-y-auto overscroll-contain py-4 sm:py-6 px-3 space-y-6 scrollbar-thin scrollbar-thumb-slate-700 hover:scrollbar-thumb-slate-600 scrollbar-track-transparent">
         {children}
       </nav>
 

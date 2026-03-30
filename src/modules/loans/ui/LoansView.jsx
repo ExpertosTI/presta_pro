@@ -376,8 +376,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Edit Loan Modal (solo préstamos sin pagos) */}
       {editModalOpen && selectedLoan && (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm safe-area-insets">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Editar préstamo</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
               Solo puedes editar préstamos que aún no tengan pagos registrados.
@@ -388,13 +388,13 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
               </p>
             )}
             <form onSubmit={handleSubmitEditLoan} className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Monto</label>
                   <input
                     type="number"
                     min="1"
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 min-h-[44px]"
                     value={editForm.amount}
                     onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
                   />
@@ -405,13 +405,13 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     type="number"
                     min="0"
                     step="0.1"
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 min-h-[44px]"
                     value={editForm.rate}
                     onChange={(e) => setEditForm({ ...editForm, rate: e.target.value })}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Plazo</label>
                   <input
@@ -452,13 +452,13 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     setEditModalOpen(false);
                     setEditError('');
                   }}
-                  className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                  className="px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors min-h-[44px] active:scale-95 touch-manipulation"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold"
+                  className="px-4 py-2.5 rounded-lg bg-blue-600 text-white font-semibold min-h-[44px] active:scale-95 touch-manipulation"
                 >
                   Guardar cambios
                 </button>
@@ -470,8 +470,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Create Loan Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm safe-area-insets">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Nuevo Préstamo</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
               Crea un préstamo directo para un cliente existente.
@@ -621,17 +621,17 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     : 'Interés calculado sobre saldo restante (bancos)'}
                 </p>
               </div>
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-3">
                 <button
                   type="button"
-                  className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                  className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 sm:py-2.5 rounded-xl font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors min-h-[44px] active:scale-95 touch-manipulation"
                   onClick={() => { setCreateModalOpen(false); setCreateError(''); }}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition-colors"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 sm:py-2.5 rounded-xl font-semibold transition-colors min-h-[44px] active:scale-95 touch-manipulation"
                 >
                   Crear Préstamo
                 </button>
@@ -649,7 +649,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
         {onCreateLoan && (
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2 transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-colors min-h-[44px] active:scale-95 touch-manipulation"
           >
             <Plus size={18} /> Nuevo Préstamo
           </button>
@@ -692,7 +692,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
           >
             <option value="ALL">Todos estados</option>
             <option value="ACTIVE">Activos</option>
@@ -703,7 +703,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
           >
             <option value="ALL">Todos tipos</option>
             <option value="FIXED">Cuotas fijas</option>
@@ -714,7 +714,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
             <select
               value={collectorFilter}
               onChange={(e) => setCollectorFilter(e.target.value)}
-              className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+              className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
             >
               <option value="ALL">Todos cobradores</option>
               {collectors.map(c => (
@@ -730,7 +730,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
               setSortBy(field);
               setSortOrder(order);
             }}
-            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
           >
             <option value="date-desc">Más reciente</option>
             <option value="date-asc">Más antiguo</option>
@@ -757,14 +757,14 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
           />
           <span className="text-xs text-slate-400">a</span>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
           />
           {(dateFrom || dateTo) && (
             <button
@@ -1063,8 +1063,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Cancel Loan Modal */}
       {cancelModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
             <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
               <XCircle size={20} /> Cancelar Préstamo
             </h3>
@@ -1078,10 +1078,10 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
               placeholder="Razón de cancelación (opcional)"
               className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 mb-4"
             />
-            <div className="flex gap-3">
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
               <button
                 onClick={() => { setCancelModal(false); setCancelReason(''); }}
-                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                className="flex-1 py-3 sm:py-2.5 rounded-xl font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 min-h-[44px] active:scale-95 touch-manipulation"
               >
                 No, volver
               </button>
@@ -1092,7 +1092,6 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     await loanApi.cancel(selectedLoan.id, cancelReason || 'Cancelado por usuario');
                     setCancelModal(false);
                     setCancelReason('');
-                    // Reload to sync with server
                     window.location.reload();
                   } catch (e) {
                     setCancelModal(false);
@@ -1101,7 +1100,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   }
                 }}
                 disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-lg font-semibold bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50"
+                className="flex-1 py-3 sm:py-2.5 rounded-xl font-semibold bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50 min-h-[44px] active:scale-95 touch-manipulation"
               >
                 {actionLoading ? 'Cancelando...' : 'Sí, cancelar'}
               </button>
@@ -1112,8 +1111,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Archive Loan Modal */}
       {archiveModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
               <Archive size={20} /> {selectedLoan.archived ? 'Desarchivar' : 'Archivar'} Préstamo
             </h3>
@@ -1122,10 +1121,10 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 ? 'Este préstamo volverá a aparecer en la lista principal.'
                 : 'El préstamo se ocultará de la vista principal pero no se eliminará.'}
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
               <button
                 onClick={() => setArchiveModal(false)}
-                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                className="flex-1 py-3 sm:py-2.5 rounded-xl font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 min-h-[44px] active:scale-95 touch-manipulation"
               >
                 Cancelar
               </button>
@@ -1139,7 +1138,6 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                       await loanApi.archive(selectedLoan.id);
                     }
                     setArchiveModal(false);
-                    // Reload to sync with server
                     window.location.reload();
                   } catch (e) {
                     setArchiveModal(false);
@@ -1148,7 +1146,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   }
                 }}
                 disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-800 dark:bg-slate-600 text-white hover:bg-slate-700"
+                className="flex-1 py-3 sm:py-2.5 rounded-xl font-semibold bg-slate-800 dark:bg-slate-600 text-white hover:bg-slate-700 min-h-[44px] active:scale-95 touch-manipulation"
               >
                 {actionLoading ? 'Procesando...' : (selectedLoan.archived ? 'Desarchivar' : 'Archivar')}
               </button>
@@ -1159,8 +1157,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Delete Loan Modal */}
       {deleteModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
             <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
               <Trash2 size={20} /> Eliminar Préstamo
             </h3>
@@ -1170,10 +1168,10 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
               Se eliminará permanentemente el préstamo y todos sus datos asociados.
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
               <button
                 onClick={() => setDeleteModal(false)}
-                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                className="flex-1 py-3 sm:py-2.5 rounded-xl font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 min-h-[44px] active:scale-95 touch-manipulation"
               >
                 No, volver
               </button>
@@ -1183,7 +1181,6 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   try {
                     await loanApi.delete(selectedLoan.id);
                     onSelectLoan?.(null);
-                    // Force reload by calling parent update
                     window.location.reload();
                   } catch (e) {
                     alert(e.message || 'Error al eliminar');
@@ -1192,7 +1189,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   }
                 }}
                 disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-500 disabled:opacity-50"
+                className="flex-1 py-3 sm:py-2.5 rounded-xl font-semibold bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 min-h-[44px] active:scale-95 touch-manipulation"
               >
                 {actionLoading ? 'Eliminando...' : 'Sí, eliminar'}
               </button>
@@ -1203,8 +1200,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* MEJORA 11: Renew Loan Modal */}
       {renewModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in max-h-[95vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mb-3 flex items-center gap-2">
               <RefreshCw size={20} /> Renovar Préstamo
             </h3>

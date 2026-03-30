@@ -46,8 +46,8 @@ export default function PaymentConfirmationModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in">
-            <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in safe-area-insets">
+            <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 max-h-[95vh] overflow-y-auto">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Confirmar pago</h3>
 
                 <div className="text-sm text-slate-600 dark:text-slate-300 mb-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
@@ -124,13 +124,13 @@ export default function PaymentConfirmationModal({
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={handleConfirm}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white text-base font-bold py-3 rounded-xl shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98]"
+                        className="w-full bg-green-600 hover:bg-green-700 text-white text-base font-bold py-3 sm:py-3 rounded-xl shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] min-h-[44px] touch-manipulation"
                     >
                         Confirmar pago
                     </button>
                     <button
                         onClick={onCancel}
-                        className="w-full py-3 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium transition-colors"
+                        className="w-full py-3 px-4 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 font-medium transition-colors bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 min-h-[44px] flex items-center justify-center touch-manipulation"
                     >
                         Cancelar
                     </button>

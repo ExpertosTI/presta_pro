@@ -48,6 +48,10 @@ import { EmployeeModal } from './modules/employees';
 import PaymentTicket from './shared/components/ui/PaymentTicket';
 import { BottomNav } from './shared/components/layout/BottomNav';
 import FloatingAIBot from './ai/FloatingAIBot';
+import QuickActionsFAB from './shared/components/ui/QuickActionsFAB';
+import Skeleton from './shared/components/ui/Skeleton';
+import ConnectionStatus from './shared/components/ui/ConnectionStatus';
+import { useToast } from './shared/components/ui/Toast';
 
 // Views (Lazy Loaded)
 const DashboardView = React.lazy(() => import('./modules/dashboard').then(module => ({ default: module.DashboardView })));
@@ -107,6 +111,9 @@ const MenuSection = ({ title, children }) => (
 // --- Main App Component ---
 
 function App() {
+  // --- Toast ---
+  const showToastFn = useToast();
+
   // --- State ---
   const [token, setToken] = useState(localStorage.getItem('authToken'));
   const [user, setUser] = useState(() => {
@@ -211,25 +218,10 @@ function App() {
   };
 
   const showToast = (message, type = 'info') => {
-    // Simple toast implementation or use a library if existed. 
-    // Implementing a simple reliable one here or relying on window.alert for criticals if no toast component.
-    // Ideally we push to notifications if 'error'.
     if (type === 'error') {
       addNotification(message, 'error');
     }
-    // For now, console log to not break if Toast component missing.
-    // If user has a Toast component, I'd use it. But I didn't see one in list_dir components.
-    // Wait, PricingView used `showToast`. I should check if it was prop or global.
-    // PricingView received it as prop.
-    // I can implement a simple fixed toast here.
-    const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-2xl text-white font-bold animate-fade-in ${type === 'error' ? 'bg-rose-500' : type === 'success' ? 'bg-emerald-500' : 'bg-blue-600'
-      }`;
-    toast.innerText = message;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-      toast.remove();
-    }, 3000);
+    showToastFn?.(message, type);
   };
 
   const addNotification = (text, type = 'info') => {
@@ -879,18 +871,21 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-100 dark:bg-slate-900 overflow-hidden font-sans transition-colors duration-300">
+    <div className="flex min-h-screen-safe max-h-screen-safe md:h-screen bg-slate-100 dark:bg-slate-900 overflow-hidden font-sans transition-colors duration-300">
+
+      {/* Offline/Online status indicator */}
+      <ConnectionStatus />
 
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm safe-area-insets"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <div className={`${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-50 transition-transform duration-300 h-full`}>
+      <div className={`${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-50 transition-transform duration-300 h-screen-safe md:h-full`}>
         <Sidebar
           activeTab={activeTab}
           setActiveTab={(t) => { setActiveTab(t); setSidebarOpen(false); }}
@@ -935,7 +930,7 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen md:h-full overflow-hidden">
         <Header
           activeTitle={{
             dashboard: 'Panel de Control',
@@ -967,12 +962,8 @@ function App() {
           onNavigate={setActiveTab}
         />
 
-        <main className="flex-1 overflow-auto p-4 md:p-6 pb-20 md:pb-6 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-          }>
+        <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 pb-24 sm:pb-20 md:pb-6 main-content-area scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
+          <Suspense fallback={<Skeleton.Dashboard />}>
             {renderContent()}
           </Suspense>
         </main>
@@ -1147,6 +1138,12 @@ function App() {
       )}
 
       {/* Bottom Navigation for Mobile */}
+      {/* Quick Actions FAB — mobile only */}
+      <QuickActionsFAB
+        onNavigate={setActiveTab}
+        onNewClient={() => { setEditingClient(null); setClientModalOpen(true); }}
+      />
+
       <BottomNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}

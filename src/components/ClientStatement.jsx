@@ -26,33 +26,33 @@ const ClientStatement = ({ client, loans, receipts, onClose }) => {
     return (
         <>
             {/* Modal Overlay */}
-            <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm print:hidden">
-                <div className="w-full max-w-4xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-                    <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10">
-                        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+            <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-2 sm:p-4 backdrop-blur-sm print:hidden safe-area-insets">
+                <div className="w-full max-w-4xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+                    <div className="p-3 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                        <h2 className="text-lg sm:text-2xl font-bold text-slate-800 dark:text-slate-100 truncate w-full sm:w-auto">
                             Estado de Cuenta - {client.name}
                         </h2>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 w-full sm:w-auto">
                             <button
                                 onClick={handlePrint}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                                className="flex-1 sm:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors min-h-[44px] active:scale-95 touch-manipulation text-sm"
                             >
                                 🖨️ Imprimir
                             </button>
                             <button
                                 onClick={onClose}
-                                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                                className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors min-h-[44px] active:scale-95 touch-manipulation text-sm"
                             >
                                 ✕ Cerrar
                             </button>
                         </div>
                     </div>
 
-                    <div className="p-6">
+                    <div className="p-3 sm:p-6">
                         {/* Client Info */}
-                        <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
-                            <h3 className="font-bold text-lg mb-2 text-slate-800 dark:text-slate-100">Información del Cliente</h3>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="mb-6 p-3 sm:p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                            <h3 className="font-bold text-base sm:text-lg mb-2 text-slate-800 dark:text-slate-100">Información del Cliente</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                                 <div><span className="font-semibold text-slate-600 dark:text-slate-400">Nombre:</span> <span className="text-slate-800 dark:text-slate-200">{client.name}</span></div>
                                 {client.phone && <div><span className="font-semibold text-slate-600 dark:text-slate-400">Teléfono:</span> <span className="text-slate-800 dark:text-slate-200">{client.phone}</span></div>}
                                 {client.address && <div className="col-span-2"><span className="font-semibold text-slate-600 dark:text-slate-400">Dirección:</span> <span className="text-slate-800 dark:text-slate-200">{client.address}</span></div>}
@@ -60,7 +60,7 @@ const ClientStatement = ({ client, loans, receipts, onClose }) => {
                         </div>
 
                         {/* Summary */}
-                        <div className="grid grid-cols-3 gap-4 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
                             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">Total Prestado</p>
                                 <p className="text-xl font-bold text-blue-800 dark:text-blue-300">{formatCurrency(totalLent)}</p>

@@ -76,8 +76,8 @@ export function EmployeeModal({ open, onClose, onSave, initialEmployee }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-xl shadow-2xl p-6 w-full max-w-md border border-white/20 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm animate-fade-in p-4 safe-area-insets">
+      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-md border border-white/20 dark:border-slate-700 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
           {initialEmployee ? 'Editar Empleado' : 'Nuevo Empleado'}
         </h2>
@@ -192,9 +192,9 @@ export function EmployeeModal({ open, onClose, onSave, initialEmployee }) {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors font-medium" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-md transition-all">Guardar Empleado</button>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 sm:pt-2">
+            <button type="button" className="px-4 py-3 sm:py-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors font-medium min-h-[44px] active:scale-95 touch-manipulation" onClick={onClose}>Cancelar</button>
+            <button type="submit" className="px-4 py-3 sm:py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-md transition-all min-h-[44px] active:scale-95 touch-manipulation">Guardar Empleado</button>
           </div>
         </form>
       </div>
