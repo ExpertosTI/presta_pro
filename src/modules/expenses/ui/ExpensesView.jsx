@@ -202,29 +202,29 @@ export function ExpensesView({ expenses, addExpense, onDeleteExpense }) {
 
       {/* MEJORA 13: Monthly Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
+        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 overflow-hidden">
           <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
             <TrendingUp size={12} /> Este Mes
           </p>
-          <p className="text-lg font-bold text-emerald-800 dark:text-emerald-200">{formatCurrency(monthlyStats.thisMonthTotal)}</p>
+          <p className="text-base sm:text-lg font-bold text-emerald-800 dark:text-emerald-200 truncate tabular-nums">{formatCurrency(monthlyStats.thisMonthTotal)}</p>
           <p className="text-xs text-emerald-600">{monthlyStats.thisMonthCount} gastos</p>
         </div>
-        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden">
           <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Mes Anterior</p>
-          <p className="text-lg font-bold text-slate-800 dark:text-slate-200">{formatCurrency(monthlyStats.lastMonthTotal)}</p>
+          <p className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-200 truncate tabular-nums">{formatCurrency(monthlyStats.lastMonthTotal)}</p>
           <p className="text-xs text-slate-500">
             {monthlyStats.thisMonthTotal > monthlyStats.lastMonthTotal ? '↑' : '↓'}
             {Math.abs(((monthlyStats.thisMonthTotal - monthlyStats.lastMonthTotal) / (monthlyStats.lastMonthTotal || 1)) * 100).toFixed(0)}%
           </p>
         </div>
-        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 overflow-hidden">
           <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1">
             <Filter size={12} /> Filtrado
           </p>
-          <p className="text-lg font-bold text-blue-800 dark:text-blue-200">{formatCurrency(monthlyStats.filteredTotal)}</p>
+          <p className="text-base sm:text-lg font-bold text-blue-800 dark:text-blue-200 truncate tabular-nums">{formatCurrency(monthlyStats.filteredTotal)}</p>
           <p className="text-xs text-blue-600">{filteredExpenses.length} resultados</p>
         </div>
-        <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800">
+        <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 overflow-hidden">
           <p className="text-xs text-violet-600 dark:text-violet-400 font-semibold flex items-center gap-1">
             <BarChart3 size={12} /> Top Categoría
           </p>
@@ -419,7 +419,7 @@ export function ExpensesView({ expenses, addExpense, onDeleteExpense }) {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {filteredExpenses.map(e => (
                 <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="p-2 text-slate-800 dark:text-slate-200">{e.description || e.concept || 'Gasto'}</td>
+                  <td className="p-2 text-slate-800 dark:text-slate-200 max-w-[150px] truncate">{e.description || e.concept || 'Gasto'}</td>
                   <td className="p-2">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getCategoryStyle(e.category)}`}>
                       {CATEGORIES.find(c => c.value === e.category)?.label || 'Otro'}

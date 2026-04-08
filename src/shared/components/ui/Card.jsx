@@ -1,7 +1,7 @@
 import React from 'react';
 
 const Card = ({ children, className = "", variant = "default", onClick }) => {
-  const base = "rounded-2xl transition-all duration-200 print:border-none print:shadow-none";
+  const base = "rounded-2xl overflow-hidden p-3 sm:p-4 transition-all duration-200 print:border-none print:shadow-none";
   const variants = {
     default: "bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/60 shadow-sm hover:shadow-md",
     glass:   "bg-white/70 dark:bg-slate-800/60 backdrop-blur-md border border-white/40 dark:border-slate-700/40 shadow-lg",

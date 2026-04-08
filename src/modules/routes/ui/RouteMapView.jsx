@@ -183,7 +183,7 @@ export default function RouteMapView({ stops, visitStatuses, collectorId, collec
   const progress = stops.length > 0 ? (paidCount / stops.length) * 100 : 0;
 
   return (
-    <div className="fixed inset-0 z-50 bg-white dark:bg-slate-900 flex flex-col safe-area-insets">
+    <div className="fixed inset-0 z-50 bg-white dark:bg-slate-900 flex flex-col safe-area-insets" data-fullscreen>
       {/* Top bar */}
       <div className="flex items-center justify-between px-3 py-2.5 bg-indigo-600 text-white shadow-lg z-10 safe-area-top">
         <div className="flex items-center gap-2 min-w-0">

@@ -706,7 +706,7 @@ export function RoutesView({
       </div>
 
       {/* ======== MAP SECTION — collapsible on mobile ======== */}
-      <div className="sm:block" style={{ display: showMapSection || showLiveMap ? 'block' : undefined }}>
+      <div>
         <button
           type="button"
           onClick={() => setShowMapSection(v => !v)}

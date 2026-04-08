@@ -12,7 +12,6 @@ import Sidebar from './shared/components/layout/Sidebar';
 import Header from './shared/components/layout/Header';
 import { BottomNav } from './shared/components/layout/BottomNav';
 import FloatingAIBot from './ai/FloatingAIBot';
-import QuickActionsFAB from './shared/components/ui/QuickActionsFAB';
 import ConnectionStatus from './shared/components/ui/ConnectionStatus';
 import ModalManager from './shared/components/modals/ModalManager';
 import { printReceipt } from './services/printing/PrintService';
@@ -243,11 +242,6 @@ function AppShell({ onLogout }) {
       />
 
       {/* Mobile Navigation */}
-      <QuickActionsFAB
-        onNavigate={setActiveTab}
-        onNewClient={() => { setEditingClient(null); setClientModalOpen(true); }}
-      />
-
       <BottomNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}

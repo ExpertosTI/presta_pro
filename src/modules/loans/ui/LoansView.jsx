@@ -668,29 +668,29 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* MEJORA 4: Portfolio Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 overflow-hidden">
           <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1"><Wallet size={12} /> Cartera</p>
-          <p className="text-lg font-bold text-blue-800 dark:text-blue-200">{formatCurrency(loanStats.totalPortfolio)}</p>
+          <p className="text-base sm:text-lg font-bold text-blue-800 dark:text-blue-200 truncate tabular-nums">{formatCurrency(loanStats.totalPortfolio)}</p>
           <p className="text-xs text-blue-600">{loanStats.activeCount} activos</p>
         </div>
-        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
+        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 overflow-hidden">
           <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1"><TrendingUp size={12} /> Interés Esperado</p>
-          <p className="text-lg font-bold text-emerald-800 dark:text-emerald-200">{formatCurrency(loanStats.totalExpectedInterest)}</p>
+          <p className="text-base sm:text-lg font-bold text-emerald-800 dark:text-emerald-200 truncate tabular-nums">{formatCurrency(loanStats.totalExpectedInterest)}</p>
         </div>
-        <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800">
+        <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 overflow-hidden">
           <p className="text-xs text-violet-600 dark:text-violet-400 font-semibold flex items-center gap-1"><Clock size={12} /> Por Cobrar</p>
-          <p className="text-lg font-bold text-violet-800 dark:text-violet-200">{formatCurrency(loanStats.totalPending)}</p>
+          <p className="text-base sm:text-lg font-bold text-violet-800 dark:text-violet-200 truncate tabular-nums">{formatCurrency(loanStats.totalPending)}</p>
         </div>
-        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden">
           <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Por Tipo</p>
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{loanStats.fixedCount} cuotas · {loanStats.openCount} abiertos</p>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{loanStats.fixedCount} cuotas · {loanStats.openCount} abiertos</p>
         </div>
       </div>
 
       {/* Search and Enhanced Filter Bar */}
       <Card>
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="flex-1 min-w-[180px]">
+        <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
+          <div className="flex-1 min-w-[140px] sm:min-w-[180px]">
             <input
               type="text"
               placeholder="Buscar cliente..."
@@ -814,8 +814,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     onClick={() => onSelectLoan && onSelectLoan(l.id)}
                     className={`cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                   >
-                    <td className="p-2 text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                      {client?.name || 'Sin cliente'}
+                    <td className="p-2 text-slate-800 dark:text-slate-200 flex items-center gap-2 min-w-0">
+                      <span className="truncate">{client?.name || 'Sin cliente'}</span>
                       {hasDocuments && (
                         <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1" title={`${client.documents.length} documentos`}>
                           <FileText size={10} /> {client.documents.length}

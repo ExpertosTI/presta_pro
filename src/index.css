@@ -100,10 +100,11 @@ html {
   /* ======================================
      GLOBAL MOBILE MODAL FIX
      Modals: centered, full-width, content-driven height
+     Excludes [data-fullscreen] (maps, fullscreen views)
      ====================================== */
 
   /* Modal overlays: center content, no padding */
-  .fixed.inset-0.z-50,
+  .fixed.inset-0.z-50:not([data-fullscreen]),
   .fixed.inset-0.z-\[60\] {
     display: flex !important;
     align-items: flex-start !important;
@@ -113,7 +114,7 @@ html {
   }
 
   /* Inner modal panels: full width, natural height, scrollable */
-  .fixed.inset-0.z-50 > div,
+  .fixed.inset-0.z-50:not([data-fullscreen]) > div,
   .fixed.inset-0.z-\[60\] > div {
     width: 100% !important;
     max-width: 100% !important;

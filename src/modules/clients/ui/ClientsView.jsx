@@ -367,8 +367,8 @@ export function ClientsView({
                       </div>
                     </td>
                     <td className="p-2 font-medium text-slate-800 dark:text-slate-200">
-                      <div className="flex flex-col">
-                        <span>{c.name}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate">{c.name}</span>
                         <span className="sm:hidden text-xs text-slate-500">{c.phone}</span>
                       </div>
                     </td>
@@ -429,7 +429,7 @@ export function ClientsView({
                 )}
               </div>
               <div>
-                <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100">{selectedClient.name}</h3>
+                <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100 truncate">{selectedClient.name}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">ID: {selectedClient.idNumber || 'N/A'}</p>
                 <ClientRating score={selectedClient.score} />
               </div>
@@ -454,12 +454,12 @@ export function ClientsView({
               </p>
               {/* MEJORA 14: Email */}
               {selectedClient.email && (
-                <p className="text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <Mail size={14} className="text-slate-400" />
-                  <a href={`mailto:${selectedClient.email}`} className="hover:text-blue-600">{selectedClient.email}</a>
+                <p className="text-slate-700 dark:text-slate-300 flex items-center gap-2 min-w-0">
+                  <Mail size={14} className="text-slate-400 flex-shrink-0" />
+                  <a href={`mailto:${selectedClient.email}`} className="hover:text-blue-600 truncate">{selectedClient.email}</a>
                 </p>
               )}
-              <p className="text-slate-700 dark:text-slate-300">
+              <p className="text-slate-700 dark:text-slate-300 break-words">
                 <span className="font-semibold">Dirección: </span>{selectedClient.address || 'N/D'}
               </p>
               {/* MEJORA 15: Birthday */}
@@ -527,22 +527,22 @@ export function ClientsView({
             {/* MEJORA 3: Client Statistics */}
             {clientStats && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 overflow-hidden">
                   <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">Total Prestado</p>
-                  <p className="text-xl font-bold text-blue-800 dark:text-blue-200">{formatCurrency(clientStats.totalLent)}</p>
+                  <p className="text-lg sm:text-xl font-bold text-blue-800 dark:text-blue-200 truncate tabular-nums">{formatCurrency(clientStats.totalLent)}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
+                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 overflow-hidden">
                   <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Total Pagado</p>
-                  <p className="text-xl font-bold text-emerald-800 dark:text-emerald-200">{formatCurrency(clientStats.totalPaid)}</p>
+                  <p className="text-lg sm:text-xl font-bold text-emerald-800 dark:text-emerald-200 truncate tabular-nums">{formatCurrency(clientStats.totalPaid)}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800">
+                <div className="p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 overflow-hidden">
                   <p className="text-xs text-violet-600 dark:text-violet-400 font-semibold">Préstamos</p>
-                  <p className="text-xl font-bold text-violet-800 dark:text-violet-200">{clientStats.activeLoansCount} activos</p>
+                  <p className="text-lg sm:text-xl font-bold text-violet-800 dark:text-violet-200">{clientStats.activeLoansCount} activos</p>
                   <p className="text-xs text-violet-600">{clientStats.completedLoans} completados</p>
                 </div>
-                <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
+                <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 overflow-hidden">
                   <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">Puntualidad</p>
-                  <p className="text-xl font-bold text-amber-800 dark:text-amber-200">{clientStats.paymentScore}%</p>
+                  <p className="text-lg sm:text-xl font-bold text-amber-800 dark:text-amber-200">{clientStats.paymentScore}%</p>
                   <p className="text-xs text-amber-600 flex items-center gap-1">
                     <CheckCircle size={10} /> {clientStats.onTimePayments} a tiempo
                   </p>
