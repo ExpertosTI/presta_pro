@@ -495,18 +495,13 @@ Fecha: ${today}`;
 
   const handleGenerateTemplateWithAI = async () => {
     if (!currentClient) return;
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      alert('Falta configurar la API de IA (VITE_GEMINI_API_KEY) para generar documentos automáticamente.');
-      return;
-    }
 
     setAiGenerating(true);
     try {
       const { generateClientDocument } = await import('../../../services/aiService');
       const lastLoan = selectedLoan || getLastLoanForClient(currentClient.id);
       const effectiveCompanyName = companyName || 'Presta Pro';
-      const generated = await generateClientDocument(templateType, currentClient, lastLoan, effectiveCompanyName, apiKey);
+      const generated = await generateClientDocument(templateType, currentClient, lastLoan, effectiveCompanyName);
       if (generated && typeof generated === 'string') {
         setTemplateContent(generated.trim());
       }

@@ -209,6 +209,9 @@ function AppShell({ onLogout }) {
         showToast={showToast}
         ownerName={dbData.systemSettings?.ownerDisplayName}
         companyName={dbData.systemSettings?.companyName}
+        onNavigate={setActiveTab}
+        onOpenNewClient={() => { setEditingClient(null); setClientModalOpen(true); }}
+        onOpenNewLoan={() => setActiveTab('loans')}
       />
 
       {/* Mobile Navigation */}

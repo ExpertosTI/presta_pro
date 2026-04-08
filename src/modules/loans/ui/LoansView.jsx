@@ -236,19 +236,17 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
     if (!selectedLoan || !selectedClient) return;
     setGeneratingContract(true);
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      // Dynamic import to avoid circular dependency issues if any, though direct import is fine here
       const { generateLoanContract } = await import('../../../services/aiService');
-      const contract = await generateLoanContract(selectedLoan, selectedClient, "Presta Pro", apiKey);
+      const contract = await generateLoanContract(selectedLoan, selectedClient, "Presta Pro");
       setContractContent(contract);
       setShowContractModal(true);
     } catch (error) {
       console.error('Error generating loan contract with AI', error);
       const message = error?.message || '';
 
-      if (message === 'API Key missing' || message === 'INVALID_API_KEY') {
-        alert('Falta configurar correctamente la API de IA (VITE_GEMINI_API_KEY) en este servidor.');
-      } else if (message === 'RATE_LIMIT' || error?.status === 429) {
+      if (error?.response?.status === 503) {
+        alert('El Asistente IA no está configurado en el servidor.');
+      } else if (message === 'RATE_LIMIT' || error?.status === 429 || error?.response?.status === 429) {
         alert('La IA de contratos alcanzó el límite de uso. Intenta de nuevo en unos minutos.');
       } else {
         alert('No se pudo generar el contrato en este momento. Intenta nuevamente más tarde.');

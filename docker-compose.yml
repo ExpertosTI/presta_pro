@@ -52,7 +52,6 @@ services:
     build:
       context: .
       args:
-        - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
         - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
         - VITE_API_URL=${VITE_API_URL:-https://prestanace.renace.tech/api}
     depends_on:

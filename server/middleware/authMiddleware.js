@@ -1,5 +1,13 @@
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me';
+
+if (!process.env.JWT_SECRET) {
+    console.error('⛔ FATAL: JWT_SECRET no está configurado. El servidor no debe operar sin un secreto seguro.');
+    if (process.env.NODE_ENV === 'production') {
+        process.exit(1);
+    }
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_ONLY_FOR_LOCAL';
 
 // Track failed auth attempts (simple in-memory, use Redis in production for multi-instance)
 const failedAttempts = new Map();
