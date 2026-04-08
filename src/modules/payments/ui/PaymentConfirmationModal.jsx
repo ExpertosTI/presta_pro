@@ -57,14 +57,14 @@ export default function PaymentConfirmationModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-end sm:items-center justify-center z-50 backdrop-blur-sm animate-fade-in safe-area-insets">
-            <div className="w-full h-full sm:h-auto sm:max-w-md bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl p-4 sm:p-6 border-0 sm:border border-slate-200 dark:border-slate-700 sm:max-h-[95vh] overflow-y-auto flex flex-col">
+        <div className="fixed inset-0 bg-slate-900/70 flex items-start justify-center z-50 backdrop-blur-sm animate-fade-in safe-area-insets">
+            <div className="w-full sm:max-w-md bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl p-4 sm:p-6 sm:mt-[10vh] sm:border border-slate-200 dark:border-slate-700 overflow-y-auto" style={{ minHeight: '100dvh', minHeight: '-webkit-fill-available' }}>
                 {/* Mobile header bar */}
-                <div className="flex items-center justify-between mb-3 sm:mb-0 pb-3 sm:pb-0 border-b sm:border-0 border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-200 dark:border-slate-700">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Confirmar pago</h3>
                     <button
                         onClick={onCancel}
-                        className="sm:hidden p-2 -mr-2 text-slate-400 hover:text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                        className="p-2 -mr-2 text-slate-400 hover:text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
                     >
                         ✕
                     </button>
@@ -142,7 +142,7 @@ export default function PaymentConfirmationModal({
                 </div>
 
                 {/* GPS Status Indicator */}
-                <div className={`flex items-center gap-2 mb-4 p-2 rounded-lg text-xs font-medium ${
+                <div className={`flex items-center gap-2 mb-6 p-2 rounded-lg text-xs font-medium ${
                     gpsStatus === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
                     gpsStatus === 'loading' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' :
                     gpsStatus === 'error' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400' :
@@ -159,21 +159,19 @@ export default function PaymentConfirmationModal({
                     </span>
                 </div>
 
-                <div className="mt-auto pt-4">
-                    <div className="flex flex-col gap-3 safe-area-bottom">
-                        <button
-                            onClick={handleConfirm}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white text-base font-bold py-3.5 rounded-xl shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] min-h-[48px] touch-manipulation"
-                        >
-                            Confirmar pago
-                        </button>
-                        <button
-                            onClick={onCancel}
-                            className="w-full py-3 px-4 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 font-medium transition-colors bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 min-h-[48px] items-center justify-center touch-manipulation hidden sm:flex"
-                        >
-                            Cancelar
-                        </button>
-                    </div>
+                <div className="flex flex-col gap-3 pb-4">
+                    <button
+                        onClick={handleConfirm}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white text-base font-bold py-3.5 rounded-xl shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transition-all transform active:scale-[0.98] min-h-[48px] touch-manipulation"
+                    >
+                        Confirmar pago
+                    </button>
+                    <button
+                        onClick={onCancel}
+                        className="w-full py-3 px-4 text-sm text-slate-600 dark:text-slate-300 font-medium bg-slate-100 dark:bg-slate-700/50 rounded-lg min-h-[48px] flex items-center justify-center touch-manipulation"
+                    >
+                        Cancelar
+                    </button>
                 </div>
             </div>
         </div>

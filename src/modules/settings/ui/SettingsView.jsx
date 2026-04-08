@@ -392,7 +392,9 @@ export function SettingsView({
                   { id: 'indigo', bg: 'bg-indigo-700', label: 'Índigo' },
                   { id: 'blue', bg: 'bg-blue-600', label: 'Azul' },
                   { id: 'emerald', bg: 'bg-emerald-500', label: 'Verde' },
-                  { id: 'violet', bg: 'bg-violet-500', label: 'Violeta' },
+                  { id: 'violet', bg: 'bg-violet-600', label: 'Violeta' },
+                  { id: 'rose', bg: 'bg-rose-600', label: 'Rosa' },
+                  { id: 'amber', bg: 'bg-amber-600', label: 'Ámbar' },
                   { id: 'slate', bg: 'bg-slate-700', label: 'Gris Oscuro' },
                   { id: 'zinc', bg: 'bg-zinc-900', label: 'Negro' },
                 ].map((color) => (

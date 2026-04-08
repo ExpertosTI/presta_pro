@@ -98,55 +98,33 @@ html {
   }
 
   /* ======================================
-     GLOBAL MOBILE MODAL RESPONSIVE FIX
-     All fixed z-50 modals → fullscreen on mobile
-     Targets Tailwind pattern: fixed inset-0 ... z-50
+     GLOBAL MOBILE MODAL FIX
+     Modals: centered, full-width, content-driven height
      ====================================== */
 
-  /* Modal overlays: remove padding, ensure display flex column */
+  /* Modal overlays: center content, no padding */
   .fixed.inset-0.z-50,
   .fixed.inset-0.z-\[60\] {
     display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    justify-content: flex-end !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
     padding: 0 !important;
+    overflow-y: auto !important;
   }
 
-  /* ALL direct child divs of modal overlays → fullscreen */
+  /* Inner modal panels: full width, natural height, scrollable */
   .fixed.inset-0.z-50 > div,
   .fixed.inset-0.z-\[60\] > div {
     width: 100% !important;
     max-width: 100% !important;
     min-height: 100dvh !important;
-    max-height: 100dvh !important;
-    height: 100dvh !important;
+    max-height: none !important;
+    height: auto !important;
     border-radius: 0 !important;
     margin: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
     padding-top: env(safe-area-inset-top, 0px) !important;
     padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-  }
-
-  /* Scrollable inner areas within fullscreen modals */
-  .fixed.inset-0.z-50 > div form,
-  .fixed.inset-0.z-50 > div .overflow-y-auto,
-  .fixed.inset-0.z-50 > div .flex-1,
-  .fixed.inset-0.z-\[60\] > div form,
-  .fixed.inset-0.z-\[60\] > div .overflow-y-auto,
-  .fixed.inset-0.z-\[60\] > div .flex-1 {
-    flex: 1 1 0% !important;
     overflow-y: auto !important;
-    min-height: 0 !important;
-  }
-
-  /* Modal footer buttons stick to bottom */
-  .fixed.inset-0.z-50 > div .flex.gap-2:last-child,
-  .fixed.inset-0.z-50 > div .flex.gap-3:last-child {
-    flex-shrink: 0;
-    padding-bottom: env(safe-area-inset-bottom, 8px);
   }
 
   /* Body scroll lock when modal is open */

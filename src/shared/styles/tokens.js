@@ -44,6 +44,30 @@ export const THEME_COLORS = {
     gradient: 'from-amber-600 to-orange-700',
     shadow: 'shadow-amber-900/20',
   },
+  violet: {
+    primary: '#7c3aed',
+    primaryHover: '#8b5cf6',
+    primaryBg: 'rgba(124, 58, 237, 0.1)',
+    primaryDarkBg: 'rgba(124, 58, 237, 0.25)',
+    gradient: 'from-violet-600 to-purple-700',
+    shadow: 'shadow-violet-900/20',
+  },
+  slate: {
+    primary: '#475569',
+    primaryHover: '#64748b',
+    primaryBg: 'rgba(71, 85, 105, 0.1)',
+    primaryDarkBg: 'rgba(71, 85, 105, 0.25)',
+    gradient: 'from-slate-700 to-slate-900',
+    shadow: 'shadow-slate-900/20',
+  },
+  zinc: {
+    primary: '#27272a',
+    primaryHover: '#3f3f46',
+    primaryBg: 'rgba(39, 39, 42, 0.1)',
+    primaryDarkBg: 'rgba(39, 39, 42, 0.25)',
+    gradient: 'from-zinc-800 to-zinc-950',
+    shadow: 'shadow-zinc-900/20',
+  },
 };
 
 /**
