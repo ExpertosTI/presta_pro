@@ -1226,15 +1226,20 @@ app.post('/api/auth/google', async (req, res) => {
       // Usuario existe - actualizar con datos de Google si no tiene
       if (!IS_PRODUCTION) console.log('👤 Usuario encontrado, actualizando datos de Google...');
 
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          name: user.name === 'Administrador' ? googleName : user.name, // Solo actualiza si es el nombre por defecto
-          googleId: googleId,
-          photoUrl: user.photoUrl || googlePicture, // Solo actualiza si no tiene foto
-        },
-        include: { tenant: true },
-      });
+      try {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            name: user.name === 'Administrador' ? googleName : user.name,
+            googleId: googleId,
+            photoUrl: user.photoUrl || googlePicture,
+          },
+          include: { tenant: true },
+        });
+      } catch (updateErr) {
+        console.warn('⚠️ No se pudo actualizar datos de Google, continuando login:', updateErr.message);
+        // user ya tiene tenant incluido del findUnique
+      }
 
       const tenant = user.tenant;
       if (!tenant.isVerified) {
