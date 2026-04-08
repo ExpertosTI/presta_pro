@@ -251,8 +251,7 @@ app.use('/api/notes', authMiddleware, notesRouter);
 app.use('/api/notifications', authMiddleware, notificationsRouter);
 app.use('/api/loan-requests', authMiddleware, loanRequestsRouter);
 app.use('/api/route-closings', authMiddleware, routeClosingsRouter);
-app.use('/api/admin', authMid
-app.use('/api/location', locationRouter);dleware, requireAdmin, adminRouter);
+app.use('/api/admin', authMiddleware, requireAdmin, adminRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/location', locationRouter);
 
