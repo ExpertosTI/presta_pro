@@ -54,8 +54,6 @@ router.post('/chat', authMiddleware, async (req, res) => {
       parts: [{ text: (msg.text || '').slice(0, 1500) }],
     }));
 
-    const fullMessage = `${systemInstruction}\n\nConsulta del usuario: ${message}`;
-
     let attempts = 0;
     const maxAttempts = 3;
 
@@ -65,8 +63,11 @@ router.post('/chat', authMiddleware, async (req, res) => {
           model: MODEL,
           contents: [
             ...chatHistory,
-            { role: 'user', parts: [{ text: fullMessage }] }
+            { role: 'user', parts: [{ text: message }] }
           ],
+          config: {
+            systemInstruction: systemInstruction || undefined,
+          },
         });
         return res.json({ text: response.text || 'No pude obtener una respuesta.' });
       } catch (error) {

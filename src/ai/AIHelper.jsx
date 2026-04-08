@@ -37,7 +37,7 @@ const renderMessageText = (text, onActionClick) => {
 
 // Extract and render action buttons from AI response
 const ActionButtons = ({ text, onAction }) => {
-  const actionRegex = /\[\[ACTION:(\w+)(?:\|([^\]]*))?\]\]/g;
+  const actionRegex = /\[\[ACTION:([\w-]+)(?:\|([^\]]*))?\]\]/g;
   const actions = [];
   let match;
   while ((match = actionRegex.exec(text)) !== null) {
@@ -413,7 +413,7 @@ Tú: "Hoy se han cobrado $5,000 en total. ¿Quieres ir a clientes?"
       }
 
       // Clean action tags from display text (they'll render as buttons)
-      const cleanForDisplay = displayText.replace(/\[\[ACTION:\w+(?:\|[^\]]*)?\]\]/g, '').trim();
+      const cleanForDisplay = displayText.replace(/\[\[ACTION:[\w-]+(?:\|[^\]]*)?\]\]/g, '').trim();
 
       setChatHistory(prev => [...prev, { role: 'model', text: displayText, cleanText: cleanForDisplay }]);
 
