@@ -58,6 +58,7 @@ export function RoutesView({
   const [showPenaltyInput, setShowPenaltyInput] = useState(false);
   const [showClosingDetail, setShowClosingDetail] = useState(false);
   const [receiptToShow, setReceiptToShow] = useState(null);
+  const [showMapSection, setShowMapSection] = useState(false);
 
   // MEJORA 1: Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -704,16 +705,25 @@ export function RoutesView({
           )}
       </div>
 
-      {/* ======== MAP SECTION (below client list) ======== */}
-      {showLiveMap ? (
-        <div style={{ minHeight: 350 }}>
-          <Suspense fallback={<div className="flex items-center justify-center h-[350px] text-slate-400 text-sm">Cargando mapa...</div>}>
-            <LiveCollectorMap onClose={() => setShowLiveMap(false)} />
-          </Suspense>
-        </div>
-      ) : (
-        <Suspense fallback={<div className="h-[300px] bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 text-sm">Cargando mapa...</div>}>
-          <InlineRouteMap
+      {/* ======== MAP SECTION — collapsible on mobile ======== */}
+      <div className="sm:block" style={{ display: showMapSection || showLiveMap ? 'block' : undefined }}>
+        <button
+          type="button"
+          onClick={() => setShowMapSection(v => !v)}
+          className="sm:hidden w-full flex items-center justify-center gap-2 py-2.5 mb-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl text-sm font-semibold border border-indigo-200 dark:border-indigo-800 touch-manipulation"
+        >
+          <MapPin size={16} /> {showMapSection ? 'Ocultar Mapa' : 'Ver Mapa'}
+        </button>
+        <div className={`${showMapSection || showLiveMap ? 'block' : 'hidden'} sm:block`}>
+          {showLiveMap ? (
+            <div style={{ minHeight: 300 }}>
+              <Suspense fallback={<div className="flex items-center justify-center h-[300px] text-slate-400 text-sm">Cargando mapa...</div>}>
+                <LiveCollectorMap onClose={() => setShowLiveMap(false)} />
+              </Suspense>
+            </div>
+          ) : (
+            <Suspense fallback={<div className="h-[250px] bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 text-sm">Cargando mapa...</div>}>
+              <InlineRouteMap
             stops={sortedRoute}
             visitStatuses={visitStatuses}
             collectorId={activeCollector.id || 'owner'}
@@ -737,6 +747,8 @@ export function RoutesView({
           />
         </Suspense>
       )}
+        </div>
+      </div>
 
       {/* MEJORA 6: Notes Modal */}
       {notesModal && (
