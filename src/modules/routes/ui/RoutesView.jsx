@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useCallback, lazy, Suspense } from 'react';
-import Card from '../../../shared/components/ui/Card';
 import {
   MapPin, CheckCircle, Printer, Search, Phone, Navigation,
   Clock, XCircle, AlertTriangle, StickyNote, ArrowUpDown,
@@ -11,6 +10,7 @@ import { clientApi } from '../../clients/infrastructure/clientApi';
 
 const LiveCollectorMap = lazy(() => import('./LiveCollectorMap'));
 const RouteMapView = lazy(() => import('./RouteMapView'));
+const InlineRouteMap = lazy(() => import('./InlineRouteMap'));
 import DigitalReceipt from '../../../components/DigitalReceipt';
 import { PaymentConfirmationModal } from '../../payments';
 
@@ -437,14 +437,6 @@ export function RoutesView({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={startRoute}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs md:text-sm font-semibold shadow-md hover:bg-emerald-700"
-          >
-            <MapPin size={14} /> {routeActive ? 'En curso' : 'Iniciar'}
-          </button>
-
           {/* Botón mapa en vivo — solo supervisores/dueños */}
           <button
             type="button"
@@ -544,149 +536,196 @@ export function RoutesView({
         </div>
       )}
 
-      {/* Route List */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-3">
-          {sortedRoute.map((stop, index) => {
+      {/* ======== INLINE MAP ======== */}
+      <Suspense fallback={<div className="h-[300px] bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 text-sm">Cargando mapa...</div>}>
+        <InlineRouteMap
+          stops={sortedRoute}
+          visitStatuses={visitStatuses}
+          collectorId={activeCollector.id || 'owner'}
+          collectorPhoto={activeCollector.photoUrl}
+          routeActive={routeActive}
+          onStartRoute={startRoute}
+          onFinishRoute={() => {
+            if (!collectorFilter) {
+              showToast && showToast('Selecciona un cobrador para cuadrar la ruta.', 'error');
+              return;
+            }
+            setConfirmClosing(true);
+          }}
+          onSaveLocation={async (clientId, lat, lng) => {
+            await clientApi.updateLocation(clientId, lat, lng);
+          }}
+          onStopClick={(stop) => {
+            const el = document.getElementById(`stop-${stop.id}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }}
+        />
+      </Suspense>
+
+      {/* ======== ROUTE SUMMARY BAR ======== */}
+      <div className="flex flex-wrap items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-500 dark:text-slate-400">Total:</span>
+          <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(totalToCollect)}</span>
+        </div>
+        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-500 dark:text-slate-400">Cobrado:</span>
+          <span className="font-bold text-emerald-600">{formatCurrency(collectorTodayTotal)}</span>
+        </div>
+        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-500 dark:text-slate-400">En ruta:</span>
+          <span className="font-bold text-slate-800 dark:text-slate-200">{selectedStops.length}</span>
+        </div>
+        {lastClosingForSelectedCollector && (
+          <>
+            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+            <button
+              type="button"
+              onClick={() => setShowClosingDetail(true)}
+              className="text-emerald-600 dark:text-emerald-400 font-semibold underline"
+            >
+              Cuadre: {formatCurrency(lastClosingForSelectedCollector.totalAmount)}
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ======== STOP LIST ======== */}
+      <div className="space-y-2">
+        {sortedRoute.map((stop, index) => {
             const key = `${stop.loanId}:${stop.id}`;
             const selected = currentRouteLoanIds.includes(key);
             const status = visitStatuses[stop.id] || 'PENDING';
             const note = visitNotes[stop.id];
+            const hasGPS = !!(stop.clientLat && stop.clientLng);
 
             return (
               <div
                 key={stop.id}
-                className={`glass p-4 rounded-xl transition-all ${status === 'PAID' ? 'opacity-60 border-emerald-300' :
-                    status === 'REFUSED' || status === 'NOT_HOME' ? 'opacity-75 border-amber-300' : ''
+                id={`stop-${stop.id}`}
+                className={`glass p-3 rounded-xl transition-all ${status === 'PAID' ? 'opacity-60 border-l-4 border-l-emerald-500' :
+                    status === 'REFUSED' || status === 'NOT_HOME' ? 'opacity-75 border-l-4 border-l-amber-400' : ''
                   }`}
               >
-                <div className="flex flex-col md:flex-row justify-between items-start gap-3">
-                  {/* Client info */}
-                  <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="bg-indigo-100 dark:bg-indigo-600 text-indigo-700 dark:text-white w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm">
-                      {index + 1}
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200 dark:border-slate-700 flex-shrink-0">
+                <div className="flex items-start gap-2.5">
+                  {/* Number + photo */}
+                  <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${status === 'PAID' ? 'bg-emerald-500' : 'bg-indigo-500'}`}>
                       {stop.clientPhotoUrl ? (
-                        <img src={stop.clientPhotoUrl} className="w-full h-full object-cover" alt="" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-slate-400 font-bold">
-                          {stop.clientName?.charAt(0)}
-                        </div>
-                      )}
+                        <img src={stop.clientPhotoUrl} className="w-full h-full object-cover rounded-full" alt="" />
+                      ) : status === 'PAID' ? '✓' : index + 1}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{stop.clientName}</h4>
-                        {getStatusBadge(status)}
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
-                        <MapPin size={10} /> {stop.clientAddress}
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Cuota #{stop.number} • {formatDate(stop.date)} • <span className="font-semibold">{formatCurrency(stop.payment)}</span>
-                      </p>
-                      {note && (
-                        <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1">
-                          <StickyNote size={10} /> {note}
-                        </p>
-                      )}
-                    </div>
+                    {hasGPS && <MapPin size={10} className="text-blue-500" />}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-col gap-2 w-full md:w-auto">
-                    {/* Quick actions: GPS, Call, WhatsApp */}
-                    <div className="flex items-center gap-1 justify-end flex-wrap">
-                      {/* MEJORA 2: GPS Navigation */}
-                      {stop.clientAddress && (
-                        <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.clientAddress)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 sm:p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 min-w-[44px] min-h-[44px] sm:min-h-auto sm:min-w-auto flex items-center justify-center touch-manipulation"
-                          title="Navegar con GPS"
-                        >
-                          <Navigation size={16} className="sm:w-[14px] sm:h-[14px]" />
-                        </a>
-                      )}
-                      {/* MEJORA 3: Call */}
-                      {stop.clientPhone && (
-                        <a
-                          href={`tel:${stop.clientPhone}`}
-                          className="p-2 sm:p-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-200 min-w-[44px] min-h-[44px] sm:min-h-auto sm:min-w-auto flex items-center justify-center touch-manipulation"
-                          title="Llamar"
-                        >
-                          <Phone size={16} className="sm:w-[14px] sm:h-[14px]" />
-                        </a>
-                      )}
-                      {/* MEJORA 4: WhatsApp */}
-                      {stop.clientPhone && (
-                        <a
-                          href={`https://wa.me/${stop.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${stop.clientName}, le recordamos que tiene una cuota pendiente de ${formatCurrency(stop.payment)}. ¿Estará disponible hoy para realizar el pago?`)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 sm:p-1.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 min-w-[44px] min-h-[44px] sm:min-h-auto sm:min-w-auto flex items-center justify-center touch-manipulation"
-                          title="WhatsApp"
-                        >
-                          <WhatsAppIcon size={16} className="sm:w-[14px] sm:h-[14px]" />
-                        </a>
-                      )}
-                      {/* MEJORA 6: Notes */}
-                      <button
-                        onClick={() => setNotesModal(stop)}
-                        className={`p-2 sm:p-1.5 rounded-lg min-w-[44px] min-h-[44px] sm:min-h-auto sm:min-w-auto flex items-center justify-center touch-manipulation ${note ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}
-                        title="Notas"
-                      >
-                        <StickyNote size={16} className="sm:w-[14px] sm:h-[14px]" />
-                      </button>
-                      {/* Add/Remove from route */}
-                      <button
-                        type="button"
-                        onClick={() => toggleLoanInRoute(stop.loanId, stop.id)}
-                        className={`px-2 py-1.5 sm:py-1 rounded-lg text-[10px] font-semibold border min-h-[44px] sm:min-h-auto flex items-center justify-center touch-manipulation ${selected
-                          ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                          : 'bg-slate-100 border-slate-300 text-slate-500 hover:bg-slate-200'
-                          }`}
-                      >
-                        {selected ? '✓ En ruta' : '+ Agregar'}
-                      </button>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{stop.clientName}</h4>
+                      {getStatusBadge(status)}
                     </div>
-
-                    {/* MEJORA 5: Visit status selector */}
-                    <div className="flex items-center gap-1">
-                      {VISIT_STATUSES.filter(s => s.value !== 'PENDING').map(s => (
-                        <button
-                          key={s.value}
-                          onClick={() => updateVisitStatus(stop.id, s.value)}
-                          className={`p-1 rounded text-[10px] ${status === s.value ? `bg-${s.color}-500 text-white` : `bg-${s.color}-100 text-${s.color}-600 hover:bg-${s.color}-200`}`}
-                          title={s.label}
-                        >
-                          <s.icon size={12} />
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Collect button */}
-                    {status !== 'PAID' && (
-                      <button
-                        onClick={() => {
-                          setPenaltyAmountInput('');
-                          setPaymentToConfirm({
-                            loanId: stop.loanId,
-                            installmentId: stop.id,
-                            amount: stop.payment,
-                            number: stop.number,
-                            date: stop.date,
-                            clientName: stop.clientName,
-                          });
-                        }}
-                        className="w-full bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-emerald-500 flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle size={14} /> Cobrar
-                      </button>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
+                      <MapPin size={9} /> {stop.clientAddress || 'Sin dirección'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      Cuota #{stop.number} • {formatDate(stop.date)} • <span className="font-semibold text-slate-700 dark:text-slate-300">{formatCurrency(stop.payment)}</span>
+                    </p>
+                    {note && (
+                      <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1">
+                        <StickyNote size={9} /> {note}
+                      </p>
                     )}
                   </div>
+
+                  {/* Quick actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
+                    {stop.clientAddress && (
+                      <a
+                        href={hasGPS ? `https://www.google.com/maps/dir/?api=1&destination=${stop.clientLat},${stop.clientLng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.clientAddress)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation"
+                      >
+                        <Navigation size={14} />
+                      </a>
+                    )}
+                    {stop.clientPhone && (
+                      <a
+                        href={`tel:${stop.clientPhone}`}
+                        className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation"
+                      >
+                        <Phone size={14} />
+                      </a>
+                    )}
+                    {stop.clientPhone && (
+                      <a
+                        href={`https://wa.me/${stop.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${stop.clientName}, le recordamos que tiene una cuota pendiente de ${formatCurrency(stop.payment)}. ¿Estará disponible hoy?`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation"
+                      >
+                        <WhatsAppIcon size={14} />
+                      </a>
+                    )}
+                    <button
+                      onClick={() => setNotesModal(stop)}
+                      className={`p-2 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation ${note ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}
+                    >
+                      <StickyNote size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bottom row: status + collect + add to route */}
+                <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  {/* Visit status */}
+                  <div className="flex items-center gap-0.5">
+                    {VISIT_STATUSES.filter(s => s.value !== 'PENDING').map(s => (
+                      <button
+                        key={s.value}
+                        onClick={() => updateVisitStatus(stop.id, s.value)}
+                        className={`p-1.5 rounded-md text-[10px] touch-manipulation ${status === s.value ? `bg-${s.color}-500 text-white` : `bg-${s.color}-100 text-${s.color}-600 hover:bg-${s.color}-200`}`}
+                        title={s.label}
+                      >
+                        <s.icon size={12} />
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex-1" />
+
+                  {/* Add/remove from route */}
+                  <button
+                    type="button"
+                    onClick={() => toggleLoanInRoute(stop.loanId, stop.id)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-semibold border touch-manipulation ${selected
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                      : 'bg-slate-100 border-slate-300 text-slate-500'}`}
+                  >
+                    {selected ? '✓ En ruta' : '+ Agregar'}
+                  </button>
+
+                  {/* Collect button */}
+                  {status !== 'PAID' && (
+                    <button
+                      onClick={() => {
+                        setPenaltyAmountInput('');
+                        setPaymentToConfirm({
+                          loanId: stop.loanId,
+                          installmentId: stop.id,
+                          amount: stop.payment,
+                          number: stop.number,
+                          date: stop.date,
+                          clientName: stop.clientName,
+                        });
+                      }}
+                      className="flex items-center gap-1 bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-emerald-500 touch-manipulation"
+                    >
+                      <CheckCircle size={12} /> Cobrar
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -698,69 +737,6 @@ export function RoutesView({
               <p className="text-slate-500 dark:text-slate-400">No hay cobros pendientes.</p>
             </div>
           )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="lg:col-span-1 space-y-4">
-          <Card className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-            <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Resumen de Ruta</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Total a Recaudar</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(totalToCollect)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Cobrado Hoy</span>
-                <span className="font-bold text-emerald-600">{formatCurrency(collectorTodayTotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Clientes en Ruta</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{selectedStops.length}</span>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-            <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Ruta Armada</h3>
-            {selectedStops.length === 0 ? (
-              <p className="text-xs text-slate-400">Selecciona clientes para armar la ruta.</p>
-            ) : (
-              <div className="space-y-2 text-xs">
-                <ul className="divide-y divide-slate-100 dark:divide-slate-700 max-h-40 overflow-y-auto">
-                  {selectedStops.map((stop) => (
-                    <li key={stop.id} className="py-1 flex justify-between">
-                      <span className="truncate mr-2">{stop.clientName}</span>
-                      <span className="font-semibold">{formatCurrency(stop.payment)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between">
-                  <span className="font-semibold">Total</span>
-                  <span className="font-bold">{formatCurrency(selectedStops.reduce((acc, s) => acc + s.payment, 0))}</span>
-                </div>
-              </div>
-            )}
-          </Card>
-
-          {lastClosingForSelectedCollector && (
-            <Card className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
-              <h3 className="font-bold text-emerald-800 dark:text-emerald-300 mb-2 text-sm">Último cuadre</h3>
-              <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                {formatDate(lastClosingForSelectedCollector.date)} • {lastClosingForSelectedCollector.receiptsCount} recibos
-              </p>
-              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                {formatCurrency(lastClosingForSelectedCollector.totalAmount)}
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowClosingDetail(true)}
-                className="mt-2 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 underline"
-              >
-                Ver tickets
-              </button>
-            </Card>
-          )}
-        </div>
       </div>
 
       {/* MEJORA 6: Notes Modal */}
