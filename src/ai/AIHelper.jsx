@@ -379,13 +379,16 @@ ACCIONES DE IMPRESIÓN:
 - [[ACTION:print-last-receipt|Imprimir Último Recibo]] — Imprime el último recibo registrado
 
 CUÁNDO USAR ACCIONES:
+- SIEMPRE que el usuario mencioné una sección de la app, DEBES incluir la etiqueta [[ACTION:...]].
 - Si el usuario dice "quiero ver mis clientes" → responde brevemente y añade [[ACTION:clients|Ver Clientes]]
 - Si dice "llévame a gastos" → responde y añade [[ACTION:expenses|Ver Gastos]]
 - Si dice "necesito registrar un cliente" → responde y añade [[ACTION:new-client|Registrar Cliente]]
+- Si dice "registrar un pago" o "cobrar" → da instrucciones y añade [[ACTION:routes|Ir a Cobros]]
 - Si dice "cómo va la ruta" → da resumen y añade [[ACTION:routes|Ir a Cobros]]
 - Si pregunta por préstamos → da info y añade [[ACTION:loans|Ver Préstamos]]
 - Si dice "imprime recibo" o "imprime ticket" → responde y añade [[ACTION:print-last-receipt|Imprimir Recibo]]
 - Puedes poner MÚLTIPLES acciones si es relevante.
+- NUNCA respondas sin incluir al menos UNA acción si el usuario pregunta por algo que la app puede hacer.
 
 Ejemplo:
 Usuario: "Quiero ver cuánto se cobró hoy y luego ir a clientes"

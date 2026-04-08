@@ -9,6 +9,7 @@ import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { useGeoTracking } from '../hooks/useGeoTracking';
 
 const LiveCollectorMap = lazy(() => import('./LiveCollectorMap'));
+const RouteMapView = lazy(() => import('./RouteMapView'));
 import DigitalReceipt from '../../../components/DigitalReceipt';
 import { PaymentConfirmationModal } from '../../payments';
 
@@ -72,6 +73,7 @@ export function RoutesView({
   const [visitNotes, setVisitNotes] = useState({});
   const [notesModal, setNotesModal] = useState(null);
   const [showLiveMap, setShowLiveMap] = useState(false);
+  const [showRouteMap, setShowRouteMap] = useState(false);
 
   // GPS Tracking — activa geolocalización cuando la ruta está activa
   const activeCollector = collectors.find(c => c.id === collectorFilter) || {};
@@ -435,6 +437,17 @@ export function RoutesView({
           >
             <Radar size={14} /> Mapa en Vivo
           </button>
+
+          {/* Botón Mapa de Ruta tipo Uber */}
+          {sortedRoute.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowRouteMap(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold shadow-md bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+            >
+              <Navigation size={14} /> Ver Ruta
+            </button>
+          )}
 
           {/* MEJORA 11: Add all button */}
           <button
@@ -908,6 +921,30 @@ export function RoutesView({
             }
           }}
         />
+      )}
+
+      {/* Route Map View — tipo Uber */}
+      {showRouteMap && (
+        <Suspense fallback={null}>
+          <RouteMapView
+            stops={sortedRoute}
+            visitStatuses={visitStatuses}
+            collectorId={activeCollector.id || 'owner'}
+            onClose={() => setShowRouteMap(false)}
+            onCobrar={(stop) => {
+              setShowRouteMap(false);
+              setPenaltyAmountInput('');
+              setPaymentToConfirm({
+                loanId: stop.loanId,
+                installmentId: stop.id,
+                amount: stop.payment,
+                number: stop.number,
+                date: stop.date,
+                clientName: stop.clientName,
+              });
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );
