@@ -18,7 +18,6 @@ mv .env.tmp .env
 set -a
 . ./.env
 set +a
-docker network inspect RenaceNet >/dev/null 2>&1 || docker network create RenaceNet
 docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
