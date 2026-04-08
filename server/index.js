@@ -73,7 +73,6 @@ const loanRequestsRouter = require('./routes/loan-requests');
 const routeClosingsRouter = require('./routes/route-closings');
 const aiRouter = require('./routes/ai');
 const locationRouter = require('./routes/location');
-const locationRouter = require('./routes/location');
 const { initializeSchedulers } = require('./schedulers/reportScheduler');
 
 
