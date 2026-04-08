@@ -527,41 +527,6 @@ export function RoutesView({
         </div>
       </div>
 
-      {/* Live Collector Map */}
-      {showLiveMap && (
-        <div className="mb-4" style={{ minHeight: 350 }}>
-          <Suspense fallback={<div className="flex items-center justify-center h-[350px] text-slate-400 text-sm">Cargando mapa...</div>}>
-            <LiveCollectorMap onClose={() => setShowLiveMap(false)} />
-          </Suspense>
-        </div>
-      )}
-
-      {/* ======== INLINE MAP ======== */}
-      <Suspense fallback={<div className="h-[300px] bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 text-sm">Cargando mapa...</div>}>
-        <InlineRouteMap
-          stops={sortedRoute}
-          visitStatuses={visitStatuses}
-          collectorId={activeCollector.id || 'owner'}
-          collectorPhoto={activeCollector.photoUrl}
-          routeActive={routeActive}
-          onStartRoute={startRoute}
-          onFinishRoute={() => {
-            if (!collectorFilter) {
-              showToast && showToast('Selecciona un cobrador para cuadrar la ruta.', 'error');
-              return;
-            }
-            setConfirmClosing(true);
-          }}
-          onSaveLocation={async (clientId, lat, lng) => {
-            await clientApi.updateLocation(clientId, lat, lng);
-          }}
-          onStopClick={(stop) => {
-            const el = document.getElementById(`stop-${stop.id}`);
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }}
-        />
-      </Suspense>
-
       {/* ======== ROUTE SUMMARY BAR ======== */}
       <div className="flex flex-wrap items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
         <div className="flex items-center gap-1.5">
@@ -593,7 +558,7 @@ export function RoutesView({
       </div>
 
       {/* ======== STOP LIST ======== */}
-      <div className="space-y-2">
+      <div className="space-y-2" id="stop-list-section">
         {sortedRoute.map((stop, index) => {
             const key = `${stop.loanId}:${stop.id}`;
             const selected = currentRouteLoanIds.includes(key);
@@ -738,6 +703,40 @@ export function RoutesView({
             </div>
           )}
       </div>
+
+      {/* ======== MAP SECTION (below client list) ======== */}
+      {showLiveMap ? (
+        <div style={{ minHeight: 350 }}>
+          <Suspense fallback={<div className="flex items-center justify-center h-[350px] text-slate-400 text-sm">Cargando mapa...</div>}>
+            <LiveCollectorMap onClose={() => setShowLiveMap(false)} />
+          </Suspense>
+        </div>
+      ) : (
+        <Suspense fallback={<div className="h-[300px] bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 text-sm">Cargando mapa...</div>}>
+          <InlineRouteMap
+            stops={sortedRoute}
+            visitStatuses={visitStatuses}
+            collectorId={activeCollector.id || 'owner'}
+            collectorPhoto={activeCollector.photoUrl}
+            routeActive={routeActive}
+            onStartRoute={startRoute}
+            onFinishRoute={() => {
+              if (!collectorFilter) {
+                showToast && showToast('Selecciona un cobrador para cuadrar la ruta.', 'error');
+                return;
+              }
+              setConfirmClosing(true);
+            }}
+            onSaveLocation={async (clientId, lat, lng) => {
+              await clientApi.updateLocation(clientId, lat, lng);
+            }}
+            onStopClick={(stop) => {
+              const el = document.getElementById(`stop-${stop.id}`);
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* MEJORA 6: Notes Modal */}
       {notesModal && (
