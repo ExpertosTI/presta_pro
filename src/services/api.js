@@ -24,6 +24,14 @@ export const paymentService = {
         }
     },
     create: (data) => api.post('/payments', data),
+    getLocationAlerts: async () => {
+        try {
+            return await api.get('/payments/location-alerts');
+        } catch (e) {
+            console.error('paymentService.getLocationAlerts error:', e);
+            return [];
+        }
+    },
 };
 
 // Settings Service

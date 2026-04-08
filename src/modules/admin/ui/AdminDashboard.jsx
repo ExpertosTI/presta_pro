@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Building2, CreditCard, ScrollText, Search,
     TrendingUp, Users, DollarSign, AlertTriangle, CheckCircle,
-    XCircle, Clock, Eye, Ban, PlayCircle, FileText, Megaphone, Send
+    XCircle, Clock, Eye, Ban, PlayCircle, FileText, Megaphone, Send,
+    ArrowUpCircle
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency, formatDateTime, formatDate } from '../../../shared/utils/formatters';
@@ -72,6 +73,8 @@ export function AdminDashboard({ showToast }) {
     const [verifyModal, setVerifyModal] = useState(null);
     const [rejectModal, setRejectModal] = useState(null);
     const [rejectReason, setRejectReason] = useState('');
+    const [planModal, setPlanModal] = useState(null); // { id, name, currentPlan }
+    const [selectedPlan, setSelectedPlan] = useState('');
 
     const handleSuspendTenant = (id) => {
         setSuspendModal(id);
@@ -160,6 +163,25 @@ export function AdminDashboard({ showToast }) {
             setBroadcastResult({ error: e.message });
         } finally {
             setBroadcastSending(false);
+        }
+    };
+
+    const handleChangePlan = (tenant) => {
+        const currentPlan = tenant.subscription?.plan || 'FREE';
+        setPlanModal({ id: tenant.id, name: tenant.name, currentPlan });
+        setSelectedPlan(currentPlan);
+    };
+
+    const confirmChangePlan = async () => {
+        if (!planModal || selectedPlan === planModal.currentPlan) return;
+        try {
+            await adminService.changeTenantPlan(planModal.id, selectedPlan);
+            showToast?.(`Plan cambiado a ${selectedPlan}`, 'success');
+            setPlanModal(null);
+            setSelectedPlan('');
+            loadData();
+        } catch (e) {
+            showToast?.(e.response?.data?.error || 'Error cambiando plan', 'error');
         }
     };
 
@@ -296,7 +318,14 @@ export function AdminDashboard({ showToast }) {
                                                     <span><CreditCard size={14} className="inline mr-1" />{tenant.subscription?.plan || 'FREE'}</span>
                                                 </div>
                                             </div>
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-2 flex-wrap">
+                                                <button
+                                                    onClick={() => handleChangePlan(tenant)}
+                                                    className="flex items-center gap-1 px-3 py-2 text-sm text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50 dark:text-purple-400 dark:border-purple-700 dark:hover:bg-purple-900/20"
+                                                >
+                                                    <ArrowUpCircle size={16} />
+                                                    Plan
+                                                </button>
                                                 {tenant.suspendedAt ? (
                                                     <button
                                                         onClick={() => handleActivateTenant(tenant.id)}
@@ -642,6 +671,64 @@ export function AdminDashboard({ showToast }) {
                                 className="flex-1 py-2.5 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-500"
                             >
                                 Activar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Change Plan Modal */}
+            {planModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">
+                            Cambiar Plan
+                        </h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                            {planModal.name} — Plan actual: <span className="font-semibold text-purple-600 dark:text-purple-400">{planModal.currentPlan}</span>
+                        </p>
+                        <div className="space-y-2 mb-6">
+                            {['FREE', 'PRO', 'ENTERPRISE'].map(plan => {
+                                const info = {
+                                    FREE: { label: 'Free', desc: '10 clientes, 5 préstamos, 1 usuario', color: 'slate' },
+                                    PRO: { label: 'Pro', desc: '100 clientes, 50 préstamos, 5 usuarios, IA', color: 'blue' },
+                                    ENTERPRISE: { label: 'Enterprise', desc: 'Ilimitado, 50 usuarios, IA ilimitada', color: 'purple' }
+                                }[plan];
+                                const isSelected = selectedPlan === plan;
+                                const isCurrent = planModal.currentPlan === plan;
+                                return (
+                                    <button
+                                        key={plan}
+                                        onClick={() => setSelectedPlan(plan)}
+                                        className={`w-full text-left p-3 rounded-xl border-2 transition-all ${isSelected
+                                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-semibold text-slate-800 dark:text-slate-100">{info.label}</span>
+                                            {isCurrent && (
+                                                <span className="text-xs px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded">Actual</span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{info.desc}</p>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setPlanModal(null); setSelectedPlan(''); }}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmChangePlan}
+                                disabled={selectedPlan === planModal.currentPlan}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Cambiar a {selectedPlan}
                             </button>
                         </div>
                     </div>

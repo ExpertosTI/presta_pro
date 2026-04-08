@@ -573,16 +573,18 @@ Fecha: ${today}`;
     }
   };
 
+  const [showGenerator, setShowGenerator] = useState(false);
+
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-3 sm:space-y-4 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-          <FileText className="w-6 h-6 text-blue-600" />
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
           Documentos
         </h2>
         {hasClients && (
           <select
-            className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm"
+            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm min-h-[44px] touch-manipulation"
             value={currentClient?.id || ''}
             onChange={handleChangeClient}
           >
@@ -606,34 +608,43 @@ Fecha: ${today}`;
 
       {hasClients && currentClient && (
         <>
-          {/* MEJORA 9 & 10: Search and Filter Bar */}
+          {/* Search and Filter Bar */}
           <Card>
-            <div className="flex flex-wrap gap-3 items-center">
-              <div className="flex-1 min-w-[180px] relative">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
+              <div className="flex-1 relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Buscar documento..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+                  className="w-full pl-9 p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
                 />
               </div>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
-              >
-                <option value="ALL">Todas categorías</option>
-                {CATEGORIES.map(c => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="flex-1 sm:flex-none p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px] touch-manipulation"
+                >
+                  <option value="ALL">Todas</option>
+                  {CATEGORIES.map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setShowGenerator(!showGenerator)}
+                  className={`px-3 py-2.5 rounded-lg text-sm font-semibold min-h-[44px] touch-manipulation transition-colors flex items-center gap-1.5 ${showGenerator ? 'bg-blue-600 text-white' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'}`}
+                >
+                  <FolderOpen size={16} />
+                  <span className="hidden sm:inline">Generar</span>
+                </button>
+              </div>
             </div>
           </Card>
 
-          {/* Document Generator */}
-          <Card>
+          {/* Document Generator - Collapsible */}
+          {showGenerator && <Card>
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2">
               <FolderOpen size={18} className="text-blue-600" />
               Generar Documento
@@ -646,7 +657,7 @@ Fecha: ${today}`;
             {/* MEJORA 7: Loan Selector */}
             {clientLoans.length > 0 && (
               <div className="mt-3">
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
                   <CreditCard size={12} /> Asociar a préstamo (opcional)
                 </label>
                 <select
@@ -670,7 +681,7 @@ Fecha: ${today}`;
             )}
 
             {/* Template Type and Content */}
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div>
                 <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">Tipo de documento</label>
                 <select
@@ -730,20 +741,19 @@ Fecha: ${today}`;
               </div>
             )}
 
-            <div className="flex flex-wrap gap-2 justify-end mt-3">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:justify-end mt-3">
               <button
                 type="button"
                 onClick={handleGenerateTemplate}
-                className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs hover:bg-slate-300 dark:hover:bg-slate-600"
+                className="px-3 py-2.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs hover:bg-slate-300 dark:hover:bg-slate-600 min-h-[44px] touch-manipulation"
               >
                 Usar plantilla
               </button>
-              {/* MEJORA 15: Preview button */}
               <button
                 type="button"
                 onClick={() => setPreviewModal({ content: templateContent, title: DOCUMENT_TYPES.find(t => t.value === templateType)?.label })}
                 disabled={!templateContent.trim()}
-                className="px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold text-xs hover:bg-blue-200 disabled:opacity-50 flex items-center gap-1"
+                className="px-3 py-2.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold text-xs hover:bg-blue-200 disabled:opacity-50 flex items-center justify-center gap-1 min-h-[44px] touch-manipulation"
               >
                 <Eye size={12} /> Vista previa
               </button>
@@ -751,25 +761,25 @@ Fecha: ${today}`;
                 type="button"
                 onClick={handleGenerateTemplateWithAI}
                 disabled={aiGenerating}
-                className="px-3 py-1.5 rounded-lg bg-indigo-600 dark:bg-indigo-700 text-white font-semibold text-xs disabled:opacity-60 hover:bg-indigo-500"
+                className="px-3 py-2.5 rounded-lg bg-indigo-600 dark:bg-indigo-700 text-white font-semibold text-xs disabled:opacity-60 hover:bg-indigo-500 min-h-[44px] touch-manipulation"
               >
-                {aiGenerating ? 'Generando con IA...' : 'Generar con IA'}
+                {aiGenerating ? 'Generando...' : 'Generar con IA'}
               </button>
               <button
                 type="button"
                 onClick={handleSaveTemplateAsDocument}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-slate-700 text-white font-semibold text-xs hover:bg-slate-800"
+                className="px-3 py-2.5 rounded-lg bg-slate-900 dark:bg-slate-700 text-white font-semibold text-xs hover:bg-slate-800 min-h-[44px] touch-manipulation"
               >
-                Guardar documento
+                Guardar
               </button>
             </div>
-          </Card>
+          </Card>}
 
           {/* Upload Section */}
           <Card>
-            <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-2">Subir archivo (cédula, comprobante, etc.)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-              <div className="md:col-span-2">
+            <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-2">Subir archivo</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="sm:col-span-2">
                 <input
                   type="text"
                   className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
@@ -814,7 +824,7 @@ Fecha: ${today}`;
                   : 'Aún no hay documentos guardados para este cliente.'}
               </p>
             ) : (
-              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 text-xs">
                 {filteredDocuments.map((doc) => (
                   <li
                     key={doc.id}
@@ -869,15 +879,14 @@ Fecha: ${today}`;
                             openTextDocumentAsPrint(doc);
                           }
                         }}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 font-semibold flex items-center gap-1"
+                        className="text-blue-600 dark:text-blue-400 active:text-blue-800 font-semibold flex items-center gap-1 p-1.5 rounded-lg touch-manipulation min-h-[36px]"
                       >
-                        <Download size={12} /> Descargar
+                        <Download size={14} /> Descargar
                       </button>
-                      {/* MEJORA 12: Status change */}
                       <select
                         value={doc.status || 'PENDING'}
                         onChange={(e) => updateDocStatus(doc.id, e.target.value)}
-                        className="text-[10px] p-1 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900/50"
+                        className="text-[10px] p-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900/50 min-h-[36px] touch-manipulation"
                       >
                         {STATUSES.map(s => (
                           <option key={s.value} value={s.value}>{s.label}</option>
@@ -886,10 +895,10 @@ Fecha: ${today}`;
                       <button
                         type="button"
                         onClick={() => setDocToDelete(doc)}
-                        className="ml-auto text-red-500 hover:text-red-700"
+                        className="ml-auto text-red-500 active:text-red-700 p-1.5 rounded-lg touch-manipulation min-h-[36px] min-w-[36px] flex items-center justify-center"
                         title="Eliminar"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </li>

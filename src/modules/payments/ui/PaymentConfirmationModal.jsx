@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
+import { MapPin, Loader2 } from 'lucide-react';
 
 export default function PaymentConfirmationModal({
     paymentToConfirm,
@@ -9,37 +10,47 @@ export default function PaymentConfirmationModal({
     const [customPaymentAmount, setCustomPaymentAmount] = useState('');
     const [showPenaltyInput, setShowPenaltyInput] = useState(false);
     const [penaltyAmountInput, setPenaltyAmountInput] = useState('');
+    const [gpsStatus, setGpsStatus] = useState('pending'); // pending | loading | success | error
+    const gpsRef = useRef({ lat: null, lng: null });
 
-    // Initialize with suggested amount when modal opens, or leave empty to encourage explicit entry?
-    // User complained "it registered whatever it wanted". 
-    // Let's default to empty string but use a placeholder.
-    // If user submits empty, we logic handle it.
+    // Auto-capture GPS when modal opens
+    useEffect(() => {
+        if (!navigator.geolocation) {
+            setGpsStatus('error');
+            return;
+        }
+        setGpsStatus('loading');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                gpsRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                setGpsStatus('success');
+            },
+            () => setGpsStatus('error'),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+        );
+    }, []);
 
     const handleConfirm = () => {
         let options = {};
 
-        // 1. Custom Amount Logic
         const inputVal = parseFloat(customPaymentAmount);
-
         if (!isNaN(inputVal)) {
-            // If user typed a number (even 0), use it.
             options.customAmount = inputVal;
         } else {
-            // If empty string, user didn't type anything.
-            // Logic decision: Do we default to full amount? 
-            // User said "I put an amount". If they put an amount, it shouldn't be NaN.
-            // IF the browser extension blocked the input event, it would be empty.
-            // Let's use the original amount as fallback IF empty, BUT alert user if it's suspicious?
-            // No, standard UX is fallback to default payment.
             options.customAmount = paymentToConfirm.amount;
         }
 
-        // 2. Penalty Logic
         if (showPenaltyInput) {
             const penaltyVal = parseFloat(penaltyAmountInput) || 0;
             if (penaltyVal > 0) {
                 options = { ...options, withPenalty: true, penaltyAmount: penaltyVal };
             }
+        }
+
+        // Attach GPS coordinates
+        if (gpsRef.current.lat != null) {
+            options.collectorLat = gpsRef.current.lat;
+            options.collectorLng = gpsRef.current.lng;
         }
 
         onConfirm(paymentToConfirm.loanId, paymentToConfirm.installmentId, options);
@@ -119,6 +130,24 @@ export default function PaymentConfirmationModal({
                     >
                         {showPenaltyInput ? '✕ Quitar mora' : '+ Agregar mora'}
                     </button>
+                </div>
+
+                {/* GPS Status Indicator */}
+                <div className={`flex items-center gap-2 mb-4 p-2 rounded-lg text-xs font-medium ${
+                    gpsStatus === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
+                    gpsStatus === 'loading' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' :
+                    gpsStatus === 'error' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400' :
+                    'bg-slate-50 dark:bg-slate-800 text-slate-500'
+                }`}>
+                    {gpsStatus === 'loading' && <Loader2 size={14} className="animate-spin" />}
+                    {gpsStatus === 'success' && <MapPin size={14} />}
+                    {gpsStatus === 'error' && <MapPin size={14} />}
+                    <span>
+                        {gpsStatus === 'loading' && 'Obteniendo ubicación...'}
+                        {gpsStatus === 'success' && 'Ubicación capturada'}
+                        {gpsStatus === 'error' && 'GPS no disponible — el pago se registrará sin ubicación'}
+                        {gpsStatus === 'pending' && 'Preparando GPS...'}
+                    </span>
                 </div>
 
                 <div className="flex flex-col gap-3">

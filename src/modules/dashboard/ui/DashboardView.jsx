@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import {
     TrendingUp, TrendingDown, Users, Wallet, Calendar, AlertTriangle,
-    CheckCircle, Clock, DollarSign, Bell, Filter, ChevronRight, Crown
+    CheckCircle, Clock, DollarSign, Bell, Filter, ChevronRight, Crown, MapPin
 } from 'lucide-react';
+import { paymentService } from '../../../services/api';
 
 export default function DashboardView({
     loans = [],
@@ -17,6 +18,13 @@ export default function DashboardView({
     tenantInfo
 }) {
     const [filter, setFilter] = useState('today'); // today, week, month, all
+    const [locationAlerts, setLocationAlerts] = useState([]);
+
+    useEffect(() => {
+        paymentService.getLocationAlerts().then(data => {
+            if (Array.isArray(data)) setLocationAlerts(data);
+        });
+    }, []);
 
     // Date ranges
     const now = new Date();
@@ -407,6 +415,42 @@ export default function DashboardView({
                     )}
                 </Card>
             </div>
+
+            {/* Location Alerts */}
+            {locationAlerts.length > 0 && (
+                <Card className="border-red-200 dark:border-red-900/50">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <MapPin size={18} className="text-red-500" />
+                            <h3 className="font-bold text-slate-800 dark:text-slate-100">Alertas de Ubicación</h3>
+                        </div>
+                        <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 text-xs font-bold rounded-full">
+                            {locationAlerts.length}
+                        </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Cobros realizados lejos de la ubicación registrada del cliente</p>
+                    <ul className="space-y-1.5 max-h-56 overflow-y-auto overscroll-contain">
+                        {locationAlerts.slice(0, 10).map(alert => (
+                            <li
+                                key={alert.id}
+                                className="flex items-center justify-between px-3 py-2.5 bg-red-50 dark:bg-red-900/20 rounded-xl"
+                            >
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+                                        {alert.client?.name || 'Cliente'}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                        {formatDate(alert.date)} • {alert.metadata?.distanceFromClient || '?'}m de distancia
+                                    </p>
+                                </div>
+                                <span className="text-sm font-bold text-red-600 flex-shrink-0 ml-2">
+                                    {formatCurrency(parseFloat(alert.amount || 0))}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </Card>
+            )}
 
             {/* Recent Activity */}
             <Card>

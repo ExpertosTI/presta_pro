@@ -402,6 +402,110 @@ router.put('/tenants/:id/notes', async (req, res) => {
 });
 
 // ============================================
+// PLAN MANAGEMENT
+// ============================================
+
+const PLAN_LIMITS = {
+    FREE: { maxClients: 10, maxLoans: 5, maxUsers: 1, aiQueries: 0 },
+    PRO: { maxClients: 100, maxLoans: 50, maxUsers: 5, aiQueries: 50 },
+    ENTERPRISE: { maxClients: 999999, maxLoans: 999999, maxUsers: 50, aiQueries: 999999 }
+};
+
+/**
+ * PUT /api/admin/tenants/:id/plan - Change tenant subscription plan
+ */
+router.put('/tenants/:id/plan', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { plan } = req.body;
+
+        const validPlans = ['FREE', 'PRO', 'ENTERPRISE'];
+        if (!plan || !validPlans.includes(plan)) {
+            return res.status(400).json({ error: 'Plan inválido. Debe ser FREE, PRO o ENTERPRISE' });
+        }
+
+        const tenant = await prisma.tenant.findUnique({
+            where: { id },
+            include: { subscription: true, users: true }
+        });
+
+        if (!tenant) {
+            return res.status(404).json({ error: 'Empresa no encontrada' });
+        }
+
+        const previousPlan = tenant.subscription?.plan || 'FREE';
+
+        if (previousPlan === plan) {
+            return res.status(400).json({ error: `La empresa ya está en el plan ${plan}` });
+        }
+
+        const limits = PLAN_LIMITS[plan];
+        const now = new Date();
+        const periodEnd = new Date();
+        periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+
+        // Upsert subscription
+        const subscription = await prisma.subscription.upsert({
+            where: { tenantId: id },
+            update: {
+                plan,
+                status: 'ACTIVE',
+                limits,
+                currentPeriodStart: now,
+                currentPeriodEnd: periodEnd
+            },
+            create: {
+                tenantId: id,
+                plan,
+                status: 'ACTIVE',
+                limits,
+                currentPeriodStart: now,
+                currentPeriodEnd: periodEnd
+            }
+        });
+
+        // Create audit log
+        await prisma.adminLog.create({
+            data: {
+                adminId: req.user.userId,
+                adminEmail: req.user.email || 'admin',
+                action: 'CHANGE_PLAN',
+                targetType: 'TENANT',
+                targetId: id,
+                previousValue: { plan: previousPlan },
+                newValue: { plan, limits },
+                reason: `Plan cambiado de ${previousPlan} a ${plan} por admin`,
+                ipAddress: req.ip
+            }
+        });
+
+        // Notify tenant owner
+        const owner = tenant.users.find(u => u.role === 'OWNER') || tenant.users[0];
+        if (owner) {
+            await prisma.notification.create({
+                data: {
+                    userId: owner.id,
+                    tenantId: id,
+                    type: 'SYSTEM',
+                    title: '🎉 Plan actualizado',
+                    message: `Tu plan ha sido cambiado a ${plan}. Los nuevos límites ya están activos.`,
+                    data: { previousPlan, newPlan: plan, limits }
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Plan cambiado de ${previousPlan} a ${plan}`,
+            subscription
+        });
+    } catch (error) {
+        console.error('Change plan error:', error);
+        res.status(500).json({ error: 'Error cambiando plan' });
+    }
+});
+
+// ============================================
 // PAYMENTS VERIFICATION
 // ============================================
 

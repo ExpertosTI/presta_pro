@@ -201,6 +201,7 @@ model Receipt {
   remainingBalance  Float?
   withPenalty       Boolean  @default(false)
   isPartialPayment  Boolean  @default(false)
+  metadata          Json?    // GPS coords, distance alert, collector info
   date              DateTime @default(now())
   createdAt         DateTime @default(now())
 }

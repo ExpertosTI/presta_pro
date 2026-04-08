@@ -97,6 +97,14 @@ export const sendBroadcast = async (title, message, sendEmail = false) => {
     return response;
 };
 
+/**
+ * Change tenant subscription plan
+ */
+export const changeTenantPlan = async (tenantId, plan) => {
+    const response = await axiosInstance.put(`/admin/tenants/${tenantId}/plan`, { plan });
+    return response;
+};
+
 export default {
     getDashboard,
     getTenants,
@@ -108,5 +116,6 @@ export default {
     verifyPayment,
     rejectPayment,
     getLogs,
-    sendBroadcast
+    sendBroadcast,
+    changeTenantPlan
 };
