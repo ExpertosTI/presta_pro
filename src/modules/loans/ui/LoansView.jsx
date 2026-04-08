@@ -11,6 +11,7 @@ import {
 import { PaymentConfirmationModal } from '../../payments';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
 import PaymentTicket from '../../../shared/components/ui/PaymentTicket';
+import DigitalReceipt from '../../../components/DigitalReceipt';
 import { loanApi } from '../infrastructure/loanApi';
 
 export function LoansView({ loans, clients, collectors = [], registerPayment, selectedLoanId, onSelectLoan, onUpdateLoan, addClientDocument, onCreateLoan, onNewClient, onNavigateToDocuments }) {
@@ -27,6 +28,9 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT' });
   const [createError, setCreateError] = useState('');
+
+  // Receipt display after payment
+  const [receiptToShow, setReceiptToShow] = useState(null);
 
   // Reprint Receipt
   const [reprintReceipt, setReprintReceipt] = useState(null);
@@ -362,13 +366,21 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
           onConfirm={async (loanId, installmentId, options) => {
             const receipt = await registerPayment(loanId, installmentId, options);
             if (receipt) {
-              // Import and print thermal receipt
-              const { printThermalReceipt } = await import('../../../services/thermalPrinter');
-              printThermalReceipt(receipt, { companyName: 'Presta Pro' });
+              setReceiptToShow(receipt);
             }
             setPaymentToConfirm(null);
           }}
           onCancel={() => setPaymentToConfirm(null)}
+        />
+      )}
+
+      {/* Digital Receipt after payment */}
+      {receiptToShow && (
+        <DigitalReceipt
+          receipt={receiptToShow}
+          companyName="Presta Pro"
+          onClose={() => setReceiptToShow(null)}
+          onPrint={() => window.print()}
         />
       )}
 
@@ -1245,7 +1257,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* MEJORA 12: Refinance Loan Modal */}
       {refinanceModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
             <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
               <Wallet size={20} /> Refinanciar Préstamo
@@ -1292,7 +1304,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* MEJORA 14: Notes Modal */}
       {notesModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-md animate-fade-in">
             <h3 className="text-lg font-bold text-violet-600 dark:text-violet-400 mb-3 flex items-center gap-2">
               <StickyNote size={20} /> Notas del Préstamo
@@ -1342,7 +1354,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Error Modal - replaces browser alert() */}
       {errorModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">

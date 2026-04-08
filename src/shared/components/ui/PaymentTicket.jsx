@@ -143,8 +143,8 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
       </div>
 
       {/* Screen Modal (hidden on print) */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden">
-        <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden safe-area-insets">
+        <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in max-h-[95vh] overflow-y-auto">
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-4 text-white text-center relative">
             <button

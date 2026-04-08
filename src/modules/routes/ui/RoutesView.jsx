@@ -827,7 +827,7 @@ export function RoutesView({
 
       {/* Closing Confirmation Modal */}
       {confirmClosing && (
-        <div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm safe-area-insets">
           <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 text-center">
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
               Confirmar Cuadre

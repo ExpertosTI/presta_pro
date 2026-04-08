@@ -96,6 +96,41 @@ html {
   select {
     font-size: 16px !important;
   }
+
+  /* ======================================
+     GLOBAL MOBILE MODAL RESPONSIVE FIX
+     All fixed modals become bottom-sheet/fullscreen on mobile
+     ====================================== */
+
+  /* All modal overlays: align to bottom on mobile */
+  .fixed.inset-0.z-50,
+  .fixed.inset-0.z-\[60\] {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  /* Modal inner panels: fullscreen on mobile */
+  .fixed.inset-0.z-50 > div:first-child,
+  .fixed.inset-0.z-\[60\] > div:first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top, 12px);
+    padding-bottom: env(safe-area-inset-bottom, 12px);
+  }
+
+  /* Make form/content area scrollable within fullscreen modal */
+  .fixed.inset-0.z-50 > div:first-child form,
+  .fixed.inset-0.z-50 > div:first-child .overflow-y-auto {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Bottom nav spacing for content */
