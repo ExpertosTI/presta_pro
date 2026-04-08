@@ -81,6 +81,8 @@ model Collector {
   
   // Permisos (JSON con flags)
   permissions  Json      @default("{}")
+  commissionRate Float?
+  mustChangePassword Boolean @default(false)
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   tenantId  String
