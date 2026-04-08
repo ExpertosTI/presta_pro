@@ -4,14 +4,18 @@
 
 ```bash
 cd /opt/presta_pro
-git pull origin main
+git fetch origin
+git checkout -B main origin/main
+git reset --hard origin/main
 docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
 ```
 
-## Nota: Configurar GEMINI_API_KEY en el servidor
+## Variables requeridas en el servidor
 # La API key de Gemini ahora se maneja server-side (ya no está en el frontend).
-# Asegúrate de que esté configurada como variable de entorno:
+# Configúrala antes de levantar los contenedores, junto con un JWT_SECRET real.
+# Puedes exportarlas en la shell:
 # export GEMINI_API_KEY=tu_clave_aqui
-# O en el .env del servidor.
+# export JWT_SECRET=un_secreto_largo_y_unico
+# O dejarlas persistidas en el archivo .env del servidor.
