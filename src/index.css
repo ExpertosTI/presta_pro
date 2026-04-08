@@ -105,6 +105,80 @@ html {
   }
 }
 
+/* ========================================
+   MOBILE-FIRST RESPONSIVE FIXES
+   ======================================== */
+
+/* Fix modals that overflow screen on small devices */
+@media (max-width: 640px) {
+  /* Ensure fixed overlays respect safe areas */
+  .fixed.inset-0 {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Compact tables on mobile */
+  table {
+    font-size: 13px;
+  }
+  table th, table td {
+    padding: 6px 8px;
+  }
+
+  /* Cards: reduce padding on mobile */
+  .glass {
+    padding: 12px;
+  }
+
+  /* Fix long text overflow in cards */
+  .truncate-mobile {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Prevent horizontal overflow globally */
+html, body, #root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Better touch targets */
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 40px;
+  }
+  input, select, textarea {
+    min-height: 44px;
+  }
+}
+
+/* Fix backdrop blur performance on low-end mobile */
+@media (max-width: 640px) {
+  .backdrop-blur-sm {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* Receipt / ticket mobile optimization */
+@media (max-width: 480px) {
+  .thermal-receipt {
+    font-size: 12px;
+  }
+  .thermal-receipt .text-2xl {
+    font-size: 1.25rem;
+  }
+  .thermal-receipt .text-3xl {
+    font-size: 1.5rem;
+  }
+  .thermal-receipt .p-3 {
+    padding: 0.5rem;
+  }
+}
+
 /* Modern Glassmorphism & AI Effects */
 .glass {
   background: rgba(255, 255, 255, 0.7);

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, lazy, Suspense } from 'react';
+import React, { useMemo, useState, useCallback, lazy, Suspense } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import {
   MapPin, CheckCircle, Printer, Search, Phone, Navigation,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { useGeoTracking } from '../hooks/useGeoTracking';
+import { clientApi } from '../../clients/infrastructure/clientApi';
 
 const LiveCollectorMap = lazy(() => import('./LiveCollectorMap'));
 const RouteMapView = lazy(() => import('./RouteMapView'));
@@ -131,6 +132,8 @@ export function RoutesView({
         clientAddress: client?.address,
         clientPhone: client?.phone,
         clientPhotoUrl: client?.photoUrl,
+        clientLat: client?.lat || null,
+        clientLng: client?.lng || null,
         totalDue: pendingInstallment.payment,
       }];
     });
@@ -145,7 +148,7 @@ export function RoutesView({
       );
     }
 
-    // MEJORA 7: Sorting
+    // MEJORA 7: Sorting (includes GPS-based nearest-first)
     const sorted = [...filtered].sort((a, b) => {
       let valA, valB;
       switch (sortBy) {
@@ -161,13 +164,29 @@ export function RoutesView({
           valA = a.number || 0;
           valB = b.number || 0;
           break;
+        case 'gps': {
+          // Sort by GPS: clients with coordinates first, then by distance from first client
+          const hasA = a.clientLat && a.clientLng;
+          const hasB = b.clientLat && b.clientLng;
+          if (!hasA && !hasB) return 0;
+          if (!hasA) return 1;
+          if (!hasB) return -1;
+          // Simple nearest-neighbor from origin (first point or 0,0)
+          const origin = filtered.find(s => s.clientLat && s.clientLng);
+          if (!origin) return 0;
+          const distA = Math.hypot(a.clientLat - origin.clientLat, a.clientLng - origin.clientLng);
+          const distB = Math.hypot(b.clientLat - origin.clientLat, b.clientLng - origin.clientLng);
+          return distA - distB;
+        }
         case 'address':
         default:
           valA = a.clientAddress?.toLowerCase() || '';
           valB = b.clientAddress?.toLowerCase() || '';
       }
-      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      if (sortBy !== 'gps') {
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      }
       return 0;
     });
 
@@ -399,6 +418,7 @@ export function RoutesView({
               <option value="name">Por Nombre</option>
               <option value="amount">Por Monto</option>
               <option value="number">Por Cuota #</option>
+              <option value="gps">📍 Ruta óptima (GPS)</option>
             </select>
           </div>
         </div>
@@ -624,7 +644,7 @@ export function RoutesView({
                       <button
                         type="button"
                         onClick={() => toggleLoanInRoute(stop.loanId, stop.id)}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-semibold border ${selected
+                        className={`px-2 py-1.5 sm:py-1 rounded-lg text-[10px] font-semibold border min-h-[44px] sm:min-h-auto flex items-center justify-center touch-manipulation ${selected
                           ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
                           : 'bg-slate-100 border-slate-300 text-slate-500 hover:bg-slate-200'
                           }`}
@@ -930,7 +950,11 @@ export function RoutesView({
             stops={sortedRoute}
             visitStatuses={visitStatuses}
             collectorId={activeCollector.id || 'owner'}
+            collectorPhoto={activeCollector.photoUrl}
             onClose={() => setShowRouteMap(false)}
+            onSaveLocation={async (clientId, lat, lng) => {
+              await clientApi.updateLocation(clientId, lat, lng);
+            }}
             onCobrar={(stop) => {
               setShowRouteMap(false);
               setPenaltyAmountInput('');

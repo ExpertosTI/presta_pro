@@ -111,11 +111,11 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
     };
 
     return (
-        <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in">
-            <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[95dvh] sm:max-h-[90vh]">
+        <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in safe-area-insets">
+            <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[85dvh] sm:max-h-[90vh]">
                 {/* Header */}
-                <div className="bg-slate-900 dark:bg-slate-950 text-white p-4 flex items-center justify-between flex-shrink-0">
-                    <span className="font-bold text-lg">Comprobante</span>
+                <div className="bg-slate-900 dark:bg-slate-950 text-white px-3 py-2.5 flex items-center justify-between flex-shrink-0">
+                    <span className="font-bold text-base">Comprobante</span>
                     <button onClick={onClose} className="p-2 -mr-1 hover:bg-white/10 rounded-full transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center">
                         <X size={22} />
                     </button>
@@ -123,19 +123,19 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
 
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto overscroll-contain bg-slate-50 dark:bg-slate-900 thermal-receipt" ref={receiptRef}>
-                    <div className="p-3 bg-white dark:bg-slate-900">
-                        <div className="flex flex-col items-center mb-3">
+                    <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-900">
+                        <div className="flex flex-col items-center mb-2">
                             {companyLogo ? (
-                                <div className="mb-2">
-                                    <img src={companyLogo} alt={companyName} className="h-12 w-auto object-contain" />
+                                <div className="mb-1.5">
+                                    <img src={companyLogo} alt={companyName} className="h-10 sm:h-12 w-auto object-contain" />
                                 </div>
                             ) : (
-                                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-2 shadow-lg shadow-blue-500/30">
-                                    <CheckCircle size={28} className="text-white" strokeWidth={3} />
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-full flex items-center justify-center mb-1.5 shadow-lg shadow-blue-500/30">
+                                    <CheckCircle size={24} className="text-white" strokeWidth={3} />
                                 </div>
                             )}
-                            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 text-center">
-                                Transaccion completada!
+                            <h2 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 text-center">
+                                Transacción completada!
                             </h2>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                                 {formatDateTime(receipt.date)}
@@ -145,25 +145,25 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                             </div>
                         </div>
 
-                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 mb-2 text-center">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Monto Total</p>
-                            <p className="text-2xl font-black text-slate-800 dark:text-slate-100">
+                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5 shadow-sm border border-slate-100 dark:border-slate-700 mb-2 text-center">
+                            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Monto Total</p>
+                            <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100">
                                 {formatCurrency(total)}
                             </p>
-                            <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                            <p className="text-[9px] sm:text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                                 PAGO DE PRESTAMO
                             </p>
                         </div>
 
-                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 space-y-1">
-                            <div className="flex items-start gap-3">
-                                <div className="mt-1">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 space-y-0.5">
+                            <div className="flex items-start gap-2">
+                                <div className="mt-1.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Cliente</p>
-                                    <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{receipt.clientName}</p>
-                                    {receipt.clientPhone && <p className="text-xs text-slate-400">{receipt.clientPhone}</p>}
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Cliente</p>
+                                    <p className="font-bold text-slate-800 dark:text-slate-200 text-sm leading-tight">{receipt.clientName}</p>
+                                    {receipt.clientPhone && <p className="text-[10px] text-slate-400">{receipt.clientPhone}</p>}
                                 </div>
                             </div>
                             <div className="border-t border-slate-100 dark:border-slate-700 my-2"></div>
@@ -225,14 +225,14 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                 )}
 
                 {/* Footer Actions */}
-                <div className="p-3 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 safe-area-bottom">
+                <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 safe-area-bottom">
                     <div className="flex gap-2">
                         <button
                             onClick={handleShareImage}
                             disabled={isSharing}
-                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-70 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-900/20 min-h-[48px]"
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-70 text-white py-2.5 sm:py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-900/20 min-h-[44px]"
                         >
-                            {isSharing ? '...Generando' : <><Share2 size={18} /> Compartir</>}
+                            {isSharing ? '...Generando' : <><Share2 size={16} /> Compartir</>}
                         </button>
 
                         {/* Print button with dropdown */}

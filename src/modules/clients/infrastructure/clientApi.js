@@ -13,4 +13,5 @@ export const clientApi = {
     update: (id, data) => api.put(`/clients/${id}`, data),
     delete: (id) => api.delete(`/clients/${id}`),
     uploadDocument: (id, docData) => api.post(`/clients/${id}/documents`, docData),
+    updateLocation: (id, lat, lng) => api.patch(`/clients/${id}/location`, { lat, lng }),
 };

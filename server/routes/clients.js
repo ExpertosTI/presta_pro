@@ -124,7 +124,9 @@ router.put('/:id', async (req, res) => {
                 idNumber,
                 email,
                 notes,
-                photoUrl
+                photoUrl,
+                ...(req.body.lat != null ? { lat: parseFloat(req.body.lat) } : {}),
+                ...(req.body.lng != null ? { lng: parseFloat(req.body.lng) } : {}),
             }
         });
 
@@ -132,6 +134,35 @@ router.put('/:id', async (req, res) => {
     } catch (error) {
         console.error('Error updating client:', error);
         res.status(500).json({ error: 'Error al actualizar cliente' });
+    }
+});
+
+// PATCH /api/clients/:id/location — Guardar ubicación GPS del cliente
+router.patch('/:id/location', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { lat, lng } = req.body;
+
+        if (lat == null || lng == null) {
+            return res.status(400).json({ error: 'lat y lng son requeridos' });
+        }
+
+        const existing = await prisma.client.findFirst({
+            where: { id, tenantId: req.user.tenantId }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+
+        const updated = await prisma.client.update({
+            where: { id },
+            data: { lat: parseFloat(lat), lng: parseFloat(lng) }
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Error updating client location:', error);
+        res.status(500).json({ error: 'Error al guardar ubicación' });
     }
 });
 

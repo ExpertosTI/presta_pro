@@ -103,6 +103,8 @@ model Client {
   notes       String?
   photoUrl    String?
   score       Int        @default(70)
+  lat         Float?     // GPS latitude
+  lng         Float?     // GPS longitude
   collector   Collector? @relation(fields: [collectorId], references: [id])
   collectorId String?
   tenant      Tenant     @relation(fields: [tenantId], references: [id])

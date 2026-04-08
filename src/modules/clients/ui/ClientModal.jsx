@@ -27,6 +27,8 @@ export function ClientModal({ open, onClose, onSave, initialClient, collectors =
     email: '',
     birthDate: '',
     collectorId: '',
+    lat: null,
+    lng: null,
   };
 
   const [form, setForm] = useState(emptyForm);
@@ -45,6 +47,8 @@ export function ClientModal({ open, onClose, onSave, initialClient, collectors =
         email: initialClient.email || '',
         birthDate: initialClient.birthDate ? new Date(initialClient.birthDate).toISOString().split('T')[0] : '',
         collectorId: initialClient.collectorId || '',
+        lat: initialClient.lat || null,
+        lng: initialClient.lng || null,
       });
     } else {
       setForm({ ...emptyForm, photoUrl: '' });
@@ -223,6 +227,32 @@ export function ClientModal({ open, onClose, onSave, initialClient, collectors =
               className="w-full p-2.5 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
               placeholder="Sector, calle, referencia"
             />
+            {/* GPS location buttons */}
+            <div className="flex gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!navigator.geolocation) return;
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => setForm(prev => ({ ...prev, lat: pos.coords.latitude, lng: pos.coords.longitude })),
+                    () => {},
+                    { enableHighAccuracy: true, timeout: 10000 }
+                  );
+                }}
+                className="flex-1 text-[11px] py-1.5 px-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg font-semibold flex items-center justify-center gap-1 active:bg-blue-100 touch-manipulation"
+              >
+                📍 {form.lat ? `GPS: ${Number(form.lat).toFixed(4)}, ${Number(form.lng).toFixed(4)}` : 'Capturar ubicación'}
+              </button>
+              {form.lat && (
+                <button
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, lat: null, lng: null }))}
+                  className="text-[11px] py-1.5 px-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg font-semibold active:bg-red-100"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
           {/* MEJORA 4: Collector assignment */}
