@@ -63,6 +63,7 @@ const ActionButtons = ({ text, onAction }) => {
     notifications: 'Notificaciones',
     'collectors-manage': 'Cobradores',
     pricing: 'Suscripción',
+    'print-last-receipt': 'Imprimir Recibo',
   };
 
   return (
@@ -83,7 +84,7 @@ const ActionButtons = ({ text, onAction }) => {
 export function AIHelper({
   chatHistory, setChatHistory, dbData, showToast,
   ownerName, companyName, notifications = [], onCreateNotification,
-  onNavigate, onOpenNewClient, onOpenNewLoan,
+  onNavigate, onOpenNewClient, onOpenNewLoan, onPrintReceipt,
 }) {
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState('');
@@ -165,6 +166,11 @@ export function AIHelper({
     }
     if (actionId === 'new-loan' && onOpenNewLoan) {
       onOpenNewLoan();
+      return;
+    }
+    // Print actions
+    if (actionId === 'print-last-receipt' && onPrintReceipt) {
+      onPrintReceipt();
       return;
     }
   };
@@ -369,12 +375,16 @@ ACCIONES DE NAVEGACIÓN (añade al final de tu respuesta):
 - [[ACTION:new-client|Registrar Cliente]] — Abre formulario de nuevo cliente
 - [[ACTION:new-loan|Nuevo Préstamo]] — Abre formulario de nuevo préstamo
 
+ACCIONES DE IMPRESIÓN:
+- [[ACTION:print-last-receipt|Imprimir Último Recibo]] — Imprime el último recibo registrado
+
 CUÁNDO USAR ACCIONES:
 - Si el usuario dice "quiero ver mis clientes" → responde brevemente y añade [[ACTION:clients|Ver Clientes]]
 - Si dice "llévame a gastos" → responde y añade [[ACTION:expenses|Ver Gastos]]
 - Si dice "necesito registrar un cliente" → responde y añade [[ACTION:new-client|Registrar Cliente]]
 - Si dice "cómo va la ruta" → da resumen y añade [[ACTION:routes|Ir a Cobros]]
 - Si pregunta por préstamos → da info y añade [[ACTION:loans|Ver Préstamos]]
+- Si dice "imprime recibo" o "imprime ticket" → responde y añade [[ACTION:print-last-receipt|Imprimir Recibo]]
 - Puedes poner MÚLTIPLES acciones si es relevante.
 
 Ejemplo:

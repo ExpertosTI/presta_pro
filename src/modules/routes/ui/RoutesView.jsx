@@ -1,11 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, lazy, Suspense } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import {
   MapPin, CheckCircle, Printer, Search, Phone, Navigation,
   Clock, XCircle, AlertTriangle, StickyNote, ArrowUpDown,
-  TrendingUp, PlusCircle, Filter, Users
+  TrendingUp, PlusCircle, Filter, Users, Radar
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
+import { useGeoTracking } from '../hooks/useGeoTracking';
+
+const LiveCollectorMap = lazy(() => import('./LiveCollectorMap'));
 import DigitalReceipt from '../../../components/DigitalReceipt';
 import { PaymentConfirmationModal } from '../../payments';
 
@@ -68,6 +71,16 @@ export function RoutesView({
   const [visitStatuses, setVisitStatuses] = useState({});
   const [visitNotes, setVisitNotes] = useState({});
   const [notesModal, setNotesModal] = useState(null);
+  const [showLiveMap, setShowLiveMap] = useState(false);
+
+  // GPS Tracking — activa geolocalización cuando la ruta está activa
+  const activeCollector = collectors.find(c => c.id === collectorFilter) || {};
+  useGeoTracking({
+    routeActive,
+    collectorId: activeCollector.id || 'owner',
+    collectorName: activeCollector.name || systemSettings?.ownerDisplayName || 'Dueño',
+    showToast,
+  });
 
   // Extract unique zones from addresses
   const zones = useMemo(() => {
@@ -410,6 +423,19 @@ export function RoutesView({
             <MapPin size={14} /> {routeActive ? 'En curso' : 'Iniciar'}
           </button>
 
+          {/* Botón mapa en vivo — solo supervisores/dueños */}
+          <button
+            type="button"
+            onClick={() => setShowLiveMap(!showLiveMap)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold shadow-md transition-colors ${
+              showLiveMap
+                ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            }`}
+          >
+            <Radar size={14} /> Mapa en Vivo
+          </button>
+
           {/* MEJORA 11: Add all button */}
           <button
             type="button"
@@ -475,6 +501,15 @@ export function RoutesView({
           </button>
         </div>
       </div>
+
+      {/* Live Collector Map */}
+      {showLiveMap && (
+        <div className="mb-4" style={{ minHeight: 350 }}>
+          <Suspense fallback={<div className="flex items-center justify-center h-[350px] text-slate-400 text-sm">Cargando mapa...</div>}>
+            <LiveCollectorMap onClose={() => setShowLiveMap(false)} />
+          </Suspense>
+        </div>
+      )}
 
       {/* Route List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

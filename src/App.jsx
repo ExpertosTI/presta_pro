@@ -15,6 +15,7 @@ import FloatingAIBot from './ai/FloatingAIBot';
 import QuickActionsFAB from './shared/components/ui/QuickActionsFAB';
 import ConnectionStatus from './shared/components/ui/ConnectionStatus';
 import ModalManager from './shared/components/modals/ModalManager';
+import { printReceipt } from './services/printing/PrintService';
 
 // Auth
 import { LoginView } from './modules/auth';
@@ -90,6 +91,32 @@ function AppShell({ onLogout }) {
   }, []);
 
   const toggleTheme = useCallback(() => setTheme(t => t === 'light' ? 'dark' : 'light'), []);
+
+  // Print last receipt via AI action
+  const handlePrintLastReceipt = useCallback(async () => {
+    const receipts = dbData?.receipts;
+    if (!Array.isArray(receipts) || receipts.length === 0) {
+      showToast('No hay recibos para imprimir.', 'error');
+      return;
+    }
+    const sorted = [...receipts].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const last = sorted[0];
+    const client = (dbData?.clients || []).find(c => c.id === last.clientId);
+    const receipt = {
+      ...last,
+      clientName: client?.name || last.clientName || 'Cliente',
+      clientCedula: client?.cedula || '',
+    };
+    try {
+      await printReceipt(receipt, {
+        companyName: dbData.systemSettings?.companyName || 'PrestApp',
+        companyLogo: dbData.systemSettings?.companyLogo || '',
+      });
+      showToast('Recibo impreso correctamente.', 'success');
+    } catch (err) {
+      showToast(`Error al imprimir: ${err.message}`, 'error');
+    }
+  }, [dbData, showToast]);
 
   // Modal action helpers for AppRouter
   const modalActions = {
@@ -212,6 +239,7 @@ function AppShell({ onLogout }) {
         onNavigate={setActiveTab}
         onOpenNewClient={() => { setEditingClient(null); setClientModalOpen(true); }}
         onOpenNewLoan={() => setActiveTab('loans')}
+        onPrintReceipt={handlePrintLastReceipt}
       />
 
       {/* Mobile Navigation */}

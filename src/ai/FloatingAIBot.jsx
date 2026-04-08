@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bot, X } from 'lucide-react';
 import AIHelper from './AIHelper.jsx';
 
-export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, ownerName, companyName, onNavigate, onOpenNewClient, onOpenNewLoan }) {
+export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, ownerName, companyName, onNavigate, onOpenNewClient, onOpenNewLoan, onPrintReceipt }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ x: 16, y: 96 });
   const [dragging, setDragging] = useState(false);
@@ -120,6 +120,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
               onNavigate={onNavigate}
               onOpenNewClient={onOpenNewClient}
               onOpenNewLoan={onOpenNewLoan}
+              onPrintReceipt={onPrintReceipt}
             />
           </div>
         </div>
