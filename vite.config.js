@@ -90,6 +90,7 @@ export default defineConfig({
       external: [
         '@capacitor/app',
         '@capacitor/dialog',
+        '@capacitor/network',
         '@capacitor-community/sqlite',
       ],
       output: {
