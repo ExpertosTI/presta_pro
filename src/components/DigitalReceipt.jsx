@@ -122,7 +122,7 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto overscroll-contain bg-slate-50 dark:bg-slate-900 thermal-receipt" ref={receiptRef}>
+                <div className="overflow-y-auto overscroll-contain bg-slate-50 dark:bg-slate-900 thermal-receipt" ref={receiptRef}>
                     <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-900">
                         <div className="flex flex-col items-center mb-2">
                             <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mb-1.5 shadow-lg shadow-emerald-500/30">

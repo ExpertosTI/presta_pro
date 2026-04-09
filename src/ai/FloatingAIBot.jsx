@@ -109,7 +109,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
               <X size={16} />
             </button>
           </div>
-          <div className="flex-1 bg-slate-950/60 p-2">
+          <div className="flex-1 bg-slate-950/60 p-2 min-h-0 overflow-hidden">
             <AIHelper
               chatHistory={chatHistory}
               setChatHistory={setChatHistory}

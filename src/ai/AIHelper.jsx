@@ -461,7 +461,7 @@ Tú: "Hoy se han cobrado $5,000 en total. ¿Quieres ir a clientes?"
   };
 
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="flex flex-col h-full min-h-0 !overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
           <Zap size={20} className="text-blue-500" /> Asistente IA

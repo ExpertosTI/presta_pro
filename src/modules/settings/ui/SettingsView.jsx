@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { registerUser } from '../../../logic/authLogic';
 import { settingsService } from '../../../services/api';
+import { applyThemeColor } from '../../../shared/styles/tokens';
+import subscriptionService from '../../subscriptions/services/subscriptionService';
 
 // Use relative URLs - nginx will proxy to backend
 const API_BASE_URL = '';
@@ -48,6 +50,13 @@ export function SettingsView({
   const [userError, setUserError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
+  const [subscription, setSubscription] = useState(null);
+
+  useEffect(() => {
+    subscriptionService.getMySubscription()
+      .then(data => setSubscription(data))
+      .catch(() => {});
+  }, []);
 
   /* Sincronizar formulario cuando llegan settings del backend */
   React.useEffect(() => {
@@ -275,17 +284,20 @@ export function SettingsView({
     <div className="space-y-6 animate-fade-in">
       <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Ajustes</h2>
 
-      {/* Subscription Status Card */}
-      <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+      {/* Subscription Status Card — dynamic from backend */}
+      <Card className="text-white" style={{ background: 'linear-gradient(to right, var(--color-primary), var(--color-primary-hover))' }}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-sm font-medium text-blue-100">Tu Plan Actual</p>
-            <h3 className="text-2xl font-bold">Plan Gratuito</h3>
-            <p className="text-sm text-blue-200 mt-1">10 clientes • 5 préstamos • 1 usuario</p>
+            <p className="text-sm font-medium opacity-80">Tu Plan Actual</p>
+            <h3 className="text-2xl font-bold">{subscription?.plan?.name || subscription?.planName || 'Cargando...'}</h3>
+            <p className="text-sm opacity-70 mt-1">
+              {subscription?.plan?.maxClients ?? '∞'} clientes • {subscription?.plan?.maxLoans ?? '∞'} préstamos • {subscription?.plan?.maxUsers ?? 1} usuario{(subscription?.plan?.maxUsers ?? 1) > 1 ? 's' : ''}
+            </p>
           </div>
           <button
             onClick={() => setActiveTab && setActiveTab('pricing')}
-            className="px-4 py-2 bg-white text-blue-600 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors shadow-lg"
+            className="px-4 py-2 bg-white rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors shadow-lg"
+            style={{ color: 'var(--color-primary)' }}
           >
             Mejorar Plan
           </button>
@@ -406,7 +418,7 @@ export function SettingsView({
                       const newSettings = { ...systemSettings, themeColor: color.id };
                       setSystemSettings(newSettings);
                       setForm({ ...form, themeColor: color.id });
-                      // Persist to localStorage
+                      applyThemeColor(color.id);
                       localStorage.setItem('systemSettings', JSON.stringify(newSettings));
                     }}
                     className={`w-8 h-8 rounded-full border-2 transition-all ${form.themeColor === color.id

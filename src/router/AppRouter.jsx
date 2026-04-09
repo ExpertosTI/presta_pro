@@ -101,7 +101,12 @@ export default function AppRouter({ activeTab, setActiveTab, navParams, modalAct
           expenses={dbData.expenses} addExpense={addExpense} onDeleteExpense={deleteExpense}
         />;
       case 'reports':
-        return <ReportsView loans={dbData.loans} expenses={dbData.expenses} />;
+        return <ReportsView
+          loans={dbData.loans} expenses={dbData.expenses}
+          receipts={dbData.receipts} clients={dbData.clients}
+          collectors={dbData.collectors} routeClosings={dbData.routeClosings || []}
+          systemSettings={dbData.systemSettings} showToast={showToast}
+        />;
       case 'hr':
         return <HRView
           employees={dbData.employees}

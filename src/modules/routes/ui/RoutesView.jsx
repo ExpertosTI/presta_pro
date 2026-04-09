@@ -530,6 +530,37 @@ export function RoutesView({
 
       {/* ======== ROUTE SUMMARY BAR ======== */}
       <div className="flex flex-wrap items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+        {/* Start/Finish Route Button — always visible */}
+        {!routeActive ? (
+          <button
+            type="button"
+            onClick={startRoute}
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-md touch-manipulation"
+          >
+            <Navigation size={14} /> Iniciar Ruta
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (!collectorFilter) {
+                showToast && showToast('Selecciona un cobrador para cuadrar la ruta.', 'error');
+                return;
+              }
+              setConfirmClosing(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs shadow-md touch-manipulation"
+          >
+            <XCircle size={14} /> Finalizar
+          </button>
+        )}
+        {routeActive && (
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold">En curso</span>
+          </div>
+        )}
+        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
         <div className="flex items-center gap-1.5">
           <span className="text-slate-500 dark:text-slate-400">Total:</span>
           <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(totalToCollect)}</span>
@@ -877,6 +908,20 @@ export function RoutesView({
               <button
                 type="button"
                 onClick={() => {
+                  // Prevent double closing for same collector on same day
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const alreadyClosed = (routeClosings || []).some(c => {
+                    if (c.collectorId !== collectorFilter) return false;
+                    const d = new Date(c.date);
+                    d.setHours(0, 0, 0, 0);
+                    return d.getTime() === today.getTime();
+                  });
+                  if (alreadyClosed) {
+                    setConfirmClosing(false);
+                    showToast && showToast('Ya existe un cuadre para este cobrador hoy.', 'error');
+                    return;
+                  }
                   addRouteClosing && addRouteClosing({
                     collectorId: collectorFilter,
                     date: new Date().toISOString(),

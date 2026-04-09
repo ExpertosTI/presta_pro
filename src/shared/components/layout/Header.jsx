@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import logoSmall from '../../../../logo-small.svg';
-import { Menu } from 'lucide-react';
 import { NotificationBell } from '../../../modules/notifications';
 
 export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, companyName, userName, onLogout, companyLogo, onNavigate }) {
@@ -10,15 +9,8 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
     <header className="h-14 sm:h-16 glass z-20 sticky top-0 flex items-center justify-between px-4 sm:px-6 transition-all print:hidden safe-area-top">
       {/* Mobile: Logo + Company */}
       <div className="md:hidden flex items-center gap-2">
-        <button
-          onClick={() => setMobileMenuOpen(true)}
-          className="p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95 touch-manipulation"
-          aria-label="Abrir menu"
-        >
-          <Menu size={22} className="text-slate-700 dark:text-slate-200" />
-        </button>
         <img src={companyLogo || logoSmall} alt={companyName || "Presta Pro"} className="w-7 h-7 rounded-lg object-contain" />
-        <span className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate max-w-[120px]">{companyName || "Presta Pro"}</span>
+        <span className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate max-w-[140px]">{companyName || "Presta Pro"}</span>
       </div>
 
       {/* Desktop: Title */}

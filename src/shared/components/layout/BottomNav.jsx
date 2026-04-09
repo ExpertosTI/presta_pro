@@ -19,16 +19,17 @@ export function BottomNav({ activeTab, setActiveTab, setMobileMenuOpen, items })
             }}
             className={`flex flex-col items-center text-[10px] font-medium min-w-[48px] min-h-[48px] justify-center rounded-xl transition-all active:scale-90 touch-manipulation ${
               isActive
-                ? 'text-blue-600 dark:text-blue-400'
+                ? 'text-[var(--color-primary)]'
                 : 'text-slate-400 dark:text-slate-500'
             }`}
           >
             <div
               className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-0.5 transition-all ${
                 isActive
-                  ? 'bg-blue-100 dark:bg-blue-900/40 scale-110 shadow-sm shadow-blue-500/20'
+                  ? 'scale-110 shadow-sm'
                   : 'bg-transparent'
               }`}
+              style={isActive ? { backgroundColor: 'var(--color-primary-bg)' } : undefined}
             >
               <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
             </div>
