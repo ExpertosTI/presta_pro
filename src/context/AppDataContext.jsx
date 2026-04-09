@@ -4,6 +4,7 @@ import { generateId } from '../shared/utils/ids';
 import { formatCurrency } from '../shared/utils/formatters';
 import { calculateSchedule } from '../shared/utils/amortization';
 import { useToast } from '../shared/components/ui/Toast';
+import { syncEngine } from '../sync';
 
 const AppDataContext = createContext(null);
 
@@ -111,6 +112,27 @@ export function AppDataProvider({ children, token, user }) {
   useEffect(() => {
     if (token) loadServerData();
   }, [token, loadServerData]);
+
+  // --- SyncEngine init ---
+  useEffect(() => {
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+    const getToken = () => localStorage.getItem('authToken');
+
+    syncEngine.init({ apiBaseUrl, getAuthToken: getToken }).then(() => {
+      if (token) syncEngine.start();
+    });
+
+    return () => syncEngine.stop();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Arrancar/detener el motor al cambiar la sesión
+  useEffect(() => {
+    if (token) {
+      syncEngine.start();
+    } else {
+      syncEngine.stop();
+    }
+  }, [token]);
 
   // --- CRUD Handlers ---
 

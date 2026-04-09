@@ -31,6 +31,18 @@ module.exports = {
         es2021: true,
       },
     },
+    {
+      // Electron main process: CommonJS, no browser globals
+      files: ['electron/**/*.cjs'],
+      env: {
+        node:    true,
+        browser: false,
+        es2021:  true,
+      },
+      parserOptions: {
+        sourceType: 'script',
+      },
+    },
   ],
   rules: {
     'react/react-in-jsx-scope': 'off',

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import logoSmall from '../../../../logo-small.svg';
 import { NotificationBell } from '../../../modules/notifications';
+import SyncStatus from '../../../sync/SyncStatus';
 
 export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, companyName, userName, onLogout, companyLogo, onNavigate }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -18,6 +19,13 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
 
       {/* Actions */}
       <div className="flex items-center gap-2 sm:gap-4 relative">
+        {/* Sync status badge */}
+        <div className="hidden sm:flex">
+          <SyncStatus />
+        </div>
+        <div className="flex sm:hidden">
+          <SyncStatus compact />
+        </div>
         <button
           onClick={toggleTheme}
           className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-200 min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95 touch-manipulation"
