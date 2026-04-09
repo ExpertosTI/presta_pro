@@ -6,12 +6,12 @@ set -e  # Exit on error
 
 echo "🚀 Iniciando deployment de Presta Pro..."
 echo "📍 Directorio: $(pwd)"
-echo "🌿 Branch: email-templates-fix"
+echo "🌿 Branch: main"
 echo ""
 
 # 1. Pull latest changes
 echo "📥 1/5 - Pulling cambios desde Git..."
-git pull origin email-templates-fix
+git pull origin main
 
 # 2. Stop containers
 echo "🛑 2/5 - Deteniendo contenedores..."
