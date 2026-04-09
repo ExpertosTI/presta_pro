@@ -18,7 +18,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Cloud, CloudOff, CloudUpload, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Cloud, CloudOff, Cloud as CloudUpload, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
 import syncEngine from './SyncEngine.js';
 import syncQueue from './SyncQueue.js';
 import networkMonitor from './NetworkMonitor.js';
