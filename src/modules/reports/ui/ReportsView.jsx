@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef } from 'react';
 import Card from '../../../shared/components/ui/Card';
-import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
+import { formatCurrency, formatDate, escapeHtml } from '../../../shared/utils/formatters';
 import { FileText, Download, Mail, Calendar, TrendingUp, TrendingDown, DollarSign, Users, AlertTriangle, CheckCircle } from 'lucide-react';
 import api from '../../../services/api';
 
@@ -87,10 +87,10 @@ export function ReportsView({ loans, expenses, receipts = [], clients = [], coll
 
   const generateReportHTML = () => {
     const rows = stats.collectorStats.map(c =>
-      `<tr><td style="padding:8px;border-bottom:1px solid #e2e8f0">${c.name}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">${c.receipts}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">${formatCurrency(c.collected)}</td></tr>`
+      `<tr><td style="padding:8px;border-bottom:1px solid #e2e8f0">${escapeHtml(c.name)}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">${c.receipts}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">${formatCurrency(c.collected)}</td></tr>`
     ).join('');
     return `
-      <h3>Reporte ${stats.periodLabel} — ${systemSettings?.companyName || 'PrestaPro'}</h3>
+      <h3>Reporte ${escapeHtml(stats.periodLabel)} — ${escapeHtml(systemSettings?.companyName || 'PrestaPro')}</h3>
       <p>Generado: ${new Date().toLocaleString()}</p>
       <hr/>
       <table style="width:100%;border-collapse:collapse">

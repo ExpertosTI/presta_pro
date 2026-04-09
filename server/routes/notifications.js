@@ -274,22 +274,38 @@ router.post('/test-email', async (req, res) => {
 router.post('/send-report', async (req, res) => {
     try {
         const { reportHtml, subject, toEmail } = req.body;
-        // Si no se especifica email, usar el del usuario o el del request si está disponible
-        // Nota: req.user debería tener email si authMiddleware lo popula. Si no, fallback.
         const targetEmail = toEmail || (req.user && req.user.email);
 
         if (!targetEmail) {
             return res.status(400).json({ error: 'No se pudo determinar el destinatario. Proporcione un email.' });
         }
 
-        const finalSubject = subject || `Reporte Asistente - ${new Date().toLocaleDateString()}`;
+        // Validate email format and prevent header injection
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(targetEmail) || /[\r\n,]/.test(targetEmail)) {
+            return res.status(400).json({ error: 'Dirección de correo inválida' });
+        }
 
-        // Convert simple text to HTML-ish if needed, though reportHtml usually comes formatted
+        // Sanitize subject to prevent header injection
+        const rawSubject = subject || `Reporte Asistente - ${new Date().toLocaleDateString()}`;
+        const finalSubject = rawSubject.replace(/[\r\n]/g, ' ').slice(0, 200);
+
+        // Sanitize reportHtml: allow only safe HTML tags for email
+        const sanitizeForEmail = (html) => {
+            if (!html) return '';
+            // Strip script tags and event handlers
+            return String(html)
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '')
+                .replace(/javascript\s*:/gi, '');
+        };
+        const safeHtml = sanitizeForEmail(reportHtml);
+
         const htmlBody = `
             <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2563eb;">Reporte Generado por Asistente IA</h2>
+                <h2 style="color: #2563eb;">Reporte Generado</h2>
                 <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; white-space: pre-wrap;">
-                    ${reportHtml}
+                    ${safeHtml}
                 </div>
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #64748b; font-size: 12px;">
                     Enviado desde <strong>Presta Pro</strong>

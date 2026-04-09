@@ -1,4 +1,4 @@
-import { formatCurrency, formatReceiptDate } from '../../../shared/utils/formatters';
+import { formatCurrency, formatReceiptDate, escapeHtml } from '../../../shared/utils/formatters';
 
 const PAPER_WIDTH = '80mm';
 const CONTENT_WIDTH = '76mm';
@@ -53,16 +53,16 @@ export function generateReceiptHTML(receipt, companySettings = {}) {
 </head>
 <body>
     <div class="header">
-        ${companyLogo ? `<img src="${companyLogo}" class="logo" alt="${companyName}">` : ''}
-        <div class="company-name">${companyName}</div>
+        ${companyLogo ? `<img src="${escapeHtml(companyLogo)}" class="logo" alt="${escapeHtml(companyName)}">` : ''}
+        <div class="company-name">${escapeHtml(companyName)}</div>
         <div class="receipt-title">COMPROBANTE DE PAGO</div>
         <div class="receipt-id">Ref: TPPR3N4${(receipt.id || '').slice(-6).toUpperCase().padStart(6, '0')}</div>
         <div class="date">${formatReceiptDate(receipt.date || new Date())}</div>
     </div>
     <div class="section">
         <div class="section-title">CLIENTE</div>
-        <div>${receipt.clientName || 'Cliente'}</div>
-        ${receipt.clientPhone ? `<div>${receipt.clientPhone}</div>` : ''}
+        <div>${escapeHtml(receipt.clientName || 'Cliente')}</div>
+        ${receipt.clientPhone ? `<div>${escapeHtml(receipt.clientPhone)}</div>` : ''}
     </div>
     ${receipt.loanAmount ? `
     <div class="section">
