@@ -87,6 +87,11 @@ export default defineConfig({
     sourcemap: false, // Disable source maps in production for security
     minify: 'esbuild', // Use esbuild for faster minification
     rollupOptions: {
+      external: [
+        '@capacitor/app',
+        '@capacitor/dialog',
+        '@capacitor-community/sqlite',
+      ],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
