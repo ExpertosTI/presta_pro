@@ -65,7 +65,7 @@ class SyncEngine {
 
     await db.init();
 
-    networkMonitor.start(heartbeatUrl || `${this._apiBaseUrl}/health`);
+    networkMonitor.start(heartbeatUrl || this._buildHeartbeatUrl());
 
     // Procesar queue al reconectar
     networkMonitor.on('reconnect', () => {
@@ -342,6 +342,14 @@ class SyncEngine {
       }
       this._emit('pendingCountChange', { count });
     } catch (_) { /* ignorar */ }
+  }
+
+  _buildHeartbeatUrl() {
+    if (!this._apiBaseUrl) return '/health';
+    if (/\/api\/?$/.test(this._apiBaseUrl)) {
+      return `${this._apiBaseUrl.replace(/\/api\/?$/, '')}/health`;
+    }
+    return `${this._apiBaseUrl.replace(/\/$/, '')}/health`;
   }
 
   // ── Event emitter ────────────────────────────────────────────────────────

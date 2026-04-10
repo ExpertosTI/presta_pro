@@ -4,8 +4,6 @@ import { X, CheckCircle, Share2, Printer, Bluetooth, ChevronDown, Wifi, Globe } 
 import { formatCurrency, formatDateTime } from '../shared/utils/formatters';
 import {
     printReceipt,
-    printViaRawBT,
-    printViaHTML,
     getPrinterConfig,
     savePrinterConfig,
     getAvailableDrivers,

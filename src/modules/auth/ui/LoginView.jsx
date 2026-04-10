@@ -215,7 +215,7 @@ export function LoginView({ onLogin }) {
     };
 
     return (
-        <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-slate-900 relative overflow-hidden font-sans p-4">
+        <div className="min-h-[100dvh] flex items-center justify-center bg-slate-900 relative overflow-hidden font-sans p-4">
             {/* Dynamic Background */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-900 via-slate-900 to-black opacity-80" />
@@ -278,7 +278,7 @@ export function LoginView({ onLogin }) {
                                     />
                                 </div>
                                 <div className="relative flex justify-center text-sm mb-4">
-                                    <span className="px-2 bg-transparent text-slate-400 bg-slate-900/0 backdrop-blur-sm">O ingresa tus datos manual</span>
+                                    <span className="px-2 text-slate-400 bg-slate-900/0 backdrop-blur-sm">O ingresa tus datos manual</span>
                                 </div>
 
                                 <div className="relative">
@@ -424,7 +424,7 @@ export function LoginView({ onLogin }) {
                                         <div className="w-full border-t border-slate-700"></div>
                                     </div>
                                     <div className="relative flex justify-center text-sm">
-                                        <span className="px-2 bg-transparent text-slate-400 bg-slate-900/0 backdrop-blur-sm">O continúa con</span>
+                                        <span className="px-2 text-slate-400 bg-slate-900/0 backdrop-blur-sm">O continúa con</span>
                                     </div>
                                 </div>
 

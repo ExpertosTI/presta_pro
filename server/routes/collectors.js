@@ -83,7 +83,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, phone, email, photoUrl, createCredentials, username } = req.body;
+        const { name, phone, email, photoUrl, createCredentials, username, commissionRate } = req.body;
 
         if (!name || !name.trim()) {
             return res.status(400).json({ error: 'Nombre requerido' });
@@ -116,6 +116,7 @@ router.post('/', async (req, res) => {
                 phone: phone || null,
                 email: email || null,
                 photoUrl: photoUrl || null,
+                commissionRate: commissionRate !== undefined ? parseFloat(commissionRate) || 0 : 5,
                 username: finalUsername,
                 passwordHash,
                 permissions: DEFAULT_PERMISSIONS,
@@ -152,7 +153,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, phone, email, photoUrl, isActive } = req.body;
+        const { name, phone, email, photoUrl, isActive, commissionRate } = req.body;
 
         const collector = await prisma.collector.update({
             where: { id, tenantId: req.tenantId },
@@ -161,6 +162,7 @@ router.put('/:id', async (req, res) => {
                 phone: phone || null,
                 email: email || null,
                 photoUrl: photoUrl || null,
+                commissionRate: commissionRate !== undefined ? parseFloat(commissionRate) || 0 : undefined,
                 isActive: isActive !== undefined ? isActive : undefined
             }
         });

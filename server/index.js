@@ -301,6 +301,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
 // --- Auth middleware ---
 // --- Auth middleware imported at line 42 ---
 

@@ -266,6 +266,16 @@ function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setToken(null);
+      setUser(null);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
+
   const handleLogin = (userData, authToken) => {
     localStorage.setItem('authToken', authToken);
     localStorage.setItem('user', JSON.stringify(userData));

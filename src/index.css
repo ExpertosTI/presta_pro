@@ -105,6 +105,8 @@ html {
 
   /* Modal overlays: center content, no padding */
   .fixed.inset-0.z-50:not([data-fullscreen]),
+  .fixed.inset-0.z-\[120\]:not([data-fullscreen]),
+  .fixed.inset-0.z-\[130\]:not([data-fullscreen]),
   .fixed.inset-0.z-\[60\] {
     display: flex !important;
     align-items: flex-start !important;
@@ -115,6 +117,8 @@ html {
 
   /* Inner modal panels: full width, natural height, scrollable */
   .fixed.inset-0.z-50:not([data-fullscreen]) > div,
+  .fixed.inset-0.z-\[120\]:not([data-fullscreen]) > div,
+  .fixed.inset-0.z-\[130\]:not([data-fullscreen]) > div,
   .fixed.inset-0.z-\[60\] > div {
     width: 100% !important;
     max-width: 100% !important;
@@ -130,6 +134,8 @@ html {
 
   /* Body scroll lock when modal is open */
   body:has(.fixed.inset-0.z-50),
+  body:has(.fixed.inset-0.z-\[120\]),
+  body:has(.fixed.inset-0.z-\[130\]),
   body:has(.fixed.inset-0.z-\[60\]) {
     overflow: hidden !important;
   }
@@ -220,8 +226,8 @@ html, body, #root {
 .glass {
   background: rgba(255, 255, 255, 0.7);
   /* Light mode glass */
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }

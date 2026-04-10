@@ -76,7 +76,7 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
             const data = await collectorService.getCollectors();
             setCollectors(data);
         } catch (e) {
-            showToast?.('Error cargando cobradores', 'error');
+            showToast?.(e.message || 'Error cargando cobradores', 'error');
         } finally {
             setLoading(false);
         }
@@ -84,6 +84,12 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!editingCollector && formData.createCredentials && !formData.email.trim()) {
+            showToast?.('Para crear acceso, indica un email del cobrador', 'error');
+            return;
+        }
+
         try {
             if (editingCollector) {
                 const updated = await collectorService.updateCollector(editingCollector.id, formData);
@@ -318,7 +324,7 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
 
             {/* Temp Password Modal */}
             {tempPassword && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[130] p-4 backdrop-blur-sm">
                     <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                             <Key className="text-amber-500" />
@@ -348,8 +354,8 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
 
             {/* Form Modal */}
             {showForm && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 bg-black/60 flex items-stretch sm:items-center justify-center z-[120] p-0 sm:p-4 backdrop-blur-sm safe-area-insets">
+                    <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-xl p-4 sm:p-6 max-w-md w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto shadow-2xl">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
                             {editingCollector ? 'Editar Cobrador' : 'Nuevo Cobrador'}
                         </h3>
@@ -391,6 +397,7 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
                                 </label>
                                 <input
                                     type="email"
+                                    required={!editingCollector && formData.createCredentials}
                                     value={formData.email}
                                     onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
                                     className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
@@ -403,7 +410,7 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                     📷 Foto del Cobrador
                                 </label>
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                                     {formData.photoUrl && (
                                         <img
                                             src={formData.photoUrl}
@@ -492,17 +499,17 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
                                 </div>
                             )}
 
-                            <div className="flex gap-3 pt-4">
+                            <div className="sticky bottom-0 flex flex-col-reverse sm:flex-row gap-3 pt-4 pb-2 bg-white dark:bg-slate-800">
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="flex-1 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 font-medium"
+                                    className="flex-1 min-h-[44px] py-3 sm:py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 font-medium"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700"
+                                    className="flex-1 min-h-[44px] py-3 sm:py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700"
                                 >
                                     {editingCollector ? 'Guardar' : 'Crear'}
                                 </button>
@@ -546,6 +553,14 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
                         >
                             Crear primer cobrador
                         </button>
+                    </div>
+                </Card>
+            ) : filteredCollectors.length === 0 ? (
+                <Card>
+                    <div className="text-center py-12">
+                        <Search className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                        <p className="text-slate-600 dark:text-slate-300 font-medium">No hay coincidencias con el filtro actual</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Prueba con otro nombre, teléfono o estado.</p>
                     </div>
                 </Card>
             ) : (
@@ -698,8 +713,8 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
 
             {/* Client Assignment Modal */}
             {showAssign && assigningCollector && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col">
+                <div className="fixed inset-0 bg-black/60 flex items-stretch sm:items-center justify-center z-[120] p-0 sm:p-4 backdrop-blur-sm safe-area-insets">
+                    <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-xl p-4 sm:p-6 max-w-md w-full h-full sm:h-auto sm:max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2">
                             <UserPlus className="text-indigo-600" size={20} />
                             Asignar Clientes a {assigningCollector.name}
@@ -733,17 +748,16 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
                             )}
                         </div>
 
-                        <div className="flex gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <div className="sticky bottom-0 flex flex-col-reverse sm:flex-row gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                             <button
                                 onClick={() => { setShowAssign(false); setAssigningCollector(null); }}
-                                className="flex-1 py-2
-                                 px-4 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
+                                className="flex-1 min-h-[44px] py-3 sm:py-2 px-4 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={handleSaveAssignments}
-                                className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold"
+                                className="flex-1 min-h-[44px] py-3 sm:py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold"
                             >
                                 Guardar ({selectedClients.length})
                             </button>
@@ -764,8 +778,8 @@ function PermissionsModal({ collector, onSave, onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 flex items-stretch sm:items-center justify-center z-[120] p-0 sm:p-4 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-xl p-4 sm:p-6 max-w-lg w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto shadow-2xl">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                     <Shield className="text-indigo-600" />
                     Permisos de {collector.name}
@@ -788,16 +802,16 @@ function PermissionsModal({ collector, onSave, onClose }) {
                     ))}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="sticky bottom-0 flex flex-col-reverse sm:flex-row gap-3 pt-4 bg-white dark:bg-slate-800">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 font-medium"
+                        className="flex-1 min-h-[44px] py-3 sm:py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 font-medium"
                     >
                         Cancelar
                     </button>
                     <button
                         onClick={() => onSave(permissions)}
-                        className="flex-1 py-2 bg-indigo-600 text-white rounded-lg font-medium"
+                        className="flex-1 min-h-[44px] py-3 sm:py-2 bg-indigo-600 text-white rounded-lg font-medium"
                     >
                         Guardar Permisos
                     </button>
@@ -819,8 +833,8 @@ function ActivityModal({ collector, activities, onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 flex items-stretch sm:items-center justify-center z-[120] p-0 sm:p-4 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-xl p-4 sm:p-6 max-w-lg w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto shadow-2xl">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                     <Activity className="text-indigo-600" />
                     Actividad de {collector.name}
@@ -850,7 +864,7 @@ function ActivityModal({ collector, activities, onClose }) {
 
                 <button
                     onClick={onClose}
-                    className="w-full py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 font-medium"
+                    className="sticky bottom-0 w-full min-h-[44px] py-3 sm:py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 font-medium bg-white dark:bg-slate-800"
                 >
                     Cerrar
                 </button>
