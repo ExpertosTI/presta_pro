@@ -39,6 +39,7 @@ class SyncEngine {
     this._pollTimer      = null;
     this._running        = false;
     this._processing     = false;
+    this._initialized    = false;
     this._apiBaseUrl     = null;
     this._getAuthToken   = null;
     this._listeners      = {};
@@ -50,6 +51,7 @@ class SyncEngine {
   }
 
   get isRunning()    { return this._running; }
+  get isInitialized(){ return this._initialized; }
   get stats()        { return { ...this._stats }; }
 
   /**
@@ -73,6 +75,7 @@ class SyncEngine {
       this.processQueue();
     });
 
+    this._initialized = true;
     console.info('[SyncEngine] Inicializado ✓');
   }
 
@@ -81,6 +84,10 @@ class SyncEngine {
    */
   start() {
     if (this._running) return;
+    if (!this._initialized) {
+      console.warn('[SyncEngine] start() llamado antes de init() — ignorando.');
+      return;
+    }
     this._running = true;
 
     this._pollTimer = setInterval(() => {

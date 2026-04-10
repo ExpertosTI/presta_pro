@@ -169,7 +169,7 @@ const ClientStatement = ({ client, loans, receipts, onClose }) => {
                     {client.address && <p><strong>Dirección:</strong> {client.address}</p>}
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-6 text-center">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 text-center">
                     <div className="border p-3">
                         <p className="text-xs font-semibold text-gray-600 mb-1">Total Prestado</p>
                         <p className="text-lg font-bold">{formatCurrency(totalLent)}</p>

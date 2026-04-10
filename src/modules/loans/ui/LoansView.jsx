@@ -935,7 +935,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
             {/* Loan Actions: Cancel, Archive, Delete */}
             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
               <p className="text-xs text-slate-500 mb-2 font-medium">Acciones del préstamo</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {selectedLoan.status === 'ACTIVE' && (
                   <button
                     onClick={() => setCancelModal(true)}
@@ -963,7 +963,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 ) : null}
               </div>
               {/* MEJORA 11, 12, 14: Renew, Refinance, Notes */}
-              <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                 {selectedLoan.status === 'COMPLETED' && (
                   <button
                     onClick={() => setRenewModal(true)}

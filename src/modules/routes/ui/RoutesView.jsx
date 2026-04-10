@@ -190,18 +190,20 @@ export function RoutesView({
       currentRouteLoanIds.includes(`${stop.loanId}:${stop.id}`)
     );
 
-    // Calculate collector stats
+    // Calculate collector stats (works for specific collector or all)
     let collectorTodayTotal = 0;
     let collectorTodayCount = 0;
-    if (collectorFilter && Array.isArray(receipts)) {
+    if (Array.isArray(receipts)) {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
       const endOfToday = new Date(startOfToday);
       endOfToday.setDate(endOfToday.getDate() + 1);
 
       receipts.forEach((r) => {
-        const client = clients.find(c => c.id === r.clientId);
-        if (!client || client.collectorId !== collectorFilter) return;
+        if (collectorFilter) {
+          const client = clients.find(c => c.id === r.clientId);
+          if (!client || client.collectorId !== collectorFilter) return;
+        }
         const d = new Date(r.date);
         if (d >= startOfToday && d < endOfToday) {
           const amount = parseFloat(r.amount || 0) || 0;
@@ -879,7 +881,7 @@ export function RoutesView({
               <p className="text-sm text-emerald-700 dark:text-emerald-300 mb-1 uppercase tracking-wider font-semibold">
                 Total a Recibir
               </p>
-              <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(collectorTodayTotal || 0)}
               </p>
             </div>

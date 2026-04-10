@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MapPin, LocateFixed, Play, Square } from 'lucide-react';
+import { MapPin, LocateFixed } from 'lucide-react';
 import { formatCurrency } from '../../../shared/utils/formatters';
 import api from '../../../services/axiosInstance';
 
@@ -195,31 +195,6 @@ export default function InlineRouteMap({
           >
             <LocateFixed size={16} className="text-blue-500" />
           </button>
-        )}
-      </div>
-
-      {/* Floating START/STOP route button */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[1000]">
-        {!routeActive ? (
-          <button
-            onClick={onStartRoute}
-            className="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-full font-bold text-sm shadow-xl shadow-emerald-600/30 transition-all touch-manipulation min-h-[48px]"
-          >
-            <Play size={18} fill="currentColor" /> Iniciar Ruta
-          </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-2.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-full shadow-lg">
-              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Ruta en curso</span>
-            </div>
-            <button
-              onClick={onFinishRoute}
-              className="flex items-center gap-1.5 px-3 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold text-xs shadow-lg touch-manipulation min-h-[44px]"
-            >
-              <Square size={14} fill="currentColor" /> Finalizar
-            </button>
-          </div>
         )}
       </div>
 
