@@ -1,5 +1,5 @@
 import React from 'react';
-import logoSmall from '../../../logo-small.svg';
+import logoSmall from '../../../../logo-small.svg';
 
 export function Sidebar({ activeTab, setActiveTab, children, companyName }) {
   return (
