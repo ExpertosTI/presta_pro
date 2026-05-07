@@ -39,7 +39,7 @@ export function MobileMenu({ mobileMenuOpen, setMobileMenuOpen, items, setActive
       </div>
 
       <div className="p-4 border-t border-slate-700/50 text-center">
-        <p className="text-xs text-slate-500">Powered by RENACE.TECH</p>
+        <p className="text-xs text-slate-500">Powered by REBLESS</p>
       </div>
     </div>
   );

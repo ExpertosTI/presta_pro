@@ -13,16 +13,16 @@
   -moz-osx-font-smoothing: grayscale;
 
   /* AI Theme Colors */
-  --primary-glow: #6366f1;
-  --secondary-glow: #ec4899;
+  --primary-glow: #14b8a6;
+  --secondary-glow: #06b6d4;
   --bg-dark: #0f172a;
   --glass-border: rgba(255, 255, 255, 0.1);
 
   /* Dynamic theme color (set via JS in tokens.js) */
-  --color-primary: #2563eb;
-  --color-primary-hover: #3b82f6;
-  --color-primary-bg: rgba(37, 99, 235, 0.1);
-  --color-primary-dark-bg: rgba(37, 99, 235, 0.25);
+  --color-primary: #0f766e;
+  --color-primary-hover: #14b8a6;
+  --color-primary-bg: rgba(20, 184, 166, 0.12);
+  --color-primary-dark-bg: rgba(20, 184, 166, 0.3);
 
   /* Layout tokens */
   --bottom-nav-height: 5rem;
@@ -40,7 +40,7 @@ body {
 }
 
 .dark body {
-  background: radial-gradient(circle at 50% -20%, #1e1b4b, #0f172a);
+  background: radial-gradient(circle at 50% -20%, #134e4a, #0f172a);
   background-attachment: fixed;
   color: #f8fafc;
 }
@@ -99,40 +99,9 @@ html {
 
   /* ======================================
      GLOBAL MOBILE MODAL FIX
-     Modals: centered, full-width, content-driven height
-     Excludes [data-fullscreen] (maps, fullscreen views)
+     Body scroll lock when modal is open
+     Each modal handles its own layout via Tailwind classes
      ====================================== */
-
-  /* Modal overlays: center content, no padding */
-  .fixed.inset-0.z-50:not([data-fullscreen]),
-  .fixed.inset-0.z-\[120\]:not([data-fullscreen]),
-  .fixed.inset-0.z-\[130\]:not([data-fullscreen]),
-  .fixed.inset-0.z-\[60\] {
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: center !important;
-    padding: 0 !important;
-    overflow-y: auto !important;
-  }
-
-  /* Inner modal panels: full width, natural height, scrollable */
-  .fixed.inset-0.z-50:not([data-fullscreen]) > div,
-  .fixed.inset-0.z-\[120\]:not([data-fullscreen]) > div,
-  .fixed.inset-0.z-\[130\]:not([data-fullscreen]) > div,
-  .fixed.inset-0.z-\[60\] > div {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: 100dvh !important;
-    max-height: none !important;
-    height: auto !important;
-    border-radius: 0 !important;
-    margin: 0 !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-    overflow-y: auto !important;
-  }
-
-  /* Body scroll lock when modal is open */
   body:has(.fixed.inset-0.z-50),
   body:has(.fixed.inset-0.z-\[120\]),
   body:has(.fixed.inset-0.z-\[130\]),

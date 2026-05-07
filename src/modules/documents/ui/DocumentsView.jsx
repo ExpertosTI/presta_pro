@@ -52,7 +52,7 @@ const getStatusStyle = (status) => {
   return `bg-${color}-100 dark:bg-${color}-900/30 text-${color}-700 dark:text-${color}-300`;
 };
 
-const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', selectedClientId, onSelectClient, showToast }) => {
+const DocumentsView = ({ clients, loans = [], companyName = 'ReBless', selectedClientId, onSelectClient, showToast }) => {
   const hasClients = Array.isArray(clients) && clients.length > 0;
   const currentClient = hasClients
     ? clients.find((c) => c.id === selectedClientId) || clients[0]
@@ -200,7 +200,7 @@ const DocumentsView = ({ clients, loans = [], companyName = 'Presta Pro', select
     const idNumber = client?.idNumber || '__________________';
     const address = client?.address || '__________________';
     const phone = client?.phone || '__________________';
-    const company = companyName || 'Presta Pro';
+    const company = companyName || 'ReBless';
     const today = new Date().toLocaleDateString('es-DO');
 
     // MEJORA 8: Auto-fill from loan
@@ -500,7 +500,7 @@ Fecha: ${today}`;
     try {
       const { generateClientDocument } = await import('../../../services/aiService');
       const lastLoan = selectedLoan || getLastLoanForClient(currentClient.id);
-      const effectiveCompanyName = companyName || 'Presta Pro';
+      const effectiveCompanyName = companyName || 'ReBless';
       const generated = await generateClientDocument(templateType, currentClient, lastLoan, effectiveCompanyName);
       if (generated && typeof generated === 'string') {
         setTemplateContent(generated.trim());

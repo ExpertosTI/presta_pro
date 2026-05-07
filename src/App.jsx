@@ -108,7 +108,7 @@ function AppShell({ onLogout }) {
     };
     try {
       await printReceipt(receipt, {
-        companyName: dbData.systemSettings?.companyName || 'PrestApp',
+        companyName: dbData.systemSettings?.companyName || 'ReBless',
         companyLogo: dbData.systemSettings?.companyLogo || '',
       });
       showToast('Recibo impreso correctamente.', 'success');

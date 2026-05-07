@@ -60,8 +60,8 @@ export function ConfirmDialog({
                         {cancelText}
                     </button>
                     <button
-                        onClick={() => {
-                            onConfirm();
+                        onClick={async () => {
+                            await onConfirm();
                             onClose();
                         }}
                         className={`flex-1 py-3 sm:py-2.5 rounded-xl font-medium transition-colors min-h-[44px] active:scale-95 touch-manipulation ${confirmButtonClasses[variant]}`}

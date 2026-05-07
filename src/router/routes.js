@@ -7,6 +7,7 @@ import {
   Settings,
   FileText,
   Calculator,
+  Smartphone,
   BrainCircuit,
   MapPin,
   FileDigit,
@@ -32,6 +33,7 @@ export const ROUTES = [
   // Herramientas
   { id: 'documents', label: 'Documentos', title: 'Documentos', icon: FileDigit, section: 'herramientas' },
   { id: 'calc', label: 'Calculadora', title: 'Calculadora', icon: Calculator, section: 'herramientas' },
+  { id: 'enrollment', label: 'Enrolamiento', title: 'Enrolamiento de Teléfonos', icon: Smartphone, section: 'herramientas' },
   { id: 'notes', label: 'Notas', title: 'Notas', icon: FileText, section: 'herramientas' },
 
   // Administración

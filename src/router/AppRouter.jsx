@@ -18,6 +18,7 @@ const HRView = React.lazy(() => import('../modules/employees').then(m => ({ defa
 const AccountingView = React.lazy(() => import('../modules/accounting').then(m => ({ default: m.AccountingView })));
 const AIView = React.lazy(() => import('../modules/ai').then(m => ({ default: m.AIView })));
 const CalculatorView = React.lazy(() => import('../modules/tools').then(m => ({ default: m.CalculatorView })));
+const EnrollmentView = React.lazy(() => import('../modules/tools').then(m => ({ default: m.EnrollmentView })));
 const NotificationsView = React.lazy(() => import('../modules/notifications').then(m => ({ default: m.NotificationsView })));
 const CollectorsModule = React.lazy(() => import('../modules/collectors').then(m => ({ default: m.CollectorsView })));
 const AdminDashboard = React.lazy(() => import('../modules/admin').then(m => ({ default: m.AdminDashboard })));
@@ -128,6 +129,8 @@ export default function AppRouter({ activeTab, setActiveTab, navParams, modalAct
         />;
       case 'calc':
         return <CalculatorView />;
+      case 'enrollment':
+        return <EnrollmentView showToast={showToast} />;
       case 'ai':
         return <AIView
           chatHistory={[]} setChatHistory={() => {}} dbData={dbData} showToast={showToast}

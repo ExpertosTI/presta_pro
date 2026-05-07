@@ -30,7 +30,7 @@ const app = express();
 // Detrás de Nginx / reverse proxy, confiar en la IP de X-Forwarded-For para que express-rate-limit funcione bien
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 4000;
-const JWT_SECRET = process.env.JWT_SECRET || 'prestapro_dev_jwt_secret_change_me';
+const JWT_SECRET = process.env.JWT_SECRET || 'rebless_dev_jwt_secret_change_me';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -51,7 +51,7 @@ if (process.env.NODE_ENV === 'production') {
     }
   });
 
-  if (JWT_SECRET === 'prestapro_dev_jwt_secret_change_me') {
+  if (JWT_SECRET === 'rebless_dev_jwt_secret_change_me') {
     console.warn('⚠️ WARNING: Using default JWT_SECRET in production is not recommended');
   }
 }
@@ -84,9 +84,9 @@ const { validatePassword, validateEmail } = require('./lib/securityUtils');
 
 const SMTP_HOST = process.env.SMTP_HOST || '85.31.224.232';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25', 10);
-const SMTP_USER = process.env.SMTP_USER || 'noreply@prestapro.renace.tech';
+const SMTP_USER = process.env.SMTP_USER || 'noreply@rebless.renace.tech';
 const SMTP_PASS = process.env.SMTP_PASS || '';
-const SMTP_FROM = process.env.SMTP_FROM || '"PRESTAPRO" <noreply@prestapro.renace.tech>';
+const SMTP_FROM = process.env.SMTP_FROM || '"REBLESS" <noreply@rebless.renace.tech>';
 const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
 
 // ... (nodemailer setup logic unchanged)
@@ -115,7 +115,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      connectSrc: ["'self'", "https://accounts.google.com", "https://oauth2.googleapis.com", "https://generativelanguage.googleapis.com", "https://prestanace.renace.tech", "https://*.renace.tech", "https://unpkg.com", "https://nominatim.openstreetmap.org", "https://*.tile.openstreetmap.org", process.env.APP_BASE_URL || "http://localhost:4000"],
+      connectSrc: ["'self'", "https://accounts.google.com", "https://oauth2.googleapis.com", "https://generativelanguage.googleapis.com", "https://rebless.renace.tech", "https://*.renace.tech", "https://unpkg.com", "https://nominatim.openstreetmap.org", "https://*.tile.openstreetmap.org", process.env.APP_BASE_URL || "http://localhost:4000"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://unpkg.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
       imgSrc: ["'self'", "data:", "blob:", "https://lh3.googleusercontent.com", "https://*.tile.openstreetmap.org"],
@@ -160,7 +160,7 @@ const publicResendLimiter = rateLimit({
 // --- SECURITY: Restrictive CORS for Production ---
 const corsOptions = {
   origin: IS_PRODUCTION
-    ? [process.env.APP_BASE_URL, 'https://prestanace.renace.tech', /\.renace\.tech$/]
+    ? [process.env.APP_BASE_URL, 'https://rebless.renace.tech', /\.renace\.tech$/]
     : true, // Allow all origins in development
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -648,9 +648,9 @@ app.get('/api/tenants/verify', async (req, res) => {
           .sendMail({
             from: SMTP_FROM,
             to: ADMIN_NOTIFY_EMAIL,
-            subject: 'Cuenta de financiera verificada en Presta Pro',
-            text: `Se ha verificado la cuenta en Presta Pro.\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
-            html: `<p>Se ha <strong>verificado</strong> una cuenta en Presta Pro.</p>
+            subject: 'Cuenta de financiera verificada en ReBless',
+            text: `Se ha verificado la cuenta en ReBless.\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
+            html: `<p>Se ha <strong>verificado</strong> una cuenta en ReBless.</p>
               <ul>
                 <li><strong>Nombre:</strong> ${updatedTenant.name}</li>
                 <li><strong>Slug:</strong> ${updatedTenant.slug}</li>
@@ -1545,7 +1545,7 @@ app.post('/api/subscriptions/upload-proof', authMiddleware, upload.single('proof
             </div>
           </div>
           <div class="footer">
-            <p>Presta Pro by Renace.Tech</p>
+            <p>ReBless by Renace.Tech</p>
           </div>
         </div>
       </body>
@@ -1554,7 +1554,7 @@ app.post('/api/subscriptions/upload-proof', authMiddleware, upload.single('proof
 
     if (mailTransporter) {
       await mailTransporter.sendMail({
-        from: `"Presta Pro" <${SMTP_USER || 'noreply@renace.tech'}>`,
+        from: `"ReBless" <${SMTP_USER || 'noreply@renace.tech'}>`,
         to: adminEmail,
         subject: `💳 Comprobante de Pago - ${tenant?.name || 'Nuevo Cliente'} - Plan ${plan}`,
         html: emailHtml,

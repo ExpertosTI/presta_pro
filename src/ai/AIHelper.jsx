@@ -6,7 +6,7 @@ import { sendMessageToAI } from '../services/aiService.js';
 import api from '../services/api';
 
 // Persistent history key
-const CHAT_STORAGE_KEY = 'prestapro_chat_history';
+const CHAT_STORAGE_KEY = 'rebless_chat_history';
 
 // Renderizado: soporta **negritas**, limpia viñetas, y renderiza botones de acción
 const renderMessageText = (text, onActionClick) => {
@@ -93,7 +93,7 @@ export function AIHelper({
   const chatEndRef = useRef(null);
 
   const companyFromSettings = dbData?.systemSettings?.companyName;
-  const effectiveCompanyName = companyName || companyFromSettings || 'Presta Pro';
+  const effectiveCompanyName = companyName || companyFromSettings || 'ReBless';
   const effectiveOwnerName = ownerName || effectiveCompanyName || 'dueño/a';
 
   // Persist chat to localStorage
@@ -347,7 +347,7 @@ REGLAS DE ORO:
 5. NO INVENTES: Si no está en los datos de arriba, di "No veo ese dato aquí".
 6. TONO: Amigable, profesional, pero relajado.
 7. ENVIAR CORREO: Si el usuario pide "envía un correo" o "mándamelo", AÑADE al final: [[SEND_EMAIL]].
-8. AYUDA: Si preguntan cómo hacer algo, envíalos a **renace.tech/PrestApp**.
+8. AYUDA: Si preguntan cómo hacer algo, envialos a **rebless.com/ayuda**.
 9. NOTIFICACIÓN: Si piden "notifica" o "avisa", AÑADE al final: [[SEND_NOTIFICATION:Título|Mensaje]].
 10. LEER NOTIFICACIONES: Usa los datos de NOTIFICACIONES de arriba.
 

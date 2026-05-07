@@ -23,11 +23,11 @@ const INITIAL_DB_DATA = {
   clientDocuments: {},
   goals: { monthly: 500000, daily: 15000 },
   systemSettings: {
-    companyName: 'Presta Pro',
+    companyName: 'ReBless',
     currency: 'DOP',
     allowLatePayments: true,
     interestMethod: 'simple',
-    themeColor: 'indigo',
+    themeColor: 'emerald',
     companyLogo: '',
     ownerDisplayName: '',
   }
@@ -86,7 +86,7 @@ export function AppDataProvider({ children, token, user }) {
         settingsService.get(),
       ]);
 
-      const settings = settingsRes || { companyName: 'Presta Pro' };
+      const settings = settingsRes || { companyName: 'ReBless' };
 
       setDbData(prev => ({
         ...prev,

@@ -4,15 +4,19 @@
   "type": "module",
   "main": "electron/main.cjs",
   "version": "0.0.0",
-  "description": "Presta Pro Windows App",
-  "author": "Renace Tech",
+  "description": "ReBless App - Creditos y enrolamiento de telefonos",
+  "author": "ReBless by Renace Tech",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "android:add": "npx cap add android",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:build:apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "vite build && electron-packager . PrestaPro --platform=win32 --arch=x64 --out=release_portable_v2 --overwrite --icon=public/logo.png",
+    "electron:build": "vite build && electron-packager . ReBless --platform=win32 --arch=x64 --out=release_portable_v2 --overwrite --icon=public/logo.png",
     "electron:installer": "vite build && electron-builder -c electron-builder.json"
   },
   "dependencies": {

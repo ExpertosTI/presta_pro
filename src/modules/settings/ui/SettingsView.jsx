@@ -22,10 +22,10 @@ export function SettingsView({
   setActiveTab,
 }) {
   const [form, setForm] = useState({
-    companyName: systemSettings.companyName || 'Presta Pro',
+    companyName: systemSettings.companyName || 'ReBless',
     mainCurrency: systemSettings.mainCurrency || 'DOP',
     defaultPenaltyRate: systemSettings.defaultPenaltyRate ?? 5,
-    themeColor: systemSettings.themeColor || 'indigo',
+    themeColor: systemSettings.themeColor || 'emerald',
     securityUser: systemSettings.securityUser || 'admin',
     securityPassword: systemSettings.securityPassword || '1234',
     ownerDisplayName: systemSettings.ownerDisplayName || '',
@@ -139,10 +139,10 @@ export function SettingsView({
   const handleResetToDefaults = () => {
     if (!window.confirm('¿Restaurar todos los ajustes a valores predeterminados?')) return;
     const defaults = {
-      companyName: 'Presta Pro',
+      companyName: 'ReBless',
       mainCurrency: 'DOP',
       defaultPenaltyRate: 5,
-      themeColor: 'indigo',
+      themeColor: 'emerald',
       securityUser: 'admin',
       securityPassword: '1234',
       ownerDisplayName: '',

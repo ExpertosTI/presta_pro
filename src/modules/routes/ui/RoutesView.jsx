@@ -957,7 +957,7 @@ export function RoutesView({
       {receiptToShow && (
         <DigitalReceipt
           receipt={receiptToShow}
-          companyName={systemSettings?.companyName || 'Presta Pro'}
+          companyName={systemSettings?.companyName || 'ReBless'}
           companyLogo={systemSettings?.companyLogo}
           onClose={() => setReceiptToShow(null)}
           onPrint={() => {

@@ -7,6 +7,7 @@ import logo from '../../../../logo-small.svg';
 export function LoginView({ onLogin }) {
     const [isRegistering, setIsRegistering] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [acceptedAgreement, setAcceptedAgreement] = useState(false);
 
     // Login State
     const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -113,6 +114,12 @@ export function LoginView({ onLogin }) {
 
     const handleRegister = async (e) => {
         e.preventDefault();
+
+        if (!acceptedAgreement) {
+            setError('Debes aceptar el acuerdo de servicios, confidencialidad y no competencia para crear tu cuenta.');
+            return;
+        }
+
         setLoading(true);
         setError('');
         setSuccessMsg('');
@@ -218,18 +225,23 @@ export function LoginView({ onLogin }) {
         <div className="min-h-[100dvh] flex items-center justify-center bg-slate-900 relative overflow-hidden font-sans p-4">
             {/* Dynamic Background */}
             <div className="absolute inset-0 z-0">
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-900 via-slate-900 to-black opacity-80" />
-                <div className="absolute -top-20 -left-20 w-64 md:w-96 h-64 md:h-96 bg-blue-600 rounded-full blur-[100px] opacity-20 animate-pulse" />
-                <div className="absolute bottom-0 right-0 w-72 md:w-[500px] h-72 md:h-[500px] bg-indigo-600 rounded-full blur-[120px] opacity-20" />
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-teal-900 via-slate-900 to-black opacity-85" />
+                <div className="absolute -top-20 -left-20 w-64 md:w-96 h-64 md:h-96 bg-teal-500 rounded-full blur-[100px] opacity-25 animate-pulse" />
+                <div className="absolute bottom-0 right-0 w-72 md:w-[500px] h-72 md:h-[500px] bg-cyan-500 rounded-full blur-[120px] opacity-20" />
             </div>
 
             <div className="relative z-10 w-full max-w-sm md:max-w-md flex flex-col justify-center">
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-4 md:p-8 transform transition-all duration-500 hover:shadow-indigo-500/20">
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-4 md:p-8 transform transition-all duration-500 hover:shadow-emerald-500/20">
                     <div className="flex flex-col items-center mb-0 md:mb-6 text-center">
                         {/* Logo: Responsive sizes - Much Larger and stuck to title */}
-                        <img src={logo} alt="Presta Pro" className="w-32 h-32 md:w-52 md:h-52 object-contain drop-shadow-2xl mb-0 hover:scale-105 transition-transform" />
-                        <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight leading-none -mt-4 relative z-10">Presta Pro</h1>
-                        <p className="text-blue-200 text-[10px] md:text-base mt-1 md:mt-1 font-light leading-tight">Gestión Inteligente de Préstamos</p>
+                        <img src={logo} alt="ReBless" className="w-32 h-32 md:w-52 md:h-52 object-contain drop-shadow-2xl mb-0 hover:scale-105 transition-transform" />
+                        <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight leading-none -mt-4 relative z-10">ReBless</h1>
+                        <p className="text-teal-200 text-[10px] md:text-base mt-1 md:mt-1 font-light leading-tight">Créditos inteligentes y enrolamiento de teléfonos</p>
+                        <div className="mt-2 flex flex-wrap justify-center gap-1.5 text-[10px] md:text-xs">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">Enrola IMEI</span>
+                            <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-200 border border-cyan-400/30">Gestiona cuotas</span>
+                            <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-200 border border-teal-400/30">Control operativo</span>
+                        </div>
                     </div>
 
                     {successMsg && (
@@ -289,7 +301,7 @@ export function LoginView({ onLogin }) {
                                         type="text"
                                         placeholder="Nombre de la Empresa"
                                         required
-                                        className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                                         value={registerForm.companyName}
                                         onChange={e => setRegisterForm({ ...registerForm, companyName: e.target.value })}
                                     />
@@ -303,7 +315,7 @@ export function LoginView({ onLogin }) {
                                         type="text"
                                         placeholder="Tu Nombre Completo"
                                         required
-                                        className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                                         value={registerForm.name}
                                         onChange={e => setRegisterForm({ ...registerForm, name: e.target.value })}
                                     />
@@ -317,7 +329,7 @@ export function LoginView({ onLogin }) {
                                         type="email"
                                         placeholder="Correo Electrónico"
                                         required
-                                        className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                                         value={registerForm.email}
                                         onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
                                     />
@@ -332,11 +344,39 @@ export function LoginView({ onLogin }) {
                                         placeholder="Contraseña"
                                         required
                                         minLength={6}
-                                        className="w-full pl-10 pr-4 py-2 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                                        className="w-full pl-10 pr-4 py-2 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
                                         value={registerForm.password}
                                         onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
                                     />
                                 </div>
+
+                                <label className="flex items-start gap-2 p-2 rounded-lg border border-slate-700 bg-slate-900/40">
+                                    <input
+                                        type="checkbox"
+                                        className="mt-0.5"
+                                        checked={acceptedAgreement}
+                                        onChange={(e) => setAcceptedAgreement(e.target.checked)}
+                                    />
+                                    <span className="text-xs text-slate-300 leading-relaxed">
+                                        Acepto el acuerdo de servicios, confidencialidad, exclusividad y no competencia.
+                                        {' '}
+                                        <a href="/legal/acuerdo-servicios.html" target="_blank" rel="noopener noreferrer" className="text-emerald-300 hover:text-emerald-200 underline">
+                                            Ver acuerdo
+                                        </a>
+                                        {' '}
+                                        ·
+                                        {' '}
+                                        <a href="/legal/terms-of-service.html" target="_blank" rel="noopener noreferrer" className="text-emerald-300 hover:text-emerald-200 underline">
+                                            Términos
+                                        </a>
+                                        {' '}
+                                        ·
+                                        {' '}
+                                        <a href="/legal/privacy-policy.html" target="_blank" rel="noopener noreferrer" className="text-emerald-300 hover:text-emerald-200 underline">
+                                            Privacidad
+                                        </a>
+                                    </span>
+                                </label>
 
                                 {error && (
                                     <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-sm text-center">
@@ -374,7 +414,7 @@ export function LoginView({ onLogin }) {
                                         <input
                                             type="text"
                                             placeholder="Usuario o Email"
-                                            className="w-full pl-10 pr-4 py-2 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                            className="w-full pl-10 pr-4 py-2 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                                             value={credentials.username}
                                             onChange={e => setCredentials({ ...credentials, username: e.target.value })}
                                         />
@@ -389,7 +429,7 @@ export function LoginView({ onLogin }) {
                                         <input
                                             type="password"
                                             placeholder="Contraseña"
-                                            className="w-full pl-10 pr-4 py-2 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                            className="w-full pl-10 pr-4 py-2 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                                             value={credentials.password}
                                             onChange={e => setCredentials({ ...credentials, password: e.target.value })}
                                         />
@@ -405,7 +445,7 @@ export function LoginView({ onLogin }) {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full py-2.5 md:py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    className="w-full py-2.5 md:py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg hover:shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
                                         <span className="flex items-center justify-center gap-2">
@@ -442,7 +482,7 @@ export function LoginView({ onLogin }) {
                             </div>
 
                             <div className="text-center pt-4 border-t border-slate-800 mt-4">
-                                <p className="text-slate-400 text-sm mb-2">¿Nuevo en Presta Pro?</p>
+                                <p className="text-slate-400 text-sm mb-2">¿Nuevo en ReBless?</p>
                                 <button
                                     type="button"
                                     onClick={() => setIsRegistering(true)}
@@ -460,11 +500,11 @@ export function LoginView({ onLogin }) {
                             <p className="text-xs text-slate-400 mb-2">¿Problemas para acceder?</p>
                             <div className="flex items-center justify-center gap-3 md:gap-4 flex-wrap">
                                 <a
-                                    href="mailto:info@renace.tech"
+                                    href="mailto:soporte@rebless.com"
                                     className="flex items-center gap-1.5 text-xs md:text-sm text-blue-400 hover:text-blue-300 transition-colors"
                                 >
                                     <Mail size={14} />
-                                    <span className="hidden sm:inline">info@renace.tech</span>
+                                    <span className="hidden sm:inline">soporte@rebless.com</span>
                                     <span className="sm:hidden">Email</span>
                                 </a>
                                 <a
@@ -482,7 +522,7 @@ export function LoginView({ onLogin }) {
                         </div>
 
                         <p className="text-[10px] md:text-xs text-slate-500">
-                            &copy; {new Date().getFullYear()} Renace Tech
+                            &copy; {new Date().getFullYear()} ReBless
                         </p>
                     </div>
                 </div>

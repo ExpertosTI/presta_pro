@@ -131,6 +131,8 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
             open: true,
             title: 'Resetear contraseña',
             message: '¿Generar nueva contraseña? La anterior dejará de funcionar.',
+            confirmText: 'Resetear',
+            variant: 'warning',
             onConfirm: async () => {
                 try {
                     const result = await collectorService.resetPassword(id);
@@ -318,8 +320,8 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
                 onConfirm={confirmDialog.onConfirm}
                 title={confirmDialog.title}
                 message={confirmDialog.message}
-                confirmText="Eliminar"
-                variant="danger"
+                confirmText={confirmDialog.confirmText || "Eliminar"}
+                variant={confirmDialog.variant || "danger"}
             />
 
             {/* Temp Password Modal */}

@@ -160,7 +160,7 @@ export function CalculatorView() {
         </table>
         
         <p style="margin-top:30px;font-size:10px;color:#94a3b8;text-align:center">
-          Generado el ${new Date().toLocaleDateString('es-DO')} | Presta Pro
+          Generado el ${new Date().toLocaleDateString('es-DO')} | ReBless
         </p>
       </div>
     `;
@@ -183,7 +183,7 @@ export function CalculatorView() {
 💰 *Total a Pagar:* ${formatCurrency(summary.totalPayment)}
 📉 *Costo del Crédito:* ${formatCurrency(summary.costOfCredit)}
 
-_Simulación generada con Presta Pro_`;
+_Simulación generada con ReBless_`;
 
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   };

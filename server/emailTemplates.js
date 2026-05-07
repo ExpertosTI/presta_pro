@@ -1,14 +1,14 @@
-// Email Templates for Presta Pro
-// Branding: PRESTAPRO by RENACE.TECH
+// Email Templates for ReBless
+// Branding: ReBless by RENACE.TECH
 // Modern, Dynamic Email Templates with Premium Design
 
-const BRAND_NAME = 'PRESTAPRO';
-const BRAND_TAGLINE = 'by RENACE.TECH';
-const BRAND_COLOR = '#2563eb'; // Primary Blue
-const BRAND_COLOR_DARK = '#1d4ed8'; // Darker Blue for hover
+const BRAND_NAME = 'ReBless';
+const BRAND_TAGLINE = 'por RENACE.TECH';
+const BRAND_COLOR = '#0f766e'; // ReBless Teal
+const BRAND_COLOR_DARK = '#0d9488'; // Lighter Teal for hover
 const ACCENT_COLOR = '#10b981'; // Emerald Green for success
-// Solid dark blue colors - gradients can fail in email clients
-const HEADER_BG = '#1e3a8a'; // Dark blue solid
+// Solid dark teal colors - gradients can fail in email clients
+const HEADER_BG = '#0f172a'; // Dark blue/slate solid (consistent with app)
 const HEADER_TEXT = '#ffffff';
 
 // Logo URL - usando data URI para garantizar que se muestre
