@@ -36,14 +36,14 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'Presta Pro',
-        short_name: 'PrestaPro',
-        description: 'Sistema de gestión de préstamos personales',
+        name: 'ReBless',
+        short_name: 'ReBless',
+        description: 'Creditos y enrolamiento de telefonos',
         start_url: '/',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#0f172a',
-        theme_color: '#4f46e5',
+        theme_color: '#0f766e',
         categories: ['finance', 'business'],
         shortcuts: [
           {
