@@ -4,7 +4,7 @@ node_modules
 .env.server
 
 # Build Artifacts
-dist/
+# dist/ (Removed for lightweight deployment)
 dist_installer/
 release/
 release_portable/
