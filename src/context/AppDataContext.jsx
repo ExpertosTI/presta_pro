@@ -115,7 +115,7 @@ export function AppDataProvider({ children, token, user }) {
 
   // --- SyncEngine init ---
   useEffect(() => {
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+    const apiBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
     const getToken = () => localStorage.getItem('authToken');
 
     syncEngine.init({ apiBaseUrl, getAuthToken: getToken }).then(() => {
