@@ -30,10 +30,28 @@ export function LoginView({ onLogin }) {
     const [resendLoading, setResendLoading] = useState(false);
     const [resendSuccess, setResendSuccess] = useState(false);
 
-    const handleCredentialLogin = async (e) => {
-        e.preventDefault();
+    const handleDemoLogin = () => {
+        setCredentials({
+            username: 'admin@renace.tech',
+            password: '1012'
+        });
+        // Small delay to ensure state update before submit
+        setTimeout(() => {
+            const fakeEvent = { preventDefault: () => { } };
+            handleCredentialLogin(fakeEvent, {
+                email: 'admin@renace.tech',
+                password: '1012'
+            });
+        }, 100);
+    };
+
+    const handleCredentialLogin = async (e, directCredentials = null) => {
+        if (e) e.preventDefault();
         setLoading(true);
         setError('');
+
+        const loginEmail = directCredentials ? directCredentials.email : credentials.username;
+        const loginPassword = directCredentials ? directCredentials.password : credentials.password;
 
         try {
             // Use relative URL - nginx proxies /api to backend in production
@@ -41,8 +59,8 @@ export function LoginView({ onLogin }) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: credentials.username,
-                    password: credentials.password
+                    email: loginEmail,
+                    password: loginPassword
                 })
             });
 
@@ -455,6 +473,17 @@ export function LoginView({ onLogin }) {
                                     ) : (
                                         'Iniciar Sesión'
                                     )}
+                                </button>
+
+                                {/* Demo Access Button */}
+                                <button
+                                    type="button"
+                                    onClick={handleDemoLogin}
+                                    disabled={loading}
+                                    className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-teal-300 font-medium rounded-xl border border-teal-500/30 transition-all flex items-center justify-center gap-2 group"
+                                >
+                                    <Shield size={16} className="group-hover:animate-pulse" />
+                                    Acceso Demo (RenaceTech)
                                 </button>
                             </form>
 
