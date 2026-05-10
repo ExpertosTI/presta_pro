@@ -19,13 +19,18 @@ git reset --hard origin/"${BRANCH}"
 
 # 2. Build images
 echo "🔨 2/5 - Building imágenes Docker..."
-# Exportamos variables para el build si son necesarias
-set -a; [ -f .env ] && source .env; set +a
+# Exportamos variables del .env para que docker-compose y stack deploy las vean
+if [ -f .env ]; then
+    echo "🔑 Cargando variables de entorno desde .env..."
+    set -a; source .env; set +a
+else
+    echo "⚠️ ADVERTENCIA: No se encontró el archivo .env"
+fi
 docker compose build --no-cache
 
 # 3. Ensure Network
 echo "🌐 3/5 - Asegurando red RenaceNet..."
-docker network ls | grep RenaceNet > /dev/null || docker network create --driver overlay RenaceNet
+docker network ls --format '{{.Name}}' | grep -w RenaceNet > /dev/null || docker network create --driver overlay RenaceNet
 
 # 4. Deploy Stack
 echo "🚀 4/5 - Desplegando Stack..."

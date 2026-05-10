@@ -6,10 +6,10 @@ services:
     build:
       context: ./server
     environment:
-      - DATABASE_URL=postgresql://prestapro:prestapro@db:5432/prestapro?schema=public
+      - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - APP_BASE_URL=https://rebless.renace.tech
+      - APP_BASE_URL=${APP_BASE_URL:-https://rebless.renace.tech}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_USER=${SMTP_USER}
@@ -30,9 +30,9 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=prestapro
-      - POSTGRES_USER=prestapro
-      - POSTGRES_PASSWORD=prestapro
+      - POSTGRES_DB=${POSTGRES_DB:-prestapro}
+      - POSTGRES_USER=${POSTGRES_USER:-prestapro}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-prestapro}
     volumes:
       - prestapro_db_data:/var/lib/postgresql/data
     networks:

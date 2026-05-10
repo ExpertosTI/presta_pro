@@ -1552,9 +1552,9 @@ app.post('/api/subscriptions/upload-proof', authMiddleware, upload.single('proof
       </html>
     `;
 
-    if (mailTransporter) {
-      await mailTransporter.sendMail({
-        from: `"ReBless" <${SMTP_USER || 'noreply@renace.tech'}>`,
+    if (mailer) {
+      await mailer.sendMail({
+        from: `"ReBless" <${SMTP_FROM}>`,
         to: adminEmail,
         subject: `💳 Comprobante de Pago - ${tenant?.name || 'Nuevo Cliente'} - Plan ${plan}`,
         html: emailHtml,

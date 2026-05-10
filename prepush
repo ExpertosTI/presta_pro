@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+
+echo "🚀 Iniciando Protocolo Pre-Push (Presta Pro)..."
+
+# 1. Compilar Frontend locally
+echo "🛠  1/3 Compilando assets de React (Vite)..."
+npm run build
+
+# 2. Sincronizar con Git
+echo "📤 2/3 Sincronizando repositorio..."
+git add .
+# Intentamos commitear, si no hay cambios no pasa nada
+git commit -m "deploy: production build $(date +'%Y-%m-%d %H:%M:%S')" || echo "ℹ️ No hay cambios nuevos para commitear."
+
+echo "🛰️  Enviando a GitHub..."
+git push origin rebless
+
+# 3. Finalizar
+echo "✅ Proceso local completado con éxito."
+echo "🚀 Los cambios están en el repositorio. Ahora puedes ir al VPS y ejecutar ./deploy.sh"
