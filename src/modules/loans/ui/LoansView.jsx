@@ -386,8 +386,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Edit Loan Modal (solo préstamos sin pagos) */}
       {editModalOpen && selectedLoan && (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm safe-area-insets">
-          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/70 flex justify-center items-start overflow-y-auto z-50 p-4 backdrop-blur-sm safe-area-insets">
+          <div className="my-auto w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Editar préstamo</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
               Solo puedes editar préstamos que aún no tengan pagos registrados.
@@ -480,8 +480,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Create Loan Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm safe-area-insets">
-          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/70 flex justify-center items-start overflow-y-auto z-50 p-4 backdrop-blur-sm safe-area-insets">
+          <div className="my-auto w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Nuevo Préstamo</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
               Crea un préstamo directo para un cliente existente.
@@ -534,7 +534,10 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                       type="button"
                       onClick={() => {
                         setCreateModalOpen(false);
-                        onNewClient();
+                        onNewClient((newClientId) => {
+                          setCreateModalOpen(true);
+                          setCreateForm(prev => ({ ...prev, clientId: newClientId }));
+                        });
                       }}
                       className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold whitespace-nowrap"
                     >
@@ -791,7 +794,53 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
       </Card>
 
       <Card>
-        <div className="overflow-x-auto">
+        {/* Mobile View: Card List */}
+        <div className="block sm:hidden space-y-2.5">
+          {filteredLoans.map(l => {
+            const client = clients.find(c => c.id === l.clientId);
+            const isSelected = selectedLoanId === l.id;
+            const hasDocuments = client?.documents && client.documents.length > 0;
+            return (
+              <div
+                key={l.id}
+                onClick={() => onSelectLoan && onSelectLoan(l.id)}
+                className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm'
+                    : 'bg-white dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      {client?.name || 'Sin cliente'}
+                    </span>
+                    {hasDocuments && (
+                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded px-1.5 py-0.5 text-[9px] font-bold flex items-center gap-0.5">
+                        <FileText size={8} /> {client.documents.length}
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                    {formatCurrency(l.amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500">Tasa: {l.rate}%</span>
+                  <Badge status={l.status} />
+                </div>
+              </div>
+            );
+          })}
+          {loans.length === 0 && (
+            <div className="p-4 text-center text-slate-400 bg-white dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800">
+              No hay préstamos registrados.
+            </div>
+          )}
+        </div>
+
+        {/* Desktop/Tablet View: Traditional Table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
               <tr>
@@ -835,12 +884,10 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   </td>
                 </tr>
               )}
-
-              {/* Payment Modal removed - served by PaymentConfirmationModal content above */}
             </tbody>
           </table>
         </div>
-      </Card >
+      </Card>
 
       {selectedLoan && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1073,8 +1120,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Cancel Loan Modal */}
       {cancelModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 safe-area-insets">
+          <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
             <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
               <XCircle size={20} /> Cancelar Préstamo
             </h3>
@@ -1121,8 +1168,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Archive Loan Modal */}
       {archiveModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 safe-area-insets">
+          <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
               <Archive size={20} /> {selectedLoan.archived ? 'Desarchivar' : 'Archivar'} Préstamo
             </h3>
@@ -1167,8 +1214,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Delete Loan Modal */}
       {deleteModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 safe-area-insets">
+          <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
             <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
               <Trash2 size={20} /> Eliminar Préstamo
             </h3>
@@ -1210,8 +1257,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* MEJORA 11: Renew Loan Modal */}
       {renewModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in max-h-[95vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 safe-area-insets">
+          <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm animate-fade-in">
             <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mb-3 flex items-center gap-2">
               <RefreshCw size={20} /> Renovar Préstamo
             </h3>
@@ -1257,8 +1304,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* MEJORA 12: Refinance Loan Modal */}
       {refinanceModal && selectedLoan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 safe-area-insets">
+          <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
             <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
               <Wallet size={20} /> Refinanciar Préstamo
             </h3>
@@ -1304,8 +1351,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* MEJORA 14: Notes Modal */}
       {notesModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-md animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 safe-area-insets">
+          <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-md animate-fade-in">
             <h3 className="text-lg font-bold text-violet-600 dark:text-violet-400 mb-3 flex items-center gap-2">
               <StickyNote size={20} /> Notas del Préstamo
             </h3>
@@ -1354,8 +1401,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* Error Modal - replaces browser alert() */}
       {errorModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 safe-area-insets">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4 safe-area-insets">
+          <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
                 <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />

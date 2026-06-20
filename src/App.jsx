@@ -20,25 +20,33 @@ import { printReceipt } from './services/printing/PrintService';
 import { LoginView } from './modules/auth';
 
 // --- Sidebar Menu Components ---
-const MenuItem = ({ icon: Icon, label, id, activeTab, onClick, badge }) => (
-  <button
-    onClick={() => onClick(id)}
-    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl mb-1 transition-all ${activeTab === id
-      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-      }`}
-  >
-    <div className="flex items-center gap-3">
-      <Icon size={20} />
-      <span className="font-medium text-sm">{label}</span>
-    </div>
-    {badge && (
-      <span className="bg-blue-500/20 text-blue-200 text-xs px-2 py-0.5 rounded-full border border-blue-500/30">
-        {badge}
-      </span>
-    )}
-  </button>
-);
+const MenuItem = ({ icon: Icon, label, id, activeTab, onClick, badge }) => {
+  const isActive = activeTab === id;
+  return (
+    <button
+      onClick={() => onClick(id)}
+      style={isActive ? { backgroundColor: 'var(--color-primary)' } : undefined}
+      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl mb-1 transition-all duration-200 active:scale-98 ${isActive
+        ? 'text-white shadow-lg shadow-black/10'
+        : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+        }`}
+    >
+      <div className="flex items-center gap-3">
+        <Icon size={20} strokeWidth={isActive ? 2.3 : 1.8} className={isActive ? 'scale-105' : ''} />
+        <span className="font-medium text-sm">{label}</span>
+      </div>
+      {badge && (
+        <span 
+          style={isActive ? { borderColor: 'rgba(255,255,255,0.4)', color: 'white' } : { borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+          className="text-[10px] px-2 py-0.5 rounded-full border bg-white/10 dark:bg-black/10 font-bold transition-all"
+        >
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+};
+
 
 const MenuSection = ({ title, children }) => (
   <div className="mb-6">

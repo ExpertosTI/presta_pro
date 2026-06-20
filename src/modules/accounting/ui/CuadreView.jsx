@@ -359,44 +359,50 @@ function CuadreView({
       )}
 
       {/* Main KPIs */}
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-          <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300">
-            <p className="text-xs font-semibold uppercase tracking-wide">Ingresos</p>
-            <p className="mt-1 text-2xl font-bold">{formatCurrency(totalIngresos)}</p>
-            {/* MEJORA 8: Comparison with yesterday */}
-            {incomeChange !== null && (
-              <p className={`text-xs flex items-center gap-1 mt-1 ${parseFloat(incomeChange) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {parseFloat(incomeChange) >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                {incomeChange}% vs ayer
-              </p>
-            )}
-          </div>
-          <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-300">
-            <p className="text-xs font-semibold uppercase tracking-wide">Gastos</p>
-            <p className="mt-1 text-2xl font-bold">{formatCurrency(totalGastos)}</p>
-            <p className="text-xs text-slate-500 mt-1">{expensesFiltered.length} movimientos</p>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900 dark:bg-slate-700 text-white">
-            <p className="text-xs font-semibold uppercase tracking-wide">Balance</p>
-            <p className="mt-1 text-2xl font-bold">{formatCurrency(balance)}</p>
-            <p className="text-xs opacity-70 mt-1">{receiptsFiltered.length} cobros</p>
-          </div>
-          {/* MEJORA 9: Daily Goal */}
-          {dailyGoal > 0 && (
-            <div className="p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-800 dark:text-violet-300">
-              <p className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1">
-                <Target size={12} /> Meta diaria
-              </p>
-              <p className="mt-1 text-2xl font-bold">{goalProgress.toFixed(0)}%</p>
-              <div className="h-2 bg-violet-200 dark:bg-violet-800 rounded-full overflow-hidden mt-2">
-                <div className="h-full bg-violet-500" style={{ width: `${goalProgress}%` }} />
-              </div>
-              <p className="text-xs mt-1">{formatCurrency(totalIngresos)} / {formatCurrency(dailyGoal)}</p>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        <Card className="bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-950/20 text-emerald-800 dark:text-emerald-400 card-hover">
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Ingresos</p>
+          <p className="mt-2 text-2xl font-black text-slate-800 dark:text-white">{formatCurrency(totalIngresos)}</p>
+          {/* MEJORA 8: Comparison with yesterday */}
+          {incomeChange !== null && (
+            <p className={`text-xs flex items-center gap-1 mt-2 font-semibold ${parseFloat(incomeChange) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              {parseFloat(incomeChange) >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+              {incomeChange}% vs ayer
+            </p>
           )}
-        </div>
-      </Card>
+        </Card>
+
+        <Card className="bg-rose-50/50 dark:bg-rose-950/10 border-rose-100 dark:border-rose-950/20 text-rose-800 dark:text-rose-400 card-hover">
+          <p className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Gastos</p>
+          <p className="mt-2 text-2xl font-black text-slate-800 dark:text-white">{formatCurrency(totalGastos)}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">{expensesFiltered.length} movimientos</p>
+        </Card>
+
+        <Card className="bg-slate-900 dark:bg-slate-800/90 text-white border-0 card-hover">
+          <p className="text-xs font-bold uppercase tracking-wider opacity-85">Balance</p>
+          <p className="mt-2 text-2xl font-black">{formatCurrency(balance)}</p>
+          <p className="text-xs opacity-75 mt-2">{receiptsFiltered.length} cobros</p>
+        </Card>
+
+        {dailyGoal > 0 ? (
+          <Card className="bg-violet-50/50 dark:bg-violet-950/10 border-violet-100 dark:border-violet-950/20 text-violet-800 dark:text-violet-400 card-hover">
+            <p className="text-xs font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 flex items-center gap-1">
+              <Target size={14} /> Meta diaria
+            </p>
+            <p className="mt-2 text-2xl font-black text-slate-800 dark:text-white">{goalProgress.toFixed(0)}%</p>
+            <div className="h-2 bg-violet-200 dark:bg-violet-900/50 rounded-full overflow-hidden mt-3">
+              <div className="h-full bg-violet-500" style={{ width: `${goalProgress}%` }} />
+            </div>
+            <p className="text-[10px] mt-2 text-slate-500 dark:text-slate-400">{formatCurrency(totalIngresos)} / {formatCurrency(dailyGoal)}</p>
+          </Card>
+        ) : (
+          <Card className="bg-blue-50/50 dark:bg-blue-950/10 border-blue-100 dark:border-blue-950/20 text-blue-800 dark:text-blue-400 card-hover">
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Rendimiento</p>
+            <p className="mt-2 text-2xl font-black text-slate-800 dark:text-white">{receiptsFiltered.length} Pagos</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Día actual</p>
+          </Card>
+        )}
+      </div>
 
       {/* MEJORA 5: Trend Chart */}
       <Card>
@@ -618,8 +624,8 @@ function CuadreView({
 
       {/* Closing Detail Modal */}
       {closingDetail && (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 max-h-[80vh] flex flex-col border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 max-h-[80vh] flex flex-col border border-slate-200 dark:border-slate-700 animate-scale-in">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Tickets cobrados en el cuadre</h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
               Cobrador:{' '}
@@ -684,8 +690,8 @@ function CuadreView({
 
       {/* MEJORA 4: Close Cash Modal */}
       {showCloseModal && (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700 animate-scale-in">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Cerrar Caja</h3>

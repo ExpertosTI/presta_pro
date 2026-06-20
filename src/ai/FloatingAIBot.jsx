@@ -90,8 +90,8 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
       style={{ right: position.x, bottom: position.y }}
     >
       {open && (
-        <div className="pointer-events-auto w-[360px] max-w-[90vw] h-[520px] max-h-[80vh] rounded-2xl shadow-2xl border border-slate-800/70 bg-slate-950/95 backdrop-blur-2xl flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-950/95">
+        <div className="pointer-events-auto w-[360px] max-w-[90vw] h-[520px] max-h-[80vh] rounded-2xl shadow-2xl border border-slate-800/80 bg-slate-950/95 backdrop-blur-2xl flex flex-col overflow-hidden animate-scale-in">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/70 bg-slate-950/95">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white shadow-md">
                 <Bot size={18} />
@@ -104,7 +104,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="text-slate-400 hover:text-slate-100 transition-colors"
+              className="text-slate-400 hover:text-slate-100 transition-colors p-1"
             >
               <X size={16} />
             </button>
@@ -131,13 +131,13 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
         onMouseDown={handlePointerDown}
         onTouchStart={handlePointerDown}
         onClick={handleToggle}
-        className="pointer-events-auto w-16 h-16 rounded-full bg-gradient-to-tr from-violet-600 via-indigo-600 to-blue-500 shadow-2xl shadow-indigo-500/50 flex items-center justify-center text-white border-2 border-white/20 hover:scale-110 active:scale-95 transition-all duration-300 touch-none relative group overflow-hidden"
+        className="pointer-events-auto w-16 h-16 rounded-full bg-gradient-to-tr from-violet-600 via-indigo-600 to-blue-500 flex items-center justify-center text-white border-2 border-white/20 hover:scale-105 active:scale-95 transition-all duration-300 touch-none relative group overflow-hidden animate-pulse-glow"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         <Bot size={28} className="drop-shadow-md" />
-        <span className="absolute -top-1 -right-1 flex h-5 w-5">
+        <span className="absolute -top-0.5 -right-0.5 flex h-4.5 w-4.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-5 w-5 bg-sky-500 border-2 border-white dark:border-slate-900"></span>
+          <span className="relative inline-flex rounded-full h-4.5 w-4.5 bg-sky-500 border-2 border-white dark:border-slate-900"></span>
         </span>
       </button>
     </div>

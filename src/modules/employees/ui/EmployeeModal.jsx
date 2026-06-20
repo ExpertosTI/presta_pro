@@ -76,8 +76,8 @@ export function EmployeeModal({ open, onClose, onSave, initialEmployee }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-stretch sm:items-center justify-center z-[120] backdrop-blur-sm animate-fade-in p-0 sm:p-4 safe-area-insets">
-      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-none sm:rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-md border border-white/20 dark:border-slate-700 h-full sm:h-auto max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 flex justify-center items-start overflow-y-auto z-[120] backdrop-blur-sm animate-fade-in p-4 safe-area-insets">
+      <div className="my-auto bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-md border border-white/20 dark:border-slate-700">
         <h2 className="text-xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
           {initialEmployee ? 'Editar Empleado' : 'Nuevo Empleado'}
         </h2>

@@ -514,8 +514,8 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
 
       {/* Modal de Gastos de Cierre con MEJORA 6: Notify client */}
       {approvalModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+          <div className="my-auto bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
             <div className="bg-gradient-to-r from-teal-500 to-emerald-600 p-4 text-white text-center relative">
               <button
                 onClick={() => setApprovalModal(null)}
@@ -594,8 +594,8 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
 
       {/* MEJORA 4: Reject Modal with reason */}
       {rejectModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+          <div className="my-auto bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
             <div className="bg-gradient-to-r from-rose-500 to-red-600 p-4 text-white text-center relative">
               <button
                 onClick={() => setRejectModal(null)}
@@ -647,8 +647,8 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
 
       {/* MEJORA 15: Edit Request Modal */}
       {editModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+          <div className="my-auto bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
             <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-white text-center relative">
               <button
                 onClick={() => setEditModal(null)}

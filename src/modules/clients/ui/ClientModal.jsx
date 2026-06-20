@@ -127,8 +127,8 @@ export function ClientModal({ open, onClose, onSave, initialClient, collectors =
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm animate-fade-in p-4 safe-area-insets">
-      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-lg border border-white/20 dark:border-slate-700 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-b-none sm:rounded-b-2xl">
+    <div className="fixed inset-0 bg-black/60 flex justify-center items-start overflow-y-auto z-50 backdrop-blur-sm animate-fade-in p-4 safe-area-insets">
+      <div className="my-auto bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-lg border border-white/20 dark:border-slate-700 rounded-b-none sm:rounded-b-2xl">
         <h2 className="text-xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
           {initialClient ? 'Editar Cliente' : 'Nuevo Cliente'}
         </h2>

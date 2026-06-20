@@ -403,7 +403,64 @@ export function ExpensesView({ expenses, addExpense, onDeleteExpense }) {
 
       {/* Expenses Table */}
       <Card>
-        <div className="overflow-x-auto">
+        {/* Mobile View: Card List */}
+        <div className="block sm:hidden space-y-2.5">
+          {filteredExpenses.map(e => (
+            <div
+              key={e.id}
+              className="p-3 bg-white dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2"
+            >
+              <div className="flex justify-between items-start">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                    {e.description || e.concept || 'Gasto'}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {formatDate(e.date)}
+                  </p>
+                </div>
+                <p className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                  {formatCurrency(e.amount)}
+                </p>
+              </div>
+              <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getCategoryStyle(e.category)}`}>
+                  {CATEGORIES.find(c => c.value === e.category)?.label || 'Otro'}
+                </span>
+                <div className="flex items-center gap-2">
+                  {e.isRecurring && (
+                    <span className="flex items-center gap-0.5 text-[10px] text-violet-600 dark:text-violet-400" title="Recurrente">
+                      <RefreshCw size={10} />
+                      {e.recurringFrequency === 'WEEKLY' ? 'Sem.' : e.recurringFrequency === 'YEARLY' ? 'Anual' : 'Mens.'}
+                    </span>
+                  )}
+                  {e.receiptUrl && (
+                    <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 font-medium hover:underline text-xs">
+                      Comprobante
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleDelete(e)}
+                    className="p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded transition-colors"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {filteredExpenses.length === 0 && (
+            <div className="p-4 text-center text-slate-400 bg-white dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800">
+              {searchQuery || categoryFilter !== 'ALL' || dateFrom || dateTo
+                ? 'No se encontraron gastos con los filtros aplicados.'
+                : 'No hay gastos registrados.'}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop/Tablet View: Traditional Table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
               <tr>

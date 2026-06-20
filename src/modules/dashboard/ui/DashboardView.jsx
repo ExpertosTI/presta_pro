@@ -197,19 +197,20 @@ export default function DashboardView({
             </div>
 
             {/* Main KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Main KPIs */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
                 <button
                     onClick={() => onNavigate?.('loans')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-white dark:bg-[#0f172a] border border-blue-200 dark:border-blue-900/50 hover:border-blue-500/50 transition-all group-hover:shadow-blue-900/20 group-hover:shadow-lg">
+                    <Card className="bg-white dark:bg-[#0f172a] border border-blue-200 dark:border-blue-900/50 hover:border-blue-500/50 transition-all card-hover group-hover:shadow-blue-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                                 <p className="text-[10px] md:text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Cartera</p>
                                 <p className="text-sm sm:text-lg md:text-2xl font-black text-slate-800 dark:text-white mt-1 truncate">{formatCurrency(totalLent)}</p>
                                 <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{activeLoansOnly.length} préstamos</p>
                             </div>
-                            <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 flex-shrink-0">
+                            <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 flex-shrink-0 group-hover:scale-110 transition-transform">
                                 <Wallet size={20} />
                             </div>
                         </div>
@@ -220,14 +221,14 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('cuadre')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-white dark:bg-[#0f172a] border border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-500/50 transition-all group-hover:shadow-emerald-900/20 group-hover:shadow-lg">
+                    <Card className="bg-white dark:bg-[#0f172a] border border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-500/50 transition-all card-hover group-hover:shadow-emerald-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                                 <p className="text-[10px] md:text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Recaudado</p>
                                 <p className="text-sm sm:text-lg md:text-2xl font-black text-slate-800 dark:text-white mt-1 truncate">{formatCurrency(totalCollected)}</p>
                                 <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{paidLoans} pagados</p>
                             </div>
-                            <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 flex-shrink-0">
+                            <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 flex-shrink-0 group-hover:scale-110 transition-transform">
                                 <TrendingUp size={20} />
                             </div>
                         </div>
@@ -238,14 +239,14 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('routes')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-white dark:bg-[#0f172a] border border-amber-200 dark:border-amber-900/50 hover:border-amber-500/50 transition-all group-hover:shadow-amber-900/20 group-hover:shadow-lg">
+                    <Card className="bg-white dark:bg-[#0f172a] border border-amber-200 dark:border-amber-900/50 hover:border-amber-500/50 transition-all card-hover group-hover:shadow-amber-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                                 <p className="text-[10px] md:text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Por Cobrar</p>
                                 <p className="text-sm sm:text-lg md:text-2xl font-black text-slate-800 dark:text-white mt-1 truncate">{formatCurrency(pendingAmount)}</p>
                                 <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{activeLoans} activos</p>
                             </div>
-                            <div className="p-2 bg-amber-500/10 rounded-xl text-amber-400 flex-shrink-0">
+                            <div className="p-2 bg-amber-500/10 rounded-xl text-amber-400 flex-shrink-0 group-hover:scale-110 transition-transform">
                                 <Clock size={20} />
                             </div>
                         </div>
@@ -256,14 +257,14 @@ export default function DashboardView({
                     onClick={() => onNavigate?.('clients')}
                     className="text-left w-full group"
                 >
-                    <Card className="bg-white dark:bg-[#0f172a] border border-violet-200 dark:border-violet-900/50 hover:border-violet-500/50 transition-all group-hover:shadow-violet-900/20 group-hover:shadow-lg">
+                    <Card className="bg-white dark:bg-[#0f172a] border border-violet-200 dark:border-violet-900/50 hover:border-violet-500/50 transition-all card-hover group-hover:shadow-violet-900/20 group-hover:shadow-lg">
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                                 <p className="text-[10px] md:text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest">Clientes</p>
                                 <p className="text-sm sm:text-lg md:text-2xl font-black text-slate-800 dark:text-white mt-1 truncate">{clients.length}</p>
                                 <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">Registrados</p>
                             </div>
-                            <div className="p-2 bg-violet-500/10 rounded-xl text-violet-400 flex-shrink-0">
+                            <div className="p-2 bg-violet-500/10 rounded-xl text-violet-400 flex-shrink-0 group-hover:scale-110 transition-transform">
                                 <Users size={20} />
                             </div>
                         </div>
@@ -272,11 +273,11 @@ export default function DashboardView({
             </div>
 
             {/* Period Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <Card>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                <Card className="card-hover">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
                         <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">Ingresos ({filterLabels[filter]})</h3>
-                        <span className="text-lg sm:text-2xl font-bold text-emerald-600 tabular-nums">{formatCurrency(periodIncome)}</span>
+                        <span className="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(periodIncome)}</span>
                     </div>
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm">
@@ -285,35 +286,35 @@ export default function DashboardView({
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-slate-500 dark:text-slate-400">Mora cobrada</span>
-                            <span className="font-semibold text-amber-600">{formatCurrency(periodPenalties)}</span>
+                            <span className="font-semibold text-amber-600 dark:text-amber-500">{formatCurrency(periodPenalties)}</span>
                         </div>
-                        <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
+                        <div className="h-2 bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden mt-2">
                             <div
-                                className="h-full bg-emerald-500 transition-all"
+                                className="h-full bg-emerald-500 transition-all duration-500"
                                 style={{ width: `${Math.min((periodIncome / (totalExpected || 1)) * 100, 100)}%` }}
                             />
                         </div>
                     </div>
                 </Card>
 
-                <Card>
+                <Card className="card-hover">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
                         <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">Gastos ({filterLabels[filter]})</h3>
-                        <span className="text-lg sm:text-2xl font-bold text-rose-600 tabular-nums">{formatCurrency(periodExpenses)}</span>
+                        <span className="text-lg sm:text-2xl font-bold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(periodExpenses)}</span>
                     </div>
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                             <span className="text-slate-500 dark:text-slate-400">Movimientos</span>
                             <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredExpenses.length}</span>
                         </div>
-                        <p className="text-xs text-slate-400">Control de gastos operativos</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">Control de gastos operativos</p>
                     </div>
                 </Card>
 
-                <Card className={periodProfit >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-rose-50 dark:bg-rose-900/20'}>
+                <Card className={`card-hover ${periodProfit >= 0 ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-950/20' : 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-950/20'}`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
                         <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">Balance ({filterLabels[filter]})</h3>
-                        <span className={`text-lg sm:text-2xl font-bold tabular-nums ${periodProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <span className={`text-lg sm:text-2xl font-bold tabular-nums ${periodProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {formatCurrency(periodProfit)}
                         </span>
                     </div>

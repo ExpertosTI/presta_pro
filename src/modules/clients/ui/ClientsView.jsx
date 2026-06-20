@@ -325,7 +325,71 @@ export function ClientsView({
 
       {/* Client List */}
       <Card>
-        <div className="overflow-x-auto">
+        {/* Mobile View: Card List */}
+        <div className="block sm:hidden space-y-2.5">
+          {filteredClients.map(c => {
+            const collector = collectors.find(col => col.id === c.collectorId);
+            const isSelected = selectedClientId === c.id;
+            return (
+              <div
+                key={c.id}
+                onClick={() => onSelectClient && onSelectClient(c.id)}
+                className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm'
+                    : 'bg-white dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 flex-shrink-0">
+                    {c.photoUrl ? (
+                      <img src={c.photoUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-sm text-slate-500 dark:text-slate-400 font-bold">
+                        {(c.name || '?').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{c.name}</span>
+                      <ClientRating score={c.score} />
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-slate-500 mt-1">
+                      <div className="flex items-center gap-2">
+                        {c.phone && (
+                          <a href={`tel:${c.phone}`} className="hover:text-blue-600 font-medium" onClick={e => e.stopPropagation()}>
+                            {c.phone}
+                          </a>
+                        )}
+                        {c.phone && (
+                          <a
+                            href={`https://wa.me/${(c.phone || '').replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:text-green-700"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <WhatsAppIcon size={12} />
+                          </a>
+                        )}
+                      </div>
+                      <span>{collector?.name || 'Sin cobrador'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {filteredClients.length === 0 && (
+            <div className="p-4 text-center text-slate-400 bg-white dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800">
+              {searchQuery ? 'No se encontraron clientes.' : 'No hay clientes registrados.'}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop/Tablet View: Traditional Table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
               <tr>

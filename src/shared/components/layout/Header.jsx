@@ -43,12 +43,15 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
           <button
             type="button"
             onClick={() => setUserMenuOpen((prev) => !prev)}
-            className="flex items-center gap-2 focus:outline-none min-h-[44px] touch-manipulation"
+            className="flex items-center gap-2 focus:outline-none min-h-[44px] touch-manipulation group"
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20 text-sm">
+            <div 
+              style={{ backgroundImage: 'linear-gradient(to top right, var(--color-primary), var(--color-primary-hover, #8b5cf6))' }}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shadow-lg shadow-[var(--color-primary-dark-bg)] text-sm border-2 border-white/20 dark:border-slate-800/80 transition-transform duration-300 group-hover:scale-105"
+            >
               {(userName || 'Admin').charAt(0).toUpperCase()}
             </div>
-            <span className="text-sm font-bold hidden md:block text-slate-700 dark:text-slate-200 truncate max-w-[140px]">
+            <span className="text-sm font-bold hidden md:block text-slate-700 dark:text-slate-200 truncate max-w-[140px] transition-colors group-hover:text-[var(--color-primary)]">
               {userName || 'Admin'}
             </span>
           </button>
