@@ -6,13 +6,15 @@
 const nodemailer = require('nodemailer');
 const prisma = require('../lib/prisma');
 
-// SMTP Configuration
-const SMTP_HOST = process.env.SMTP_HOST || '85.31.224.232';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '25');
-const SMTP_USER = process.env.SMTP_USER || 'noreply@prestapro.renace.tech';
-const SMTP_PASS = process.env.SMTP_PASS || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || '"PRESTA PRO" <noreply@prestapro.renace.tech>';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@renace.tech';
+// SMTP Configuration imported from central config
+const {
+  SMTP_HOST,
+  SMTP_PORT,
+  SMTP_USER,
+  SMTP_PASS,
+  SMTP_FROM: FROM_EMAIL,
+  ADMIN_EMAIL,
+} = require('../lib/config');
 
 // Brand constants
 const BRAND_NAME = 'PRESTA PRO';

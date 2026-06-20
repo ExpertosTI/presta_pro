@@ -12,7 +12,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const emailService = require('../services/emailService');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
+const { JWT_SECRET } = require('../lib/config');
 const SALT_ROUNDS = 12;
 const { authMiddleware } = require('../middleware/authMiddleware');
 
