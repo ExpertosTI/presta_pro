@@ -324,8 +324,8 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
 
             {/* Temp Password Modal */}
             {tempPassword && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[130] p-4 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full">
+                <div className="fixed inset-0 bg-black/60 flex justify-center items-start overflow-y-auto z-[130] p-4 backdrop-blur-sm">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl relative">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                             <Key className="text-amber-500" />
                             Contraseña Temporal
@@ -354,8 +354,8 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
 
             {/* Form Modal */}
             {showForm && (
-                <div className="fixed inset-0 bg-black/60 flex items-stretch sm:items-center justify-center z-[120] p-0 sm:p-4 backdrop-blur-sm safe-area-insets">
-                    <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-xl p-4 sm:p-6 max-w-md w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div className="fixed inset-0 bg-black/60 flex justify-center items-start overflow-y-auto z-[120] p-4 backdrop-blur-sm safe-area-insets">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
                             {editingCollector ? 'Editar Cobrador' : 'Nuevo Cobrador'}
                         </h3>
@@ -713,15 +713,15 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
 
             {/* Client Assignment Modal */}
             {showAssign && assigningCollector && (
-                <div className="fixed inset-0 bg-black/60 flex items-stretch sm:items-center justify-center z-[120] p-0 sm:p-4 backdrop-blur-sm safe-area-insets">
-                    <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-xl p-4 sm:p-6 max-w-md w-full h-full sm:h-auto sm:max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+                <div className="fixed inset-0 bg-black/60 flex justify-center items-start overflow-y-auto z-[120] p-4 backdrop-blur-sm safe-area-insets">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2">
                             <UserPlus className="text-indigo-600" size={20} />
                             Asignar Clientes a {assigningCollector.name}
                         </h3>
                         <p className="text-xs text-slate-500 mb-4">Selecciona los clientes que este cobrador gestionará</p>
 
-                        <div className="flex-1 overflow-y-auto space-y-2 mb-4 pr-2">
+                        <div className="max-h-[250px] overflow-y-auto space-y-2 mb-4 pr-2">
                             {clients.length === 0 ? (
                                 <p className="text-center text-slate-400 py-4">No hay clientes disponibles</p>
                             ) : (
@@ -748,7 +748,7 @@ export function CollectorsView({ showToast, clients = [], receipts = [] }) {
                             )}
                         </div>
 
-                        <div className="sticky bottom-0 flex flex-col-reverse sm:flex-row gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                             <button
                                 onClick={() => { setShowAssign(false); setAssigningCollector(null); }}
                                 className="flex-1 min-h-[44px] py-3 sm:py-2 px-4 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
@@ -778,8 +778,8 @@ function PermissionsModal({ collector, onSave, onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-stretch sm:items-center justify-center z-[120] p-0 sm:p-4 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-xl p-4 sm:p-6 max-w-lg w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-start overflow-y-auto z-[120] p-4 backdrop-blur-sm">
+            <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                     <Shield className="text-indigo-600" />
                     Permisos de {collector.name}
@@ -802,7 +802,7 @@ function PermissionsModal({ collector, onSave, onClose }) {
                     ))}
                 </div>
 
-                <div className="sticky bottom-0 flex flex-col-reverse sm:flex-row gap-3 pt-4 bg-white dark:bg-slate-800">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 bg-white dark:bg-slate-800">
                     <button
                         onClick={onClose}
                         className="flex-1 min-h-[44px] py-3 sm:py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-400 font-medium"
@@ -833,8 +833,8 @@ function ActivityModal({ collector, activities, onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-stretch sm:items-center justify-center z-[120] p-0 sm:p-4 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 rounded-none sm:rounded-xl p-4 sm:p-6 max-w-lg w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-start overflow-y-auto z-[120] p-4 backdrop-blur-sm">
+            <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl relative">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
                     <Activity className="text-indigo-600" />
                     Actividad de {collector.name}

@@ -28,7 +28,7 @@ const renderMessageText = (text, onActionClick) => {
   return lines.map((line, index) => {
     const cleaned = line.replace(/^\s*[-*]\s+/, '');
     return (
-      <p key={`p-${index}`} className="text-sm leading-relaxed text-slate-800">
+      <p key={`p-${index}`} className="text-sm leading-relaxed">
         {renderWithBold(cleaned)}
       </p>
     );
@@ -85,6 +85,7 @@ export function AIHelper({
   chatHistory, setChatHistory, dbData, showToast,
   ownerName, companyName, notifications = [], onCreateNotification,
   onNavigate, onOpenNewClient, onOpenNewLoan, onPrintReceipt,
+  isFloating = false
 }) {
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState('');
@@ -461,21 +462,23 @@ Tú: "Hoy se han cobrado $5,000 en total. ¿Quieres ir a clientes?"
   };
 
   return (
-    <Card className="flex flex-col h-full min-h-0 !overflow-hidden">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-          <Zap size={20} className="text-blue-500" /> Asistente IA
-        </h2>
-        {chatHistory.length > 0 && (
-          <button
-            onClick={clearHistory}
-            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
-            title="Limpiar historial"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
-      </div>
+    <Card className={`flex flex-col h-full min-h-0 !overflow-hidden ${isFloating ? 'bg-transparent border-0 shadow-none !p-0' : ''}`}>
+      {!isFloating && (
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <Zap size={20} className="text-blue-500" /> Asistente IA
+          </h2>
+          {chatHistory.length > 0 && (
+            <button
+              onClick={clearHistory}
+              className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+              title="Limpiar historial"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      )}
 
       <div
         ref={chatContainerRef}
@@ -499,9 +502,11 @@ Tú: "Hoy se han cobrado $5,000 en total. ¿Quieres ir a clientes?"
         {chatHistory.map((message, index) => (
           <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[80%] px-4 py-3 rounded-2xl shadow-sm border text-sm space-y-1 ${message.role === 'user'
+              className={`max-w-[85%] px-4 py-2.5 rounded-2xl shadow-sm border text-sm space-y-1 ${message.role === 'user'
                 ? 'bg-blue-600 text-white border-blue-500 rounded-br-none'
-                : 'bg-slate-50 text-slate-900 border-slate-200 rounded-tl-none'
+                : isFloating
+                  ? 'bg-slate-900/90 text-slate-100 border-slate-800/80 rounded-tl-none'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 rounded-tl-none'
                 }`}
             >
               {message.role === 'model' ? (
@@ -541,13 +546,16 @@ Tú: "Hoy se han cobrado $5,000 en total. ¿Quieres ir a clientes?"
         </button>
       )}
 
-      <form onSubmit={handleSendMessage} className="mt-4 flex gap-2 pt-4 border-t border-slate-100 dark:border-slate-700">
+      <form onSubmit={handleSendMessage} className={`mt-4 flex gap-2 pt-4 border-t ${isFloating ? 'border-slate-800/80' : 'border-slate-100 dark:border-slate-750'}`}>
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Escribe tu consulta..."
-          className="flex-1 p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={`flex-1 p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isFloating
+            ? 'border-slate-800/80 bg-slate-900/80 text-slate-100 placeholder:text-slate-500'
+            : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 placeholder:text-slate-400'
+          }`}
           disabled={loading}
         />
         <button

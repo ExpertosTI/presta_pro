@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, X } from 'lucide-react';
+import { Bot, X, Trash2 } from 'lucide-react';
 import AIHelper from './AIHelper.jsx';
 
 export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, ownerName, companyName, onNavigate, onOpenNewClient, onOpenNewLoan, onPrintReceipt }) {
@@ -8,6 +8,14 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
   const [dragging, setDragging] = useState(false);
   const dragStateRef = useRef(null);
   const movedRef = useRef(false);
+
+  const clearHistory = () => {
+    if (window.confirm('¿Deseas limpiar el historial de chat?')) {
+      setChatHistory([]);
+      localStorage.removeItem('prestapro_chat_history');
+      showToast?.('Historial de chat limpiado.', 'info');
+    }
+  };
 
   const startDrag = (clientX, clientY) => {
     setDragging(true);
@@ -101,13 +109,25 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
                 <span className="text-[11px] text-slate-400">Bot contable de {companyName || 'tu financiera'}</span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="text-slate-400 hover:text-slate-100 transition-colors p-1"
-            >
-              <X size={16} />
-            </button>
+            <div className="flex items-center gap-1.5">
+              {chatHistory.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearHistory}
+                  className="text-slate-400 hover:text-red-400 transition-colors p-1"
+                  title="Limpiar historial"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-slate-400 hover:text-slate-100 transition-colors p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
           <div className="flex-1 bg-slate-950/60 p-2 min-h-0 overflow-hidden">
             <AIHelper
@@ -121,6 +141,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
               onOpenNewClient={onOpenNewClient}
               onOpenNewLoan={onOpenNewLoan}
               onPrintReceipt={onPrintReceipt}
+              isFloating={true}
             />
           </div>
         </div>

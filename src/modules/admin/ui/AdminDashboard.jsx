@@ -3,7 +3,7 @@ import {
     LayoutDashboard, Building2, CreditCard, ScrollText, Search,
     TrendingUp, Users, DollarSign, AlertTriangle, CheckCircle,
     XCircle, Clock, Eye, Ban, PlayCircle, FileText, Megaphone, Send,
-    ArrowUpCircle
+    ArrowUpCircle, Trash2, Key
 } from 'lucide-react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency, formatDateTime, formatDate } from '../../../shared/utils/formatters';
@@ -75,6 +75,44 @@ export function AdminDashboard({ showToast }) {
     const [rejectReason, setRejectReason] = useState('');
     const [planModal, setPlanModal] = useState(null); // { id, name, currentPlan }
     const [selectedPlan, setSelectedPlan] = useState('');
+
+    const [deleteModal, setDeleteModal] = useState(null);
+    const [resetPasswordModal, setResetPasswordModal] = useState(null);
+    const [tempPassword, setTempPassword] = useState(null);
+    const [tempPasswordEmail, setTempPasswordEmail] = useState(null);
+
+    const handleDeleteTenant = (tenant) => {
+        setDeleteModal(tenant);
+    };
+
+    const confirmDeleteTenant = async () => {
+        if (!deleteModal) return;
+        try {
+            await adminService.deleteTenant(deleteModal.id);
+            showToast?.('Empresa eliminada permanentemente', 'success');
+            setDeleteModal(null);
+            loadData();
+        } catch (e) {
+            showToast?.('Error al eliminar la empresa', 'error');
+        }
+    };
+
+    const handleResetPassword = (tenant) => {
+        setResetPasswordModal(tenant);
+    };
+
+    const confirmResetPassword = async () => {
+        if (!resetPasswordModal) return;
+        try {
+            const result = await adminService.resetTenantPassword(resetPasswordModal.id);
+            setTempPassword(result.tempPassword);
+            setTempPasswordEmail(result.userEmail);
+            showToast?.('Contraseña restablecida y correo enviado', 'success');
+            setResetPasswordModal(null);
+        } catch (e) {
+            showToast?.('Error al restablecer la contraseña', 'error');
+        }
+    };
 
     const handleSuspendTenant = (id) => {
         setSuspendModal(id);
@@ -322,9 +360,18 @@ export function AdminDashboard({ showToast }) {
                                                 <button
                                                     onClick={() => handleChangePlan(tenant)}
                                                     className="flex items-center gap-1 px-3 py-2 text-sm text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50 dark:text-purple-400 dark:border-purple-700 dark:hover:bg-purple-900/20"
+                                                    title="Cambiar Plan"
                                                 >
                                                     <ArrowUpCircle size={16} />
                                                     Plan
+                                                </button>
+                                                <button
+                                                    onClick={() => handleResetPassword(tenant)}
+                                                    className="flex items-center gap-1 px-3 py-2 text-sm text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/20"
+                                                    title="Enviar correo de recuperación"
+                                                >
+                                                    <Key size={16} />
+                                                    Recuperar
                                                 </button>
                                                 {tenant.suspendedAt ? (
                                                     <button
@@ -343,6 +390,13 @@ export function AdminDashboard({ showToast }) {
                                                         Suspender
                                                     </button>
                                                 )}
+                                                <button
+                                                    onClick={() => handleDeleteTenant(tenant)}
+                                                    className="flex items-center justify-center gap-1 py-2 px-3 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50 dark:text-red-450 dark:border-red-750 dark:hover:bg-red-900/20"
+                                                    title="Eliminar Cuenta"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </div>
                                     </Card>
@@ -551,8 +605,8 @@ export function AdminDashboard({ showToast }) {
 
             {/* Verify Payment Modal */}
             {verifyModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm relative">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
                             Verificar Pago
                         </h3>
@@ -579,8 +633,8 @@ export function AdminDashboard({ showToast }) {
 
             {/* Reject Payment Modal */}
             {rejectModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm relative">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
                             Rechazar Pago
                         </h3>
@@ -615,8 +669,8 @@ export function AdminDashboard({ showToast }) {
 
             {/* Suspend Tenant Modal */}
             {suspendModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm relative">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
                             Suspender Empresa
                         </h3>
@@ -651,8 +705,8 @@ export function AdminDashboard({ showToast }) {
 
             {/* Activate Tenant Modal */}
             {activateModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm relative">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">
                             Activar Empresa
                         </h3>
@@ -679,8 +733,8 @@ export function AdminDashboard({ showToast }) {
 
             {/* Change Plan Modal */}
             {planModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm relative">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">
                             Cambiar Plan
                         </h3>
@@ -729,6 +783,97 @@ export function AdminDashboard({ showToast }) {
                                 className="flex-1 py-2.5 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Cambiar a {selectedPlan}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reset Password Confirm Modal */}
+            {resetPasswordModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm relative">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+                            <Key className="text-blue-500" size={20} />
+                            Restablecer Contraseña
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
+                            ¿Estás seguro de restablecer la contraseña del administrador de <strong>{resetPasswordModal.name}</strong>?
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                            Se generará una contraseña temporal y se enviará por correo al usuario propietario.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setResetPasswordModal(null)}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmResetPassword}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-500"
+                            >
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Temp Password Display Modal */}
+            {tempPassword && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-md relative">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+                            <CheckCircle className="text-emerald-500" size={20} />
+                            Contraseña Restablecida
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                            Se envió la nueva contraseña al correo electrónico: <strong className="text-slate-800 dark:text-slate-200">{tempPasswordEmail}</strong>
+                        </p>
+                        <p className="text-xs text-slate-500 mb-4">
+                            Si el correo no es recibido por el usuario, comparte esta contraseña temporal de forma manual:
+                        </p>
+                        <div className="flex items-center gap-2 p-3 bg-slate-100 dark:bg-slate-700 rounded-xl mb-6">
+                            <code className="flex-1 text-lg font-mono text-slate-800 dark:text-slate-200 select-all font-bold text-center tracking-wider">{tempPassword}</code>
+                        </div>
+                        <button
+                          onClick={() => { setTempPassword(null); setTempPasswordEmail(null); }}
+                          className="w-full py-2.5 rounded-lg font-semibold bg-indigo-600 text-white hover:bg-indigo-500"
+                        >
+                            Entendido
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Tenant Confirm Modal */}
+            {deleteModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
+                    <div className="my-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm relative">
+                        <h3 className="text-lg font-bold text-red-600 flex items-center gap-2 mb-4">
+                            <AlertTriangle className="text-red-500 animate-pulse" size={20} />
+                            ¿Eliminar esta cuenta?
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
+                            Estás a punto de eliminar definitivamente la cuenta de <strong>{deleteModal.name}</strong> (@{deleteModal.slug}).
+                        </p>
+                        <p className="text-xs text-red-600 dark:text-red-400 mb-6 bg-red-50 dark:bg-red-950/20 p-3 rounded-lg border border-red-200 dark:border-red-900/50">
+                            <strong>⚠️ ADVERTENCIA:</strong> Esta acción no se puede deshacer. Se borrarán permanentemente todos sus cobradores, clientes, préstamos, recibos de pago y configuraciones.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeleteModal(null)}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmDeleteTenant}
+                                className="flex-1 py-2.5 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-500"
+                            >
+                                Eliminar
                             </button>
                         </div>
                     </div>

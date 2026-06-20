@@ -105,6 +105,22 @@ export const changeTenantPlan = async (tenantId, plan) => {
     return response;
 };
 
+/**
+ * Delete a tenant account (permanent cascade delete)
+ */
+export const deleteTenant = async (id) => {
+    const response = await axiosInstance.delete(`/admin/tenants/${id}`);
+    return response.data || response;
+};
+
+/**
+ * Send password recovery / reset email to tenant owner
+ */
+export const resetTenantPassword = async (id) => {
+    const response = await axiosInstance.post(`/admin/tenants/${id}/reset-password`);
+    return response.data || response;
+};
+
 export default {
     getDashboard,
     getTenants,
@@ -117,5 +133,7 @@ export default {
     rejectPayment,
     getLogs,
     sendBroadcast,
-    changeTenantPlan
+    changeTenantPlan,
+    deleteTenant,
+    resetTenantPassword
 };

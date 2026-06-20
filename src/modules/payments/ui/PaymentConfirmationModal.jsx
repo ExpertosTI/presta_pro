@@ -57,8 +57,8 @@ export default function PaymentConfirmationModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-start justify-center z-50 backdrop-blur-sm animate-fade-in safe-area-insets">
-            <div className="w-full sm:max-w-md bg-white dark:bg-slate-800 sm:rounded-2xl shadow-2xl p-4 sm:p-6 sm:mt-[10vh] sm:border border-slate-200 dark:border-slate-700 overflow-y-auto" style={{ minHeight: '-webkit-fill-available' }}>
+        <div className="fixed inset-0 bg-slate-900/70 flex justify-center items-start overflow-y-auto z-50 backdrop-blur-sm animate-fade-in safe-area-insets p-4">
+            <div className="my-auto w-full sm:max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700 relative">
                 {/* Mobile header bar */}
                 <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-200 dark:border-slate-700">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Confirmar pago</h3>

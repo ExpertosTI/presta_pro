@@ -329,25 +329,55 @@ export function SettingsView({
                 placeholder="Ej: Juan Pérez"
               />
             </div>
-            <div className="md:col-span-2 flex items-center gap-3">
-              <div className="w-14 h-14 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
-                {form.companyLogo ? (
-                  <img src={form.companyLogo} alt="Logo" className="w-full h-full object-contain" />
-                ) : (
-                  <span className="text-xs text-slate-400">Logo</span>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Logo de la Empresa</label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="relative w-full max-w-[280px] h-24 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900/30 group hover:border-indigo-500 dark:hover:border-indigo-400 transition-all duration-200">
+                  {form.companyLogo ? (
+                    <>
+                      <img src={form.companyLogo} alt="Logo" className="max-h-[80%] max-w-[90%] object-contain transition-transform duration-300 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setForm(prev => ({ ...prev, companyLogo: '' }))}
+                          className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-4 text-center">
+                      <svg className="w-8 h-8 text-slate-400 group-hover:text-indigo-500 transition-colors mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 transition-colors">Subir Logo (Horizontal)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleCompanyLogoChange}
+                      />
+                    </label>
+                  )}
+                </div>
+                {form.companyLogo && (
+                  <div>
+                    <label className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-xs font-semibold">
+                      Cambiar Imagen
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleCompanyLogoChange}
+                      />
+                    </label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">Se usará en la cabecera móvil y en los recibos impresos.</p>
+                  </div>
                 )}
-              </div>
-              <div>
-                <label className="flex items-center gap-2 px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-xs">
-                  <span className="font-semibold text-blue-600 dark:text-blue-400">Cambiar Logo</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleCompanyLogoChange}
-                  />
-                </label>
-                <p className="text-[11px] text-slate-500 mt-1">Se usará en el encabezado y en los recibos.</p>
+                {!form.companyLogo && (
+                  <p className="text-xs text-slate-400 max-w-[200px]">Formatos: PNG/JPG. Se recomiendan proporciones horizontales para una mejor visualización.</p>
+                )}
               </div>
             </div>
           </div>

@@ -7,8 +7,19 @@
 
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcrypt');
 const prisma = require('../lib/prisma');
 const emailService = require('../services/emailService');
+
+// Generate random password for temporary access
+const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    let password = '';
+    for (let i = 0; i < 8; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+};
 
 // Admin middleware - check if user is system admin
 const requireAdmin = (req, res, next) => {
@@ -817,6 +828,187 @@ router.post('/broadcast', async (req, res) => {
     } catch (error) {
         console.error('Broadcast error:', error);
         res.status(500).json({ error: 'Error enviando broadcast' });
+    }
+});
+
+// ============================================
+// TENANTS ACCOUNT ACTIONS (DELETE & PASSWORD RESET)
+// ============================================
+
+/**
+ * POST /api/admin/tenants/:id/reset-password - Reset password for the tenant's admin user and send email
+ */
+router.post('/tenants/:id/reset-password', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Find the admin/owner user of the tenant
+        let tenantOwner = await prisma.user.findFirst({
+            where: {
+                tenantId: id,
+                role: { in: ['OWNER', 'ADMIN', 'owner', 'admin', 'SUPER_ADMIN'] }
+            }
+        });
+
+        if (!tenantOwner) {
+            // Fallback to any user
+            tenantOwner = await prisma.user.findFirst({
+                where: { tenantId: id }
+            });
+        }
+
+        if (!tenantOwner) {
+            return res.status(404).json({ error: 'No se encontró ningún usuario registrado en esta empresa.' });
+        }
+
+        const tempPassword = generatePassword();
+        const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+        // Update database
+        await prisma.user.update({
+            where: { id: tenantOwner.id },
+            data: { passwordHash }
+        });
+
+        // Log action
+        await prisma.adminLog.create({
+            data: {
+                adminId: req.user?.id || req.user?.userId || 'admin',
+                adminEmail: req.user?.email || 'admin',
+                action: 'RESET_TENANT_PASSWORD',
+                targetType: 'TENANT',
+                targetId: id,
+                reason: `Contraseña restablecida para el usuario admin: ${tenantOwner.email}`,
+                ipAddress: req.ip
+            }
+        });
+
+        // Send email using central mail server config
+        if (tenantOwner.email) {
+            const tenant = await prisma.tenant.findUnique({ where: { id } });
+            await emailService.sendEmail({
+                to: tenantOwner.email,
+                subject: '🔑 Nueva contraseña de acceso - Presta Pro',
+                html: emailService.wrapEmailTemplate(`
+                    <h2 style="color: #2563eb; margin-bottom: 20px;">Restablecimiento de Contraseña</h2>
+                    <p>Hola ${tenantOwner.name || 'Administrador'},</p>
+                    <p>Un administrador de la plataforma ha restablecido tu contraseña de acceso para la empresa <strong>${tenant?.name || 'Presta Pro'}</strong>.</p>
+                    
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
+                        <p style="margin: 0; color: #64748b; font-size: 14px;">Tus credenciales temporales de acceso son:</p>
+                        <p style="margin: 12px 0; color: #0f172a; font-size: 16px;"><strong>Usuario/Email:</strong> ${tenantOwner.email}</p>
+                        <p style="margin: 12px 0; color: #2563eb; font-size: 24px; font-family: monospace; letter-spacing: 1px;"><strong>Contraseña:</strong> ${tempPassword}</p>
+                    </div>
+                    
+                    <p style="color: #64748b; font-size: 13px;">⚠️ Por motivos de seguridad, te sugerimos cambiar esta contraseña temporal por una propia desde los Ajustes del perfil tras iniciar sesión.</p>
+                    <p style="margin-top: 20px;"><a href="https://prestapro.renace.tech/login" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Iniciar Sesión</a></p>
+                `, tenant?.name || 'Presta Pro')
+            }).catch(emailErr => {
+                console.error('[RESET_PASSWORD] Failed to send email:', emailErr.message || emailErr);
+            });
+        }
+
+        res.json({
+            success: true,
+            userEmail: tenantOwner.email,
+            tempPassword, // Return so admin can share manually if SMTP fails
+            message: 'La contraseña de la cuenta ha sido restablecida y se envió correo al usuario.'
+        });
+    } catch (error) {
+        console.error('Reset tenant password error:', error);
+        res.status(500).json({ error: 'Error procesando el restablecimiento de contraseña.' });
+    }
+});
+
+/**
+ * DELETE /api/admin/tenants/:id - Safely cascade delete a tenant and all its data
+ */
+router.delete('/tenants/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Verify tenant exists
+        const tenant = await prisma.tenant.findUnique({
+            where: { id }
+        });
+
+        if (!tenant) {
+            return res.status(404).json({ error: 'Empresa no encontrada.' });
+        }
+
+        // Run safe transaction to clean up tables in foreign-key dependency order
+        await prisma.$transaction(async (tx) => {
+            // 1. Delete Receipts
+            await tx.receipt.deleteMany({ where: { tenantId: id } });
+
+            // 2. Delete Free Payments
+            await tx.freePayment.deleteMany({ where: { tenantId: id } });
+
+            // 3. Delete LoanInstallments (relying on Loan relation matching tenantId)
+            await tx.loanInstallment.deleteMany({
+                where: { loan: { tenantId: id } }
+            });
+
+            // 4. Delete LoanRequests
+            await tx.loanRequest.deleteMany({ where: { tenantId: id } });
+
+            // 5. Delete Loans
+            await tx.loan.deleteMany({ where: { tenantId: id } });
+
+            // 6. Delete ClientDocuments
+            await tx.clientDocument.deleteMany({ where: { tenantId: id } });
+
+            // 7. Delete Clients
+            await tx.client.deleteMany({ where: { tenantId: id } });
+
+            // 8. Delete CollectorActivities
+            await tx.collectorActivity.deleteMany({ where: { tenantId: id } });
+
+            // 9. Delete RouteClosings
+            await tx.routeClosing.deleteMany({ where: { tenantId: id } });
+
+            // 10. Delete Collectors
+            await tx.collector.deleteMany({ where: { tenantId: id } });
+
+            // 11. Delete Users
+            await tx.user.deleteMany({ where: { tenantId: id } });
+
+            // 12. Delete remaining models that might not have cascade onDelete fully functional
+            await tx.scheduledReport.deleteMany({ where: { tenantId: id } });
+            await tx.emailPreference.deleteMany({ where: { tenantId: id } });
+            await tx.notification.deleteMany({ where: { tenantId: id } });
+            await tx.usage.deleteMany({ where: { tenantId: id } });
+            await tx.expense.deleteMany({ where: { tenantId: id } });
+            await tx.note.deleteMany({ where: { tenantId: id } });
+            await tx.auditLog.deleteMany({ where: { tenantId: id } });
+            await tx.subscription.deleteMany({ where: { tenantId: id } });
+
+            // 13. Finally, delete the Tenant itself
+            await tx.tenant.delete({
+                where: { id }
+            });
+        });
+
+        // Log action in global admin logs (note: adminLog survives because it has no FK link)
+        await prisma.adminLog.create({
+            data: {
+                adminId: req.user?.id || req.user?.userId || 'admin',
+                adminEmail: req.user?.email || 'admin',
+                action: 'DELETE_TENANT',
+                targetType: 'TENANT',
+                targetId: id,
+                reason: `Empresa "${tenant.name}" (${tenant.slug}) eliminada definitivamente por el administrador.`,
+                ipAddress: req.ip
+            }
+        });
+
+        res.json({
+            success: true,
+            message: `La empresa "${tenant.name}" y todos sus datos relacionados fueron eliminados exitosamente.`
+        });
+    } catch (error) {
+        console.error('Delete tenant error:', error);
+        res.status(500).json({ error: 'Error eliminando la empresa. Es posible que existan dependencias adicionales.' });
     }
 });
 
