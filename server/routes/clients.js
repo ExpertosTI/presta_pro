@@ -78,7 +78,7 @@ router.post('/', async (req, res) => {
                 // Si tienes campos de geolocalización en el schema, agrégalos aquí. 
                 // Si no, ignora lat/lng o agrégalos al schema primero.
                 tenantId: req.user.tenantId,
-                collectorId: req.body.collectorId // Opcional: asignar a un cobrador
+                collectorId: req.body.collectorId ? req.body.collectorId : null // Convertir "" en null para evitar violación de clave foránea
             }
         });
 
@@ -104,7 +104,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, phone, address, idNumber, email, notes, photoUrl } = req.body;
+        const { name, phone, address, idNumber, email, notes, photoUrl, collectorId } = req.body;
 
         // Verificar que el cliente pertenezca al tenant verificado
         const existingClient = await prisma.client.findFirst({
@@ -125,6 +125,7 @@ router.put('/:id', async (req, res) => {
                 email,
                 notes,
                 photoUrl,
+                collectorId: collectorId ? collectorId : null, // Permitir actualizar/desasignar cobrador
                 ...(req.body.lat != null ? { lat: parseFloat(req.body.lat) } : {}),
                 ...(req.body.lng != null ? { lng: parseFloat(req.body.lng) } : {}),
             }
