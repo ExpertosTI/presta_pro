@@ -60,33 +60,33 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
 
   return (
     <>
-      {/* Print-only version for 58mm thermal printer (48mm printable width) */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[100] p-1 font-mono text-black" style={{ fontSize: '9px', lineHeight: '1.2' }}>
-        <div style={{ maxWidth: '48mm', margin: '0 auto' }}>
+      {/* Print-only version for 80mm thermal printer (76mm printable width) */}
+      <div className="hidden print:block fixed inset-0 bg-white z-[100] p-2 font-sans text-black font-bold" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+        <div style={{ maxWidth: '76mm', margin: '0 auto' }}>
           {/* COPIA Label for reprints */}
           {isCopy && (
-            <div className="text-center font-bold border-2 border-black mb-1 py-0.5" style={{ fontSize: '12px' }}>
+            <div className="text-center font-extrabold border-2 border-black mb-1.5 py-0.5" style={{ fontSize: '13px' }}>
               *** COPIA ***
             </div>
           )}
           {/* Header */}
-          <div className="text-center border-b border-black pb-1 mb-1">
-            <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{displayCompanyName}</div>
-            <div style={{ fontSize: '8px' }}>COMPROBANTE DE PAGO{isCopy ? ' (REIMPRESO)' : ''}</div>
-            <div style={{ fontSize: '7px' }}>Ref: {receipt.id.substr(0, 12).toUpperCase()}</div>
-            <div style={{ fontSize: '7px' }}>{formatDateTime(receipt.date)}</div>
+          <div className="text-center border-b-2 border-black pb-1.5 mb-1.5">
+            <div style={{ fontSize: '15px', fontWeight: '900', textTransform: 'uppercase' }}>{displayCompanyName}</div>
+            <div style={{ fontSize: '11px', fontWeight: '900' }}>COMPROBANTE DE PAGO{isCopy ? ' (REIMPRESO)' : ''}</div>
+            <div style={{ fontSize: '10px' }}>Ref: {receipt.id.substr(0, 12).toUpperCase()}</div>
+            <div style={{ fontSize: '10px' }}>{formatDateTime(receipt.date)}</div>
           </div>
 
           {/* Client */}
-          <div style={{ borderBottom: '1px dashed #000', paddingBottom: '2px', marginBottom: '2px' }}>
-            <div style={{ fontWeight: 'bold' }}>CLIENTE</div>
-            <div>{receipt.clientName}</div>
-            <div style={{ fontSize: '8px' }}>{receipt.clientPhone || ''}</div>
+          <div style={{ borderBottom: '2.5px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
+            <div style={{ fontWeight: '900', fontSize: '11px', textTransform: 'uppercase' }}>CLIENTE</div>
+            <div style={{ fontSize: '13px', fontWeight: '900' }}>{receipt.clientName}</div>
+            <div style={{ fontSize: '11px' }}>{receipt.clientPhone || ''}</div>
           </div>
 
           {/* Loan Summary */}
-          <div style={{ borderBottom: '1px dashed #000', paddingBottom: '2px', marginBottom: '2px' }}>
-            <div style={{ fontWeight: 'bold' }}>PRÉSTAMO</div>
+          <div style={{ borderBottom: '2.5px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
+            <div style={{ fontWeight: '900', fontSize: '11px', textTransform: 'uppercase' }}>PRÉSTAMO</div>
             <div className="flex justify-between">
               <span>Capital</span>
               <span>{formatCurrency(receipt.loanAmount || 0)}</span>
@@ -95,15 +95,15 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
               <span>Cuota(s) Pagada(s)</span>
               <span>#{receipt.installmentNumber || 1}</span>
             </div>
-            <div className="flex justify-between" style={{ marginTop: '2px', borderTop: '1px dotted #ccc', paddingTop: '2px' }}>
+            <div className="flex justify-between" style={{ marginTop: '4px', borderTop: '1.5px solid #000', paddingTop: '4px' }}>
               <span>Saldo Restante</span>
-              <span style={{ fontWeight: 'bold' }}>{formatCurrency(receipt.remainingBalance || 0)}</span>
+              <span style={{ fontWeight: '900' }}>{formatCurrency(receipt.remainingBalance || 0)}</span>
             </div>
           </div>
 
           {/* Payment Details */}
-          <div style={{ borderBottom: '1px dashed #000', paddingBottom: '2px', marginBottom: '2px' }}>
-            <div style={{ fontWeight: 'bold' }}>DETALLE</div>
+          <div style={{ borderBottom: '2.5px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
+            <div style={{ fontWeight: '900', fontSize: '11px', textTransform: 'uppercase' }}>DETALLE</div>
             {hasMultipleInstallments ? (
               <>
                 {receipt.paidInstallments.map((inst, idx) => (
@@ -128,16 +128,16 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
           </div>
 
           {/* Total */}
-          <div className="text-center" style={{ padding: '4px 0', borderBottom: '2px solid #000', marginBottom: '4px' }}>
-            <div style={{ fontSize: '8px' }}>TOTAL PAGADO</div>
-            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{formatCurrency(receipt.total || (receipt.amount + (receipt.penalty || 0)))}</div>
-            <div style={{ fontSize: '7px' }}>{receipt.isPartialPayment ? 'ABONO A CUOTA' : 'PAGO DE PRÉSTAMO'}</div>
+          <div className="text-center" style={{ padding: '6px 0', borderTop: '2.5px solid #000', borderBottom: '2.5px solid #000', marginBottom: '6px' }}>
+            <div style={{ fontSize: '11px', fontWeight: '900' }}>TOTAL PAGADO</div>
+            <div style={{ fontSize: '20px', fontWeight: '900' }}>{formatCurrency(receipt.total || (receipt.amount + (receipt.penalty || 0)))}</div>
+            <div style={{ fontSize: '10px', fontWeight: '900' }}>{receipt.isPartialPayment ? 'ABONO A CUOTA' : 'PAGO DE PRÉSTAMO'}</div>
           </div>
 
           {/* Footer */}
-          <div className="text-center" style={{ fontSize: '7px' }}>
-            <div style={{ fontWeight: 'bold' }}>¡Gracias por su pago!</div>
-            <div style={{ color: '#666' }}>Conserve este comprobante</div>
+          <div className="text-center" style={{ fontSize: '10px' }}>
+            <div style={{ fontWeight: '900', textTransform: 'uppercase' }}>¡Gracias por su pago!</div>
+            <div>Conserve este comprobante</div>
           </div>
         </div>
       </div>
