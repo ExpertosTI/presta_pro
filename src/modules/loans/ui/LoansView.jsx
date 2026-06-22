@@ -654,7 +654,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
         </div>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className={selectedLoan ? "hidden lg:block space-y-6" : "space-y-6"}>
+        <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
           <Banknote className="w-6 h-6 text-blue-600" />
           Préstamos y Cobros
@@ -888,12 +889,23 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
           </table>
         </div>
       </Card>
+      </div>
 
       {selectedLoan && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Payment section - moved to top on mobile, left column on desktop */}
           <Card className="lg:col-span-1 order-1 lg:order-1">
-            <h3 className="font-bold text-lg mb-3 text-slate-800 dark:text-slate-100">Detalle del Préstamo</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">Detalle del Préstamo</h3>
+              <button
+                onClick={() => onSelectLoan && onSelectLoan(null)}
+                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden flex items-center gap-1 border border-slate-200 dark:border-slate-700"
+                title="Volver a la lista"
+              >
+                <X size={16} />
+                <span className="text-xs font-semibold">Volver</span>
+              </button>
+            </div>
             {selectedClient && (
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm text-slate-700 dark:text-slate-300">
@@ -1059,8 +1071,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     <th className="p-2 text-left">#</th>
                     <th className="p-2 text-left">Fecha</th>
                     <th className="p-2 text-right">Cuota</th>
-                    <th className="p-2 text-right">Interés</th>
-                    <th className="p-2 text-right">Capital</th>
+                    <th className="p-2 text-right hidden sm:table-cell">Interés</th>
+                    <th className="p-2 text-right hidden sm:table-cell">Capital</th>
                     <th className="p-2 text-right">Saldo</th>
                     <th className="p-2 text-right">Estado</th>
                     <th className="p-2 text-center">Acciones</th>
@@ -1072,8 +1084,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                       <td className="p-2 text-slate-800 dark:text-slate-300">{inst.number}</td>
                       <td className="p-2 text-slate-600 dark:text-slate-400">{formatDate(inst.date)}</td>
                       <td className="p-2 text-right text-slate-800 dark:text-slate-200">{formatCurrency(inst.payment)}</td>
-                      <td className="p-2 text-right text-red-500 dark:text-red-400">{formatCurrency(inst.interest ?? 0)}</td>
-                      <td className="p-2 text-right text-green-600 dark:text-green-400">{formatCurrency(inst.principal ?? 0)}</td>
+                      <td className="p-2 text-right text-red-500 dark:text-red-400 hidden sm:table-cell">{formatCurrency(inst.interest ?? 0)}</td>
+                      <td className="p-2 text-right text-green-600 dark:text-green-400 hidden sm:table-cell">{formatCurrency(inst.principal ?? 0)}</td>
                       <td className="p-2 text-right text-slate-500 dark:text-slate-400">{formatCurrency(inst.balance ?? 0)}</td>
                       <td className="p-2 text-right">
                         <Badge status={inst.status === 'PAID' ? 'PAID' : 'PENDING'} />

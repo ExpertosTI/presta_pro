@@ -60,13 +60,18 @@ const authMiddleware = async (req, res, next) => {
         const decoded = jwt.verify(token, JWT_SECRET);
 
         // Validate required fields in token
-        if (!decoded.userId || !decoded.tenantId) {
-            console.error(`🚨 AUTH_MISSING_CLAIMS: Token missing userId or tenantId. IP: ${clientIP}`);
+        if ((!decoded.userId && !decoded.collectorId) || !decoded.tenantId) {
+            console.error(`🚨 AUTH_MISSING_CLAIMS: Token missing userId/collectorId or tenantId. IP: ${clientIP}`);
             return res.status(403).json({ error: 'Token con datos incompletos. Por favor inicie sesión nuevamente.' });
         }
 
-        req.user = decoded; // { userId, tenantId, role, ... }
+        req.user = decoded; // { userId, collectorId, tenantId, role, ... }
         req.tenantId = decoded.tenantId; // Explicitly set for routes using req.tenantId
+
+        // Map collectorId to userId for backend routes that query/audit using req.user.userId
+        if (!req.user.userId && req.user.collectorId) {
+            req.user.userId = req.user.collectorId;
+        }
 
         // Check if tenant is suspended (skip for super admins)
         if (decoded.tenantId && decoded.role?.toUpperCase() !== 'SUPER_ADMIN') {

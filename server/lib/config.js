@@ -18,10 +18,17 @@ const APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 
 // SMTP Config
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.hostinger.com';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465', 10);
+const SMTP_PORT = parseInt(
+  process.env.SMTP_PORT && process.env.SMTP_PORT !== '25'
+    ? process.env.SMTP_PORT
+    : '465',
+  10
+);
 const SMTP_USER = process.env.SMTP_USER || 'info@renace.tech';
 const SMTP_PASS = process.env.SMTP_PASS || 'JustWork2027@';
-const SMTP_FROM = process.env.SMTP_FROM || process.env.FROM_EMAIL || '"PRESTA PRO" <info@renace.tech>';
+const SMTP_FROM = process.env.SMTP_FROM && process.env.SMTP_FROM !== 'noreply@renace.tech'
+  ? process.env.SMTP_FROM
+  : `"PRESTA PRO" <${SMTP_USER}>`;
 
 // Admin Notifications
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.ADMIN_NOTIFY_EMAIL || 'adderlymarte@hotmail.com';
