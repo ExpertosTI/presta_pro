@@ -105,13 +105,23 @@ if (SMTP_HOST) {
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_PORT === 465,
-    auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+    auth: SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
     tls: {
       // Permitir certificado auto-firmado del servidor SMTP propio
       rejectUnauthorized: false,
     },
   });
 }
+
+const getFromAddress = (name = BRAND_NAME) => {
+  if (!SMTP_FROM) return `"${name}" <info@renace.tech>`;
+  if (SMTP_FROM.includes('<')) {
+    const emailMatch = SMTP_FROM.match(/<([^>]+)>/);
+    const email = emailMatch ? emailMatch[1] : SMTP_FROM;
+    return `"${name}" <${email}>`;
+  }
+  return `"${name}" <${SMTP_FROM}>`;
+};
 
 
 
@@ -391,7 +401,7 @@ app.post('/api/tenants/register', async (req, res) => {
       // IMPORTANTE: Enviar correo de verificación al USUARIO que se registró
       try {
         await mailer.sendMail({
-          from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
+          from: getFromAddress(BRAND_NAME),
           to: adminEmail,
           subject: `Activa tu cuenta de ${tenantName} - ${BRAND_NAME}`,
           text: `Hola,\n\nHemos creado tu cuenta para ${tenantName}. Para activarla definitivamente haz clic en el siguiente enlace antes de 3 horas:\n\n${verifyUrl}\n\nSi no reconoces este registro, ignora este correo.`,
@@ -408,7 +418,7 @@ app.post('/api/tenants/register', async (req, res) => {
       if (ADMIN_NOTIFY_EMAIL && ADMIN_NOTIFY_EMAIL !== adminEmail) {
         try {
           await mailer.sendMail({
-            from: `"${BRAND_NAME} Admin" <${SMTP_FROM}>`,
+            from: getFromAddress(`${BRAND_NAME} Admin`),
             to: ADMIN_NOTIFY_EMAIL,
             subject: `Nuevo registro de financiera en ${BRAND_NAME}`,
             text: `Se ha registrado una nueva cuenta en ${BRAND_NAME}.\n\nNombre: ${tenantName}\nSlug: ${tenantSlug}\nAdmin: ${adminEmail}\n\nEnlace de verificación:\n${verifyUrl}`,
@@ -502,7 +512,7 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
     // IMPORTANTE: Enviar correo de reenvío al USUARIO
     try {
       await mailer.sendMail({
-        from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
+        from: getFromAddress(BRAND_NAME),
         to: adminEmail,
         subject: `Reenvío de activación de cuenta - ${BRAND_NAME}`,
         text: `Hola,\n\nTe enviamos de nuevo el enlace para activar la cuenta de ${updatedTenant.name}.\n\nEnlace:\n${verifyUrl}\n\nSi ya activaste la cuenta, puedes ignorar este correo.`,
@@ -520,7 +530,7 @@ app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) =>
     if (ADMIN_NOTIFY_EMAIL && ADMIN_NOTIFY_EMAIL !== adminEmail) {
       try {
         await mailer.sendMail({
-          from: `"${BRAND_NAME} Admin" <${SMTP_FROM}>`,
+          from: getFromAddress(`${BRAND_NAME} Admin`),
           to: ADMIN_NOTIFY_EMAIL,
           subject: `Reenvío de verificación en ${BRAND_NAME}`,
           text: `Se ha reenviado el correo de verificación para:\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
@@ -592,7 +602,7 @@ app.post('/api/tenants/resend-verification-public', publicResendLimiter, async (
     // Send verification email
     try {
       await mailer.sendMail({
-        from: `"${BRAND_NAME}" <${SMTP_FROM}>`,
+        from: getFromAddress(BRAND_NAME),
         to: email,
         subject: `Reactivación de cuenta - ${BRAND_NAME}`,
         text: `Hola,\n\nHemos recibido tu solicitud para reactivar la cuenta de ${updatedTenant.name}.\n\nHaz clic en el siguiente enlace para activar tu cuenta (válido por 24 horas):\n${verifyUrl}\n\nSi no solicitaste este correo, puedes ignorarlo de forma segura.`,
@@ -651,7 +661,7 @@ app.get('/api/tenants/verify', async (req, res) => {
       if (adminEmail) {
         mailer
           .sendMail({
-            from: SMTP_FROM,
+            from: getFromAddress(BRAND_NAME),
             to: ADMIN_NOTIFY_EMAIL,
             subject: 'Cuenta de financiera verificada en Presta Pro',
             text: `Se ha verificado la cuenta en Presta Pro.\n\nNombre: ${updatedTenant.name}\nSlug: ${updatedTenant.slug}\nAdmin: ${adminEmail}`,
@@ -1169,9 +1179,9 @@ app.post('/api/subscriptions/upload-proof', authMiddleware, upload.single('proof
       </html>
     `;
 
-    if (mailTransporter) {
-      await mailTransporter.sendMail({
-        from: `"Presta Pro" <${SMTP_USER || 'noreply@renace.tech'}>`,
+    if (mailer) {
+      await mailer.sendMail({
+        from: getFromAddress(BRAND_NAME),
         to: adminEmail,
         subject: `💳 Comprobante de Pago - ${tenant?.name || 'Nuevo Cliente'} - Plan ${plan}`,
         html: emailHtml,

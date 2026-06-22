@@ -7,7 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const emailService = require('../services/emailService');
 
