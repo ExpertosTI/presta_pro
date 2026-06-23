@@ -24,18 +24,18 @@ export function generateReceiptHTML(receipt, companySettings = {}) {
     <meta charset="UTF-8">
     <title>Comprobante de Pago</title>
     <style>
-        @page { size: ${PAPER_WIDTH} auto; margin: 2mm; }
+        @page { size: ${PAPER_WIDTH} auto; margin: 4mm 5mm; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-weight: 900 !important; color: #000 !important; }
         body {
             font-family: Arial, Helvetica, sans-serif;
             font-size: 12px;
             font-weight: 900 !important;
-            line-height: 1.4;
+            line-height: 1.5;
             width: ${CONTENT_WIDTH};
             max-width: ${CONTENT_WIDTH};
             color: #000 !important;
             background: #fff;
-            padding: 2mm;
+            padding: 2mm 3mm;
         }
         .header { text-align: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px dashed #000; }
         .logo { max-width: 40mm; max-height: 15mm; margin-bottom: 4px; }
@@ -46,9 +46,9 @@ export function generateReceiptHTML(receipt, companySettings = {}) {
         .divider { border-top: 2px dashed #000; margin: 6px 0; }
         .section { margin: 8px 0; }
         .section-title { font-weight: 900; font-size: 12px; margin-bottom: 4px; border-bottom: 1.5px solid #000; padding-bottom: 2px; text-transform: uppercase; }
-        .row { display: flex; justify-content: space-between; margin: 4px 0; }
-        .label { color: #000 !important; font-weight: 900; }
-        .value { font-weight: 900; text-align: right; color: #000 !important; }
+        .row { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; margin: 4px 0; }
+        .label { color: #000 !important; font-weight: 900; flex: 1; min-width: 0; word-break: break-word; }
+        .value { font-weight: 900; text-align: right; color: #000 !important; white-space: nowrap; flex-shrink: 0; padding-left: 4px; }
         .total-section { text-align: center; padding: 10px 0; margin: 10px 0; border-top: 2.5px solid #000; border-bottom: 2.5px solid #000; }
         .total-label { font-size: 12px; color: #000 !important; font-weight: 900; }
         .total-amount { font-size: 20px; font-weight: 900; margin: 4px 0; color: #000 !important; }
@@ -56,7 +56,9 @@ export function generateReceiptHTML(receipt, companySettings = {}) {
         .penalty { color: #000 !important; font-weight: 900; }
         .footer { text-align: center; margin-top: 12px; padding-top: 8px; border-top: 2px dashed #000; font-size: 10px; font-weight: 900; }
         .footer-thanks { font-weight: 900; margin-bottom: 2px; text-transform: uppercase; }
-        @media print { body { width: ${CONTENT_WIDTH} !important; max-width: ${CONTENT_WIDTH} !important; } }
+        @media print {
+            body { width: ${CONTENT_WIDTH} !important; max-width: ${CONTENT_WIDTH} !important; padding: 0 3mm !important; }
+        }
     </style>
 </head>
 <body>

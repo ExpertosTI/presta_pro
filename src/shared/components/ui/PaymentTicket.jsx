@@ -65,7 +65,7 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
   return (
     <>
       {/* Print-only version for 80mm thermal printer (76mm printable width) */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[100] p-2 font-sans text-black" style={{ fontSize: '12px', lineHeight: '1.4', fontWeight: '900' }}>
+      <div className="hidden print:block fixed inset-0 bg-white z-[100] font-sans text-black" style={{ fontSize: '12px', lineHeight: '1.5', fontWeight: '900', padding: '4mm 5mm' }}>
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
             * {
@@ -74,7 +74,7 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
             }
           }
         `}} />
-        <div style={{ maxWidth: '76mm', margin: '0 auto' }}>
+        <div style={{ maxWidth: '72mm', margin: '0 auto' }}>
           {/* COPIA Label for reprints */}
           {isCopy && (
             <div className="text-center font-extrabold border-2 border-black mb-1.5 py-0.5" style={{ fontSize: '13px' }}>
@@ -102,17 +102,17 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
           {/* Loan Summary */}
           <div style={{ borderBottom: '2.5px dashed #000', paddingBottom: '4px', marginBottom: '4px' }}>
             <div style={{ fontWeight: '900', fontSize: '11px', textTransform: 'uppercase' }}>PRÉSTAMO</div>
-            <div className="flex justify-between">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '6px' }}>
               <span>Capital</span>
-              <span>{formatCurrency(receipt.loanAmount || 0)}</span>
+              <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(receipt.loanAmount || 0)}</span>
             </div>
-            <div className="flex justify-between">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '6px' }}>
               <span>Cuota(s) Pagada(s)</span>
-              <span>#{receipt.installmentNumber || 1}</span>
+              <span style={{ whiteSpace: 'nowrap' }}>#{receipt.installmentNumber || 1}</span>
             </div>
-            <div className="flex justify-between" style={{ marginTop: '4px', borderTop: '1.5px solid #000', paddingTop: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '6px', marginTop: '4px', borderTop: '1.5px solid #000', paddingTop: '4px' }}>
               <span>Saldo Restante</span>
-              <span style={{ fontWeight: '900' }}>{formatCurrency(receipt.remainingBalance || 0)}</span>
+              <span style={{ fontWeight: '900', whiteSpace: 'nowrap' }}>{formatCurrency(receipt.remainingBalance || 0)}</span>
             </div>
           </div>
 
@@ -122,22 +122,22 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
             {hasMultipleInstallments ? (
               <>
                 {receipt.paidInstallments.map((inst, idx) => (
-                  <div key={idx} className="flex justify-between">
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '6px' }}>
                     <span>Cuota #{inst.number}</span>
-                    <span>{formatCurrency(inst.amount)}</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(inst.amount)}</span>
                   </div>
                 ))}
               </>
             ) : (
-              <div className="flex justify-between">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '6px' }}>
                 <span>{receipt.isPartialPayment ? `Abono #${receipt.installmentNumber}` : `Cuota #${receipt.installmentNumber}`}</span>
-                <span>{formatCurrency(receipt.amount)}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(receipt.amount)}</span>
               </div>
             )}
             {hasPenalty && (
-              <div className="flex justify-between">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '6px' }}>
                 <span>Mora</span>
-                <span>{formatCurrency(receipt.penalty)}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(receipt.penalty)}</span>
               </div>
             )}
           </div>
