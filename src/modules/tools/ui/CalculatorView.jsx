@@ -4,7 +4,7 @@ import {
   Calculator, Download, Share2, Calendar, DollarSign,
   TrendingUp, Percent, Clock, Zap
 } from 'lucide-react';
-import { calculateSchedule } from '../../../shared/utils/amortization';
+import { calculateSchedule, calculateInstallmentVal, calculateRateFromInstallment } from '../../../shared/utils/amortization';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
 import { WhatsAppIcon } from '../../../shared/components/ui/WhatsAppIcon';
@@ -23,13 +23,27 @@ export function CalculatorView() {
     rate: 10,
     term: 12,
     frequency: 'Mensual',
-    // MEJORA 2: Start date
     startDate: new Date().toISOString().split('T')[0],
-    // MEJORA 1: Amortization type
     amortizationType: 'FLAT',
-    // MEJORA 3: Closing costs
-    closingCosts: 0
+    closingCosts: 0,
+    installment: '916.67'
   });
+
+  const handleSimDataChange = (fields) => {
+    setSimData(prev => {
+      let updated = { ...prev, ...fields };
+      const totalAmount = (parseFloat(updated.amount) || 0) + (parseFloat(updated.closingCosts) || 0);
+      if (fields.hasOwnProperty('installment')) {
+        const rateVal = calculateRateFromInstallment(totalAmount, fields.installment, updated.term, updated.frequency, updated.amortizationType);
+        updated.rate = rateVal;
+      } else {
+        const instVal = calculateInstallmentVal(totalAmount, updated.rate, updated.term, updated.frequency, updated.amortizationType);
+        updated.installment = instVal;
+      }
+      return updated;
+    });
+  };
+
   const [schedule, setSchedule] = useState([]);
 
   useEffect(() => {
@@ -86,12 +100,15 @@ export function CalculatorView() {
 
   // MEJORA 6: Apply preset
   const applyPreset = (preset) => {
+    const totalAmount = parseFloat(preset.amount) || 0;
+    const inst = calculateInstallmentVal(totalAmount, preset.rate, preset.term, preset.frequency, simData.amortizationType);
     setSimData({
       ...simData,
       amount: preset.amount,
       rate: preset.rate,
       term: preset.term,
-      frequency: preset.frequency
+      frequency: preset.frequency,
+      installment: inst
     });
   };
 
@@ -250,7 +267,7 @@ _Simulación generada con Presta Pro_`;
                   type="number"
                   className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                   value={simData.amount}
-                  onChange={e => setSimData({ ...simData, amount: e.target.value })}
+                  onChange={e => handleSimDataChange({ amount: e.target.value })}
                 />
                 <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                   {formatCurrency(simData.amount || 0)}
@@ -264,7 +281,7 @@ _Simulación generada con Presta Pro_`;
                   type="number"
                   className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                   value={simData.closingCosts}
-                  onChange={e => setSimData({ ...simData, closingCosts: e.target.value })}
+                  onChange={e => handleSimDataChange({ closingCosts: e.target.value })}
                   placeholder="0"
                 />
                 {simData.closingCosts > 0 && (
@@ -276,33 +293,20 @@ _Simulación generada con Presta Pro_`;
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Tasa %</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                    value={simData.rate}
-                    onChange={e => setSimData({ ...simData, rate: e.target.value })}
-                  />
-                </div>
-                <div>
                   <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Plazo</label>
                   <input
                     type="number"
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                     value={simData.term}
-                    onChange={e => setSimData({ ...simData, term: e.target.value })}
+                    onChange={e => handleSimDataChange({ term: e.target.value })}
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Frecuencia</label>
                   <select
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                     value={simData.frequency}
-                    onChange={e => setSimData({ ...simData, frequency: e.target.value })}
+                    onChange={e => handleSimDataChange({ frequency: e.target.value })}
                   >
                     <option>Diario</option>
                     <option>Semanal</option>
@@ -310,18 +314,41 @@ _Simulación generada con Presta Pro_`;
                     <option>Mensual</option>
                   </select>
                 </div>
-                {/* MEJORA 1: Amortization type */}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Tipo</label>
                   <select
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                     value={simData.amortizationType}
-                    onChange={e => setSimData({ ...simData, amortizationType: e.target.value })}
+                    onChange={e => handleSimDataChange({ amortizationType: e.target.value })}
                   >
                     <option value="FLAT">Saldo Absoluto</option>
                     <option value="FRENCH">Saldo Insoluto</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Valor de la Cuota</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full p-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900/50 text-blue-600 dark:text-blue-400 font-bold"
+                    value={simData.installment}
+                    onChange={e => handleSimDataChange({ installment: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Tasa %</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={simData.rate}
+                  onChange={e => handleSimDataChange({ rate: e.target.value })}
+                />
               </div>
 
               {/* MEJORA 2: Start date */}

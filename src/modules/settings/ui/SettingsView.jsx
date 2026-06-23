@@ -33,6 +33,8 @@ export function SettingsView({
     // NEW FIELDS
     dateFormat: systemSettings.dateFormat || 'DD/MM/YYYY',
     companyWhatsApp: systemSettings.companyWhatsApp || '',
+    companyRNC: systemSettings.companyRNC || '',
+    companyAddress: systemSettings.companyAddress || '',
     graceDays: systemSettings.graceDays ?? 0,
     enabledFrequencies: systemSettings.enabledFrequencies || { DAILY: true, WEEKLY: true, BIWEEKLY: true, MONTHLY: true },
     minLoanAmount: systemSettings.minLoanAmount ?? 1000,
@@ -72,6 +74,8 @@ export function SettingsView({
       // Sync new fields
       dateFormat: systemSettings.dateFormat || prev.dateFormat,
       companyWhatsApp: systemSettings.companyWhatsApp || prev.companyWhatsApp,
+      companyRNC: systemSettings.companyRNC || prev.companyRNC || '',
+      companyAddress: systemSettings.companyAddress || prev.companyAddress || '',
       graceDays: systemSettings.graceDays ?? prev.graceDays,
       enabledFrequencies: systemSettings.enabledFrequencies || prev.enabledFrequencies,
       minLoanAmount: systemSettings.minLoanAmount ?? prev.minLoanAmount,
@@ -106,6 +110,8 @@ export function SettingsView({
       // New fields
       dateFormat: form.dateFormat,
       companyWhatsApp: form.companyWhatsApp,
+      companyRNC: form.companyRNC,
+      companyAddress: form.companyAddress,
       graceDays: parseInt(form.graceDays) || 0,
       enabledFrequencies: form.enabledFrequencies,
       minLoanAmount: parseFloat(form.minLoanAmount) || 1000,
@@ -149,6 +155,8 @@ export function SettingsView({
       companyLogo: '',
       dateFormat: 'DD/MM/YYYY',
       companyWhatsApp: '',
+      companyRNC: '',
+      companyAddress: '',
       graceDays: 0,
       enabledFrequencies: { DAILY: true, WEEKLY: true, BIWEEKLY: true, MONTHLY: true },
       minLoanAmount: 1000,
@@ -316,6 +324,29 @@ export function SettingsView({
               onChange={(e) => setForm({ ...form, companyName: e.target.value })}
               placeholder="Mi Financiera"
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">RNC de la Empresa</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
+                value={form.companyRNC}
+                onChange={(e) => setForm({ ...form, companyRNC: e.target.value })}
+                placeholder="Ej: 131-12345-6"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Dirección de la Empresa</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm"
+                value={form.companyAddress}
+                onChange={(e) => setForm({ ...form, companyAddress: e.target.value })}
+                placeholder="Ej: Av. Duarte #100, Santo Domingo"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

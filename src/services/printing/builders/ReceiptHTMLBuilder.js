@@ -4,7 +4,14 @@ const PAPER_WIDTH = '80mm';
 const CONTENT_WIDTH = '76mm';
 
 export function generateReceiptHTML(receipt, companySettings = {}) {
-  const { companyName = 'Presta Pro', companyLogo = null } = companySettings;
+  const {
+    companyName = 'Presta Pro',
+    companyLogo = null,
+    companyRNC = '',
+    companyAddress = '',
+    companyWhatsApp = '',
+    receiptFooter = ''
+  } = companySettings;
 
   const baseAmount = parseFloat(receipt.amount || 0);
   const penaltyAmount = parseFloat(receipt.penaltyAmount || 0);
@@ -18,15 +25,15 @@ export function generateReceiptHTML(receipt, companySettings = {}) {
     <title>Comprobante de Pago</title>
     <style>
         @page { size: ${PAPER_WIDTH} auto; margin: 2mm; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-weight: 900 !important; color: #000 !important; }
         body {
             font-family: Arial, Helvetica, sans-serif;
             font-size: 12px;
-            font-weight: bold;
+            font-weight: 900 !important;
             line-height: 1.4;
             width: ${CONTENT_WIDTH};
             max-width: ${CONTENT_WIDTH};
-            color: #000;
+            color: #000 !important;
             background: #fff;
             padding: 2mm;
         }
@@ -34,21 +41,21 @@ export function generateReceiptHTML(receipt, companySettings = {}) {
         .logo { max-width: 40mm; max-height: 15mm; margin-bottom: 4px; }
         .company-name { font-size: 15px; font-weight: 900; margin-bottom: 2px; text-transform: uppercase; }
         .receipt-title { font-size: 13px; font-weight: 900; margin: 6px 0; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; padding: 3px 0; text-transform: uppercase; }
-        .receipt-id { font-size: 11px; color: #000; font-weight: bold; }
-        .date { font-size: 11px; margin-top: 4px; font-weight: bold; }
+        .receipt-id { font-size: 11px; color: #000 !important; font-weight: 900; }
+        .date { font-size: 11px; margin-top: 4px; font-weight: 900; }
         .divider { border-top: 2px dashed #000; margin: 6px 0; }
         .section { margin: 8px 0; }
         .section-title { font-weight: 900; font-size: 12px; margin-bottom: 4px; border-bottom: 1.5px solid #000; padding-bottom: 2px; text-transform: uppercase; }
         .row { display: flex; justify-content: space-between; margin: 4px 0; }
-        .label { color: #000; font-weight: bold; }
-        .value { font-weight: bold; text-align: right; color: #000; }
+        .label { color: #000 !important; font-weight: 900; }
+        .value { font-weight: 900; text-align: right; color: #000 !important; }
         .total-section { text-align: center; padding: 10px 0; margin: 10px 0; border-top: 2.5px solid #000; border-bottom: 2.5px solid #000; }
-        .total-label { font-size: 12px; color: #000; font-weight: 900; }
-        .total-amount { font-size: 20px; font-weight: 900; margin: 4px 0; color: #000; }
-        .payment-type { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #000; }
-        .penalty { color: #000; font-weight: bold; }
-        .footer { text-align: center; margin-top: 12px; padding-top: 8px; border-top: 2px dashed #000; font-size: 10px; font-weight: bold; }
-        .footer-thanks { font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
+        .total-label { font-size: 12px; color: #000 !important; font-weight: 900; }
+        .total-amount { font-size: 20px; font-weight: 900; margin: 4px 0; color: #000 !important; }
+        .payment-type { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #000 !important; }
+        .penalty { color: #000 !important; font-weight: 900; }
+        .footer { text-align: center; margin-top: 12px; padding-top: 8px; border-top: 2px dashed #000; font-size: 10px; font-weight: 900; }
+        .footer-thanks { font-weight: 900; margin-bottom: 2px; text-transform: uppercase; }
         @media print { body { width: ${CONTENT_WIDTH} !important; max-width: ${CONTENT_WIDTH} !important; } }
     </style>
 </head>
@@ -56,6 +63,9 @@ export function generateReceiptHTML(receipt, companySettings = {}) {
     <div class="header">
         ${companyLogo ? `<img src="${escapeHtml(companyLogo)}" class="logo" alt="${escapeHtml(companyName)}">` : ''}
         <div class="company-name">${escapeHtml(companyName)}</div>
+        ${companyRNC ? `<div style="font-size: 10px; font-weight: 900; margin-top: 2px;">RNC: ${escapeHtml(companyRNC)}</div>` : ''}
+        ${companyAddress ? `<div style="font-size: 10px; font-weight: 900; margin-top: 1px;">Dir: ${escapeHtml(companyAddress)}</div>` : ''}
+        ${companyWhatsApp ? `<div style="font-size: 10px; font-weight: 900; margin-top: 1px;">WhatsApp: ${escapeHtml(companyWhatsApp)}</div>` : ''}
         <div class="receipt-title">COMPROBANTE DE PAGO</div>
         <div class="receipt-id">Ref: TPPR3N4${(receipt.id || '').slice(-6).toUpperCase().padStart(6, '0')}</div>
         <div class="date">${formatReceiptDate(receipt.date || new Date())}</div>
@@ -63,7 +73,7 @@ export function generateReceiptHTML(receipt, companySettings = {}) {
     <div class="section">
         <div class="section-title">CLIENTE</div>
         <div style="font-weight: 900; font-size: 13px;">${escapeHtml(receipt.clientName || 'Cliente')}</div>
-        ${receipt.clientPhone ? `<div style="font-weight: bold;">${escapeHtml(receipt.clientPhone)}</div>` : ''}
+        ${receipt.clientPhone ? `<div style="font-weight: 900;">${escapeHtml(receipt.clientPhone)}</div>` : ''}
     </div>
     ${receipt.loanAmount ? `
     <div class="section">
@@ -87,8 +97,8 @@ export function generateReceiptHTML(receipt, companySettings = {}) {
         <div class="payment-type">PAGO DE PRESTAMO</div>
     </div>
     <div class="footer">
-        <div class="footer-thanks">Gracias por su pago!</div>
-        <div>Conserve este comprobante</div>
+        <div class="footer-thanks">¡Gracias por su pago!</div>
+        <div>${receiptFooter ? escapeHtml(receiptFooter) : 'Conserve este comprobante'}</div>
     </div>
 </body>
 </html>`.trim();

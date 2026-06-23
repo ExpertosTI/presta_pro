@@ -28,7 +28,14 @@ function textToBytes(text) {
 }
 
 export function buildESCPOSReceipt(receipt, companySettings = {}) {
-  const { companyName = 'Presta Pro' } = companySettings;
+  const {
+    companyName = 'Presta Pro',
+    companyRNC = '',
+    companyAddress = '',
+    companyWhatsApp = '',
+    receiptFooter = ''
+  } = companySettings;
+
   const commands = [];
   const push = (...bytes) => commands.push(...bytes.flat());
   const text = (str) => push(...textToBytes(str));
@@ -41,18 +48,24 @@ export function buildESCPOSReceipt(receipt, companySettings = {}) {
 
   // Initialize
   push(...ESCPOS.INIT);
+  
+  // Keep bold on for the entire document
+  push(...ESCPOS.BOLD_ON);
 
   // Header
   push(...ESCPOS.ALIGN_CENTER);
-  push(...ESCPOS.BOLD_ON);
   push(...ESCPOS.DOUBLE_ON);
   text(companyName); line();
+  
   push(...ESCPOS.NORMAL_SIZE);
-  push(...ESCPOS.BOLD_OFF);
+  push(...ESCPOS.BOLD_ON); // Re-assert bold
+  
+  if (companyRNC) { text(`RNC: ${companyRNC}`); line(); }
+  if (companyAddress) { text(companyAddress); line(); }
+  if (companyWhatsApp) { text(`WhatsApp: ${companyWhatsApp}`); line(); }
+  
   line();
-  push(...ESCPOS.BOLD_ON);
   text('COMPROBANTE DE PAGO'); line();
-  push(...ESCPOS.BOLD_OFF);
   text(`Ref: TPPR3N4${(receipt.id || '').slice(-6).toUpperCase().padStart(6, '0')}`); line();
   text(formatReceiptDate(receipt.date || new Date())); line();
 
@@ -60,9 +73,7 @@ export function buildESCPOSReceipt(receipt, companySettings = {}) {
 
   // Client
   push(...ESCPOS.ALIGN_LEFT);
-  push(...ESCPOS.BOLD_ON);
   text('CLIENTE'); line();
-  push(...ESCPOS.BOLD_OFF);
   text(receipt.clientName || 'Cliente'); line();
   if (receipt.clientPhone) { text(receipt.clientPhone); line(); }
 
@@ -70,25 +81,19 @@ export function buildESCPOSReceipt(receipt, companySettings = {}) {
 
   // Loan info
   if (receipt.loanAmount) {
-    push(...ESCPOS.BOLD_ON);
     text('PRESTAMO'); line();
-    push(...ESCPOS.BOLD_OFF);
-    text(`Capital:${formatCurrency(receipt.loanAmount).padStart(20)}`); line();
+    text(`Capital:${formatCurrency(receipt.loanAmount).padStart(24)}`); line();
     if (receipt.installmentNumber) {
       text(`Cuota(s):          #${receipt.installmentNumber}`); line();
     }
     if (receipt.remainingBalance !== undefined) {
-      push(...ESCPOS.BOLD_ON);
-      text(`Saldo:${formatCurrency(receipt.remainingBalance).padStart(22)}`); line();
-      push(...ESCPOS.BOLD_OFF);
+      text(`Saldo:${formatCurrency(receipt.remainingBalance).padStart(26)}`); line();
     }
     dashes();
   }
 
   // Detail
-  push(...ESCPOS.BOLD_ON);
   text('DETALLE'); line();
-  push(...ESCPOS.BOLD_OFF);
 
   if (receipt.paymentBreakdown?.length > 0) {
     receipt.paymentBreakdown.forEach(item => {
@@ -108,21 +113,18 @@ export function buildESCPOSReceipt(receipt, companySettings = {}) {
   // Total
   dashes();
   push(...ESCPOS.ALIGN_CENTER);
-  push(...ESCPOS.BOLD_ON);
   text('TOTAL PAGADO'); line();
   push(...ESCPOS.DOUBLE_ON);
   text(formatCurrency(totalAmount)); line();
   push(...ESCPOS.NORMAL_SIZE);
-  push(...ESCPOS.BOLD_OFF);
+  push(...ESCPOS.BOLD_ON); // Re-assert bold
   text('PAGO DE PRESTAMO'); line();
   dashes();
 
   // Footer
   push(...ESCPOS.ALIGN_CENTER);
-  push(...ESCPOS.BOLD_ON);
-  text('Gracias por su pago!'); line();
-  push(...ESCPOS.BOLD_OFF);
-  text('Conserve este comprobante'); line();
+  text('¡Gracias por su pago!'); line();
+  text(receiptFooter || 'Conserve este comprobante'); line();
   line();
   line();
 

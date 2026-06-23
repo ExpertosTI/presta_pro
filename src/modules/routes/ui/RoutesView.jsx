@@ -959,6 +959,7 @@ export function RoutesView({
           receipt={receiptToShow}
           companyName={systemSettings?.companyName || 'Presta Pro'}
           companyLogo={systemSettings?.companyLogo}
+          systemSettings={systemSettings}
           onClose={() => setReceiptToShow(null)}
           onPrint={() => {
             if (setPrintReceipt && handlePrint) {

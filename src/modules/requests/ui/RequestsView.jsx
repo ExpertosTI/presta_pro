@@ -5,6 +5,7 @@ import {
   X, FileText, PlusCircle, Clock, CheckCircle, XCircle,
   Edit3, Send, StickyNote, Calendar, Filter
 } from 'lucide-react';
+import { calculateInstallmentVal, calculateRateFromInstallment } from '../../../shared/utils/amortization';
 import loanRequestService from '../services/loanRequestService';
 import { WhatsAppIcon } from '../../../shared/components/ui/WhatsAppIcon';
 
@@ -23,11 +24,40 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
     term: '',
     frequency: 'Mensual',
     startDate: new Date().toISOString().split('T')[0],
-    // MEJORA 8: Amortization type
     amortizationType: 'FLAT',
-    // MEJORA 9: Internal notes
-    notes: ''
+    notes: '',
+    installment: ''
   });
+
+  const handleFormChange = (fields) => {
+    setForm(prev => {
+      let updated = { ...prev, ...fields };
+      const totalAmount = parseFloat(updated.amount) || 0;
+      if (fields.hasOwnProperty('installment')) {
+        const rateVal = calculateRateFromInstallment(totalAmount, fields.installment, updated.term, updated.frequency, updated.amortizationType);
+        updated.rate = rateVal;
+      } else {
+        const instVal = calculateInstallmentVal(totalAmount, updated.rate, updated.term, updated.frequency, updated.amortizationType);
+        updated.installment = instVal;
+      }
+      return updated;
+    });
+  };
+
+  const handleEditFormChange = (fields) => {
+    setEditForm(prev => {
+      let updated = { ...prev, ...fields };
+      const totalAmount = parseFloat(updated.amount) || 0;
+      if (fields.hasOwnProperty('installment')) {
+        const rateVal = calculateRateFromInstallment(totalAmount, fields.installment, updated.term, updated.frequency, updated.amortizationType);
+        updated.rate = rateVal;
+      } else {
+        const instVal = calculateInstallmentVal(totalAmount, updated.rate, updated.term, updated.frequency, updated.amortizationType);
+        updated.installment = instVal;
+      }
+      return updated;
+    });
+  };
 
   // Modal para gastos de cierre
   const [approvalModal, setApprovalModal] = useState(null);
@@ -96,7 +126,8 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
         frequency: 'Mensual',
         startDate: new Date().toISOString().split('T')[0],
         amortizationType: 'FLAT',
-        notes: ''
+        notes: '',
+        installment: ''
       });
       showToast?.('Solicitud creada', 'success');
     } catch (error) {
@@ -190,6 +221,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
   // MEJORA 15: Edit request
   const handleEditClick = (req) => {
     setEditModal(req);
+    const initialInstallment = calculateInstallmentVal(req.amount || 0, req.rate || 0, req.term || 1, req.frequency || 'Mensual', req.amortizationType || 'FLAT');
     setEditForm({
       amount: req.amount?.toString() || '',
       rate: req.rate?.toString() || '',
@@ -197,7 +229,8 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
       frequency: req.frequency || 'Mensual',
       startDate: req.startDate ? req.startDate.split('T')[0] : new Date().toISOString().split('T')[0],
       amortizationType: req.amortizationType || 'FLAT',
-      notes: req.notes || ''
+      notes: req.notes || '',
+      installment: initialInstallment
     });
   };
 
@@ -323,7 +356,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                     </div>
                     <div>
                       Cuota: <span className="font-semibold text-blue-600 dark:text-blue-400">
-                        {formatCurrency((parseFloat(req.amount) * (1 + parseFloat(req.rate) / 100)) / parseInt(req.term || 1))}
+                        {formatCurrency(calculateInstallmentVal(req.amount, req.rate, req.term, req.frequency || 'Mensual', req.amortizationType || 'FLAT'))}
                       </span>
                     </div>
                     {/* MEJORA 8: Show amortization type */}
@@ -396,7 +429,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                     required
                     className="flex-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                     value={form.clientId}
-                    onChange={e => setForm({ ...form, clientId: e.target.value })}
+                    onChange={e => handleFormChange({ clientId: e.target.value })}
                   >
                     <option value="">Seleccionar Cliente</option>
                     {clients.map(c => (
@@ -408,7 +441,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                   <button
                     type="button"
                     onClick={() => onNewClient?.((newClientId) => {
-                      setForm({ ...form, clientId: newClientId });
+                      handleFormChange({ clientId: newClientId });
                     })}
                     className="bg-blue-600/20 text-blue-400 border border-blue-500/30 p-2 rounded-lg hover:bg-blue-600/30 transition-colors"
                   >
@@ -424,7 +457,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                       placeholder="Monto"
                       className="p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                       value={form.amount}
-                      onChange={e => setForm({ ...form, amount: e.target.value })}
+                      onChange={e => handleFormChange({ amount: e.target.value })}
                     />
                     {form.amount && (
                       <span className="text-xs text-emerald-600 dark:text-emerald-400 font-mono">
@@ -434,48 +467,61 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                   </div>
                   <input
                     required
-                    min="0"
-                    step="0.1"
+                    min="1"
                     type="number"
-                    placeholder="Tasa %"
+                    placeholder="Plazo (cuotas)"
                     className="p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                    value={form.rate}
-                    onChange={e => setForm({ ...form, rate: e.target.value })}
+                    value={form.term}
+                    onChange={e => handleFormChange({ term: e.target.value })}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <input
-                    required
-                    min="1"
-                    type="number"
-                    placeholder="Plazo"
-                    className="p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                    value={form.term}
-                    onChange={e => setForm({ ...form, term: e.target.value })}
-                  />
                   <select
                     className="p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                     value={form.frequency}
-                    onChange={e => setForm({ ...form, frequency: e.target.value })}
+                    onChange={e => handleFormChange({ frequency: e.target.value })}
                   >
                     <option>Diario</option>
                     <option>Semanal</option>
                     <option>Quincenal</option>
                     <option>Mensual</option>
                   </select>
-                </div>
-
-                {/* MEJORA 8: Amortization type selector */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Tipo de Amortización</label>
                   <select
-                    className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    className="p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                     value={form.amortizationType}
-                    onChange={e => setForm({ ...form, amortizationType: e.target.value })}
+                    onChange={e => handleFormChange({ amortizationType: e.target.value })}
                   >
                     <option value="FLAT">Saldo Absoluto (Interés Simple)</option>
                     <option value="FRENCH">Saldo Insoluto (Interés Compuesto)</option>
                   </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Valor de la Cuota</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      placeholder="Calcular..."
+                      className="w-full p-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900/50 text-blue-600 dark:text-blue-400 font-bold"
+                      value={form.installment}
+                      onChange={e => handleFormChange({ installment: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Tasa %</label>
+                    <input
+                      required
+                      min="0"
+                      step="0.1"
+                      type="number"
+                      placeholder="Tasa %"
+                      className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                      value={form.rate}
+                      onChange={e => handleFormChange({ rate: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 {/* MEJORA 9: Notes field */}
@@ -485,7 +531,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                     placeholder="Observaciones del analista..."
                     className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 min-h-[60px]"
                     value={form.notes}
-                    onChange={e => setForm({ ...form, notes: e.target.value })}
+                    onChange={e => handleFormChange({ notes: e.target.value })}
                   />
                 </div>
 
@@ -494,7 +540,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                   <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-lg p-3 text-center">
                     <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-1">Cuota Estimada</p>
                     <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
-                      {formatCurrency((parseFloat(form.amount) * (1 + parseFloat(form.rate) / 100)) / parseInt(form.term))} / {form.frequency}
+                      {formatCurrency(calculateInstallmentVal(form.amount, form.rate, form.term, form.frequency, form.amortizationType))} / {form.frequency}
                     </p>
                   </div>
                 )}
@@ -667,17 +713,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                   <input
                     type="number"
                     value={editForm.amount}
-                    onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">Tasa %</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={editForm.rate}
-                    onChange={(e) => setEditForm({ ...editForm, rate: e.target.value })}
+                    onChange={(e) => handleEditFormChange({ amount: e.target.value })}
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                   />
                 </div>
@@ -686,7 +722,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                   <input
                     type="number"
                     value={editForm.term}
-                    onChange={(e) => setEditForm({ ...editForm, term: e.target.value })}
+                    onChange={(e) => handleEditFormChange({ term: e.target.value })}
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                   />
                 </div>
@@ -694,7 +730,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                   <label className="block text-xs text-slate-500 mb-1">Frecuencia</label>
                   <select
                     value={editForm.frequency}
-                    onChange={(e) => setEditForm({ ...editForm, frequency: e.target.value })}
+                    onChange={(e) => handleEditFormChange({ frequency: e.target.value })}
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                   >
                     <option>Diario</option>
@@ -703,17 +739,38 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                     <option>Mensual</option>
                   </select>
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Tipo de Amortización</label>
-                <select
-                  value={editForm.amortizationType}
-                  onChange={(e) => setEditForm({ ...editForm, amortizationType: e.target.value })}
-                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                >
-                  <option value="FLAT">Saldo Absoluto</option>
-                  <option value="FRENCH">Saldo Insoluto</option>
-                </select>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Tipo de Amortización</label>
+                  <select
+                    value={editForm.amortizationType}
+                    onChange={(e) => handleEditFormChange({ amortizationType: e.target.value })}
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  >
+                    <option value="FLAT">Saldo Absoluto</option>
+                    <option value="FRENCH">Saldo Insoluto</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Valor de la Cuota</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={editForm.installment}
+                    onChange={(e) => handleEditFormChange({ installment: e.target.value })}
+                    className="w-full p-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900/50 text-blue-600 dark:text-blue-400 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Tasa %</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editForm.rate}
+                    onChange={(e) => handleEditFormChange({ rate: e.target.value })}
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs text-slate-500 mb-1">Notas</label>

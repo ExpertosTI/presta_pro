@@ -6,6 +6,10 @@ export function PaymentTicket({ receipt, companyName = 'Renace.tech', systemSett
   if (!receipt) return null;
 
   const displayCompanyName = systemSettings.companyName || companyName;
+  const companyRNC = systemSettings.companyRNC || '';
+  const companyAddress = systemSettings.companyAddress || '';
+  const companyWhatsApp = systemSettings.companyWhatsApp || '';
+  const receiptFooter = systemSettings.receiptFooter || '';
   const hasPenalty = receipt.penalty && receipt.penalty > 0;
   const hasMultipleInstallments = receipt.paidInstallments && receipt.paidInstallments.length > 0;
 
@@ -61,7 +65,15 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
   return (
     <>
       {/* Print-only version for 80mm thermal printer (76mm printable width) */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[100] p-2 font-sans text-black font-bold" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+      <div className="hidden print:block fixed inset-0 bg-white z-[100] p-2 font-sans text-black" style={{ fontSize: '12px', lineHeight: '1.4', fontWeight: '900' }}>
+        <style dangerouslySetInnerHTML={{__html: `
+          @media print {
+            * {
+              font-weight: 900 !important;
+              color: #000 !important;
+            }
+          }
+        `}} />
         <div style={{ maxWidth: '76mm', margin: '0 auto' }}>
           {/* COPIA Label for reprints */}
           {isCopy && (
@@ -72,7 +84,10 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
           {/* Header */}
           <div className="text-center border-b-2 border-black pb-1.5 mb-1.5">
             <div style={{ fontSize: '15px', fontWeight: '900', textTransform: 'uppercase' }}>{displayCompanyName}</div>
-            <div style={{ fontSize: '11px', fontWeight: '900' }}>COMPROBANTE DE PAGO{isCopy ? ' (REIMPRESO)' : ''}</div>
+            {companyRNC && <div style={{ fontSize: '10px', fontWeight: '900' }}>RNC: {companyRNC}</div>}
+            {companyAddress && <div style={{ fontSize: '10px', fontWeight: '900' }}>Dir: {companyAddress}</div>}
+            {companyWhatsApp && <div style={{ fontSize: '10px', fontWeight: '900' }}>WhatsApp: {companyWhatsApp}</div>}
+            <div style={{ fontSize: '11px', fontWeight: '900', marginTop: '4px' }}>COMPROBANTE DE PAGO{isCopy ? ' (REIMPRESO)' : ''}</div>
             <div style={{ fontSize: '10px' }}>Ref: {receipt.id.substr(0, 12).toUpperCase()}</div>
             <div style={{ fontSize: '10px' }}>{formatDateTime(receipt.date)}</div>
           </div>
@@ -135,9 +150,13 @@ ${receipt.remainingBalance !== undefined ? `📊 Saldo: ${formatCurrency(receipt
           </div>
 
           {/* Footer */}
-          <div className="text-center" style={{ fontSize: '10px' }}>
+          <div className="text-center" style={{ fontSize: '10px', marginTop: '6px' }}>
             <div style={{ fontWeight: '900', textTransform: 'uppercase' }}>¡Gracias por su pago!</div>
-            <div>Conserve este comprobante</div>
+            {receiptFooter ? (
+              <div style={{ fontWeight: '900', marginTop: '2px' }}>{receiptFooter}</div>
+            ) : (
+              <div style={{ fontWeight: '900' }}>Conserve este comprobante</div>
+            )}
           </div>
         </div>
       </div>

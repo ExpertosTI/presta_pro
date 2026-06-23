@@ -36,6 +36,51 @@ export const calculateSchedule = (amount, rate, term, frequency, startDate, type
   let pmt = 0;
   let currentDate = new Date(startDate);
 
+  // Lógica FLAT (Interés Simple sobre Saldo Absoluto)
+  if (type === 'FLAT') {
+    const totalInterest = principalAmount * annualRate;
+    const totalAmount = principalAmount + totalInterest;
+    const regularPayment = parseFloat((totalAmount / totalTerms).toFixed(2));
+    const interestPerPayment = parseFloat((totalInterest / totalTerms).toFixed(2));
+    const principalPerPayment = parseFloat((principalAmount / totalTerms).toFixed(2));
+
+    let remainingBalance = principalAmount;
+    let totalPaid = 0;
+
+    for (let i = 1; i <= totalTerms; i++) {
+      currentDate.setDate(currentDate.getDate() + daysPerPeriod);
+
+      let payment = regularPayment;
+      let principal = principalPerPayment;
+      let interest = interestPerPayment;
+
+      if (i === totalTerms) {
+        const remaining = totalAmount - totalPaid;
+        payment = parseFloat(remaining.toFixed(2));
+        principal = remainingBalance;
+        interest = parseFloat((payment - principal).toFixed(2));
+      }
+
+      remainingBalance = parseFloat((remainingBalance - principal).toFixed(2));
+      if (remainingBalance < 0) remainingBalance = 0;
+      totalPaid += payment;
+
+      schedule.push({
+        id: generateId(),
+        number: i,
+        date: currentDate.toISOString().split('T')[0],
+        payment,
+        interest,
+        principal,
+        balance: remainingBalance,
+        status: 'PENDING',
+        paidAmount: 0,
+        paidDate: null
+      });
+    }
+    return schedule;
+  }
+
   // Lógica INTERES SOLAMENTE (Cuota fija = Interés, Capital al final o nunca)
   if (type === 'INTEREST_ONLY') {
     const interestPayment = parseFloat((principalAmount * ratePerPeriod).toFixed(2));
@@ -98,3 +143,68 @@ export const calculateSchedule = (amount, rate, term, frequency, startDate, type
   }
   return schedule;
 };
+
+export const calculateInstallmentVal = (amount, rate, term, frequency, type = 'FLAT') => {
+  const principal = parseFloat(amount) || 0;
+  const rateVal = parseFloat(rate) || 0;
+  const n = parseInt(term, 10) || 0;
+  if (principal <= 0 || n <= 0) return '';
+
+  if (type === 'FLAT') {
+    const totalInterest = principal * (rateVal / 100);
+    const totalAmount = principal + totalInterest;
+    return (totalAmount / n).toFixed(2);
+  } else if (type === 'FRENCH') {
+    let periodsPerYear = 12;
+    switch (frequency) {
+      case 'Diario': periodsPerYear = 365; break;
+      case 'Semanal': periodsPerYear = 52; break;
+      case 'Quincenal': periodsPerYear = 24; break;
+      case 'Mensual': periodsPerYear = 12; break;
+    }
+    const ratePerPeriod = (rateVal / 100) / periodsPerYear;
+    if (ratePerPeriod === 0) {
+      return (principal / n).toFixed(2);
+    } else {
+      const pmt = (principal * ratePerPeriod) / (1 - Math.pow(1 + ratePerPeriod, -n));
+      return pmt.toFixed(2);
+    }
+  }
+  return '';
+};
+
+export const calculateRateFromInstallment = (amount, installment, term, frequency, type = 'FLAT') => {
+  const principal = parseFloat(amount) || 0;
+  const pmt = parseFloat(installment) || 0;
+  const n = parseInt(term, 10) || 0;
+  if (principal <= 0 || pmt <= 0 || n <= 0) return '';
+
+  if (type === 'FLAT') {
+    const rate = ((pmt * n / principal) - 1) * 100;
+    return Math.max(0, rate).toFixed(2);
+  } else if (type === 'FRENCH') {
+    let periodsPerYear = 12;
+    switch (frequency) {
+      case 'Diario': periodsPerYear = 365; break;
+      case 'Semanal': periodsPerYear = 52; break;
+      case 'Quincenal': periodsPerYear = 24; break;
+      case 'Mensual': periodsPerYear = 12; break;
+    }
+    let low = 0;
+    let high = 5;
+    for (let iter = 0; iter < 100; iter++) {
+      const mid = (low + high) / 2;
+      const calculatedPmt = mid === 0 ? (principal / n) : (principal * mid) / (1 - Math.pow(mid + 1, -n));
+      if (calculatedPmt > pmt) {
+        high = mid;
+      } else {
+        low = mid;
+      }
+    }
+    const r = (low + high) / 2;
+    const annualRate = r * periodsPerYear * 100;
+    return Math.max(0, annualRate).toFixed(2);
+  }
+  return '';
+};
+

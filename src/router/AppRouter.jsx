@@ -75,6 +75,7 @@ export default function AppRouter({ activeTab, setActiveTab, navParams, modalAct
           addClientDocument={handleAddClientDocument}
           onNavigateToDocuments={(clientId) => { setSelectedClientId(clientId); setActiveTab('documents'); }}
           onNewClient={(callback) => { setClientCreatedCallback(() => callback); openClientModal(); }}
+          systemSettings={dbData.systemSettings}
         />;
       case 'requests':
         return <RequestsView

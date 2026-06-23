@@ -13,7 +13,7 @@ import {
     PRINTER_DRIVERS,
 } from '../services/thermalPrinter';
 
-const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, penaltyAmount, companyLogo }) => {
+const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, penaltyAmount, companyLogo, systemSettings = {} }) => {
     const receiptRef = useRef(null);
     const [isSharing, setIsSharing] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -71,7 +71,14 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
         setShowPrinterMenu(false);
 
         try {
-            await printReceipt(receipt, { companyName, companyLogo }, driverOverride);
+            await printReceipt(receipt, {
+                companyName: systemSettings.companyName || companyName,
+                companyLogo: systemSettings.companyLogo || companyLogo,
+                companyRNC: systemSettings.companyRNC || '',
+                companyAddress: systemSettings.companyAddress || '',
+                companyWhatsApp: systemSettings.companyWhatsApp || '',
+                receiptFooter: systemSettings.receiptFooter || '',
+            }, driverOverride);
             setPrinterStatus('Impreso correctamente');
             setTimeout(() => setPrinterStatus(''), 2000);
         } catch (error) {
