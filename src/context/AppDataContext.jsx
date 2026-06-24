@@ -140,6 +140,56 @@ export function AppDataProvider({ children, token, user }) {
     try {
       const loan = dbData.loans.find(l => l.id === loanId);
       const client = dbData.clients.find(c => c.id === loan?.clientId);
+
+      // Abono libre: disponible para OPEN y también para préstamos con cuotas
+      if (loan?.loanType === 'OPEN' || options?.useFreePayment) {
+        const paymentAmount = parseFloat(options?.customAmount || options?.amount || 0);
+        if (!paymentAmount || paymentAmount <= 0) {
+          showToast('El monto del abono debe ser mayor a 0', 'error');
+          return null;
+        }
+
+        const result = await loanService.createFreePayment(loanId, {
+          amount: paymentAmount,
+          notes: options?.notes || null,
+          collectorId: options?.collectorId || null
+        });
+
+        const updatedLoan = result?.loan || loan;
+        const summary = result?.summary || {};
+        const openLoanReceipt = {
+          id: result?.payment?.id || generateId(),
+          clientId: loan?.clientId,
+          clientName: client?.name || 'Cliente',
+          clientPhone: client?.phone || '',
+          loanId,
+          amount: paymentAmount,
+          penaltyAmount: 0,
+          installmentNumber: 'ABONO LIBRE',
+          date: result?.payment?.date || new Date().toISOString(),
+          loanAmount: loan?.amount,
+          remainingBalance: summary?.remainingBalance ?? updatedLoan?.currentBalance ?? 0,
+          isOpenLoan: loan?.loanType === 'OPEN',
+          paidToInterest: summary?.paidToInterest || 0,
+          paidToPrincipal: summary?.paidToPrincipal || 0,
+          concept: loan?.loanType === 'OPEN'
+            ? 'Abono libre (préstamo abierto)'
+            : 'Abono a rédito/capital (préstamo con cuotas)'
+        };
+
+        setDbData(prev => ({
+          ...prev,
+          receipts: [...prev.receipts, openLoanReceipt],
+          loans: prev.loans.map(l => l.id === loanId ? {
+            ...updatedLoan,
+            schedule: updatedLoan?.installments || updatedLoan?.schedule || []
+          } : l)
+        }));
+
+        showToast('Abono libre registrado', 'success');
+        return openLoanReceipt;
+      }
+
       const schedule = loan?.schedule || loan?.installments || [];
 
       const pendingInstallments = schedule

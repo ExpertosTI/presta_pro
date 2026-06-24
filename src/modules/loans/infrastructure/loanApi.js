@@ -17,6 +17,20 @@ export const loanApi = {
             throw new Error(e?.response?.data?.details || e?.response?.data?.error || 'Error al crear préstamo');
         }
     },
+    createFreePayment: async (id, data) => {
+        try {
+            return await api.post(`/loans/${id}/free-payment`, data);
+        } catch (e) {
+            throw new Error(e?.response?.data?.error || 'Error al registrar abono libre');
+        }
+    },
+    getFreePayments: async (id) => {
+        try {
+            return await api.get(`/loans/${id}/free-payments`);
+        } catch (e) {
+            throw new Error(e?.response?.data?.error || 'Error al obtener abonos libres');
+        }
+    },
     update: (id, data) => api.put(`/loans/${id}`, data),
     delete: (id) => api.delete(`/loans/${id}`),
 

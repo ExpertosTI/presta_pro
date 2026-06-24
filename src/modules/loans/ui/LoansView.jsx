@@ -26,12 +26,17 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
   // Create Loan Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
+  const [createForm, setCreateForm] = useState({ clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
   const [createError, setCreateError] = useState('');
+  const [freePaymentAmount, setFreePaymentAmount] = useState('');
+  const [freePaymentNotes, setFreePaymentNotes] = useState('');
 
   const handleCreateFormChange = (fields) => {
     setCreateForm(prev => {
       let updated = { ...prev, ...fields };
+      if (updated.loanType === 'OPEN') {
+        return updated;
+      }
       const totalAmount = (parseFloat(updated.amount) || 0) + (parseFloat(updated.closingCosts) || 0);
       if (fields.hasOwnProperty('installment')) {
         const rateVal = calculateRateFromInstallment(totalAmount, fields.installment, updated.term, updated.frequency, updated.amortizationType);
@@ -89,7 +94,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       // MEJORA 3: Type filter
       if (typeFilter !== 'ALL') {
-        const isOpen = loan.amortizationType === 'OPEN' || loan.type === 'OPEN';
+        const isOpen = loan.loanType === 'OPEN' || loan.amortizationType === 'OPEN' || loan.type === 'OPEN';
         if (typeFilter === 'OPEN' && !isOpen) return false;
         if (typeFilter === 'FIXED' && isOpen) return false;
       }
@@ -148,6 +153,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
   }, [loans, clients, searchQuery, statusFilter, showArchived, typeFilter, collectorFilter, dateFrom, dateTo, sortBy, sortOrder]);
 
   const selectedLoan = useMemo(() => loans.find(l => l.id === selectedLoanId), [loans, selectedLoanId]);
+  const isSelectedLoanOpen = selectedLoan?.loanType === 'OPEN' || selectedLoan?.amortizationType === 'OPEN' || selectedLoan?.type === 'OPEN';
   const selectedClient = useMemo(() => {
     if (!selectedLoan) return null;
     return clients.find(c => c.id === selectedLoan.clientId);
@@ -158,6 +164,13 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
     return selectedLoan.schedule.find(s => s.status !== 'PAID');
   }, [selectedLoan]);
 
+  const fixedRemainingInterest = useMemo(() => {
+    if (!selectedLoan || isSelectedLoanOpen || !Array.isArray(selectedLoan.schedule)) return 0;
+    return selectedLoan.schedule
+      .filter(s => s.status !== 'PAID')
+      .reduce((sum, s) => sum + (parseFloat(s.interest || 0)), 0);
+  }, [selectedLoan, isSelectedLoanOpen]);
+
   // MEJORA 4: Portfolio statistics
   const loanStats = useMemo(() => {
     const activeLoans = loans.filter(l => !l.archived && l.status === 'ACTIVE');
@@ -167,8 +180,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
     const totalPending = (totalPortfolio + totalExpectedInterest) - totalCollected;
 
     // Count by type
-    const fixedCount = activeLoans.filter(l => l.amortizationType !== 'OPEN' && l.type !== 'OPEN').length;
-    const openCount = activeLoans.filter(l => l.amortizationType === 'OPEN' || l.type === 'OPEN').length;
+    const fixedCount = activeLoans.filter(l => l.loanType !== 'OPEN' && l.amortizationType !== 'OPEN' && l.type !== 'OPEN').length;
+    const openCount = activeLoans.filter(l => l.loanType === 'OPEN' || l.amortizationType === 'OPEN' || l.type === 'OPEN').length;
 
     return {
       totalPortfolio,
@@ -527,25 +540,41 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 const amount = parseFloat(createForm.amount || '0');
                 const rate = parseFloat(createForm.rate || '0');
                 const term = parseInt(createForm.term || '0', 10);
-                if (!createForm.clientId || !amount || !rate || !term) {
+                const isOpenLoan = createForm.loanType === 'OPEN';
+
+                if (!createForm.clientId || !amount || !rate || (!isOpenLoan && !term)) {
                   setCreateError('Completa todos los campos correctamente.');
                   return;
                 }
                 const closingCosts = parseFloat(createForm.closingCosts || '0');
                 onCreateLoan({
                   clientId: createForm.clientId,
+                  loanType: createForm.loanType,
                   amount,
                   rate,
-                  term,
-                  frequency: createForm.frequency,
+                  term: isOpenLoan ? undefined : term,
+                  frequency: isOpenLoan ? undefined : createForm.frequency,
                   startDate: createForm.startDate,
                   closingCosts,
-                  amortizationType: createForm.amortizationType
+                  amortizationType: isOpenLoan ? undefined : createForm.amortizationType,
+                  dailyRate: isOpenLoan && createForm.dailyRate ? parseFloat(createForm.dailyRate) : undefined
                 });
                 setCreateModalOpen(false);
-                setCreateForm({ clientId: '', amount: '', rate: '20', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
+                setCreateForm({ clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
                 setCreateError('');
               }} className="space-y-3 text-sm">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tipo de préstamo</label>
+                  <select
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    value={createForm.loanType}
+                    onChange={(e) => handleCreateFormChange({ loanType: e.target.value })}
+                  >
+                    <option value="FIXED">Cuotas fijas</option>
+                    <option value="OPEN">Abierto (abonos libres)</option>
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Cliente</label>
                   <div className="flex gap-2">
@@ -577,7 +606,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className={`grid gap-3 ${createForm.loanType === 'OPEN' ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Monto</label>
                     <input
@@ -589,70 +618,102 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                       placeholder="15000"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Plazo (cuotas)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                      value={createForm.term}
-                      onChange={(e) => handleCreateFormChange({ term: e.target.value })}
-                    />
-                  </div>
+                  {createForm.loanType !== 'OPEN' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Plazo (cuotas)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                        value={createForm.term}
+                        onChange={(e) => handleCreateFormChange({ term: e.target.value })}
+                      />
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Frecuencia</label>
-                    <select
-                      className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                      value={createForm.frequency}
-                      onChange={(e) => handleCreateFormChange({ frequency: e.target.value })}
-                    >
-                      <option>Diario</option>
-                      <option>Semanal</option>
-                      <option>Quincenal</option>
-                      <option>Mensual</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tipo de Interés</label>
-                    <select
-                      className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                      value={createForm.amortizationType}
-                      onChange={(e) => handleCreateFormChange({ amortizationType: e.target.value })}
-                    >
-                      <option value="FLAT">Saldo Absoluto (Interés Simple)</option>
-                      <option value="FRENCH">Saldo Insoluto (Interés Compuesto)</option>
-                    </select>
-                  </div>
-                </div>
+                {createForm.loanType !== 'OPEN' ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Frecuencia</label>
+                        <select
+                          className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                          value={createForm.frequency}
+                          onChange={(e) => handleCreateFormChange({ frequency: e.target.value })}
+                        >
+                          <option>Diario</option>
+                          <option>Semanal</option>
+                          <option>Quincenal</option>
+                          <option>Mensual</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tipo de Interés</label>
+                        <select
+                          className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                          value={createForm.amortizationType}
+                          onChange={(e) => handleCreateFormChange({ amortizationType: e.target.value })}
+                        >
+                          <option value="FLAT">Saldo Absoluto (Interés Simple)</option>
+                          <option value="FRENCH">Saldo Insoluto (Interés Compuesto)</option>
+                        </select>
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Valor de la Cuota</label>
-                    <input
-                      type="number"
-                      min="1"
-                      step="0.01"
-                      className="w-full p-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900/50 text-blue-600 dark:text-blue-400 font-bold"
-                      value={createForm.installment}
-                      onChange={(e) => handleCreateFormChange({ installment: e.target.value })}
-                      placeholder="Calcular..."
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Valor de la Cuota</label>
+                        <input
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          className="w-full p-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900/50 text-blue-600 dark:text-blue-400 font-bold"
+                          value={createForm.installment}
+                          onChange={(e) => handleCreateFormChange({ installment: e.target.value })}
+                          placeholder="Calcular..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa %</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                          value={createForm.rate}
+                          onChange={(e) => handleCreateFormChange({ rate: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa anual %</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                        value={createForm.rate}
+                        onChange={(e) => handleCreateFormChange({ rate: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa diaria % <span className="text-slate-400 font-normal">(opcional)</span></label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.0001"
+                        className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                        value={createForm.dailyRate}
+                        onChange={(e) => handleCreateFormChange({ dailyRate: e.target.value })}
+                        placeholder="Ej: 0.5"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa %</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                      value={createForm.rate}
-                      onChange={(e) => handleCreateFormChange({ rate: e.target.value })}
-                    />
-                  </div>
-                </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1013,7 +1074,73 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
               </div>
             )}
 
-            {Array.isArray(selectedLoan.schedule) && selectedLoan.schedule.some(i => i.status === 'PAID') ? (
+            {selectedLoan.status !== 'COMPLETED' && (
+              <div className="mt-4 p-3 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-800/50 rounded-xl text-sm shadow-sm space-y-2">
+                <p className="font-bold text-blue-800 dark:text-blue-300 text-base">
+                  {isSelectedLoanOpen ? 'Abono libre (préstamo abierto)' : 'Abono a rédito/capital'}
+                </p>
+                <p className="text-slate-700 dark:text-slate-300">
+                  Saldo actual: <span className="font-semibold">{formatCurrency(selectedLoan.currentBalance || 0)}</span>
+                </p>
+                <p className="text-slate-700 dark:text-slate-300">
+                  {isSelectedLoanOpen
+                    ? (
+                      <>Interés acumulado: <span className="font-semibold">{formatCurrency(selectedLoan.interestAccrued || 0)}</span></>
+                    )
+                    : (
+                      <>Rédito pendiente (cuotas): <span className="font-semibold">{formatCurrency(fixedRemainingInterest || 0)}</span></>
+                    )}
+                </p>
+                {!isSelectedLoanOpen && firstPendingInstallment && (
+                  <button
+                    type="button"
+                    onClick={() => setFreePaymentAmount(String(firstPendingInstallment.interest || 0))}
+                    className="w-full border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 py-2 rounded-lg font-semibold text-xs hover:bg-blue-100/60 dark:hover:bg-blue-900/20"
+                  >
+                    Usar solo rédito de próxima cuota ({formatCurrency(firstPendingInstallment.interest || 0)})
+                  </button>
+                )}
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={freePaymentAmount}
+                  onChange={(e) => setFreePaymentAmount(e.target.value)}
+                  className="w-full p-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  placeholder="Monto del abono"
+                />
+                <textarea
+                  value={freePaymentNotes}
+                  onChange={(e) => setFreePaymentNotes(e.target.value)}
+                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  rows={2}
+                  placeholder="Notas (opcional)"
+                />
+                <button
+                  onClick={async () => {
+                    const receipt = await registerPayment(selectedLoan.id, null, {
+                      customAmount: parseFloat(freePaymentAmount || 0),
+                      useFreePayment: true,
+                      notes: freePaymentNotes || null
+                    });
+                    if (receipt) {
+                      setReceiptToShow(receipt);
+                      setFreePaymentAmount('');
+                      setFreePaymentNotes('');
+                    }
+                  }}
+                  className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md hover:shadow-lg transition-all"
+                >
+                  {isSelectedLoanOpen ? 'Registrar Abono Libre' : 'Registrar Abono a Rédito/Capital'}
+                </button>
+              </div>
+            )}
+
+            {isSelectedLoanOpen ? (
+              <p className="mt-4 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 p-2 rounded">
+                Este préstamo abierto se gestiona con abonos libres.
+              </p>
+            ) : Array.isArray(selectedLoan.schedule) && selectedLoan.schedule.some(i => i.status === 'PAID') ? (
               <p className="mt-4 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 p-2 rounded">
                 Este préstamo ya tiene pagos registrados y no se puede editar.
               </p>
@@ -1102,17 +1229,50 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
           <Card className="lg:col-span-2 order-2 lg:order-2">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">Hoja de amortización</h3>
-              <button
-                onClick={handlePrintAmortization}
-                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                title="Imprimir hoja de amortización"
-              >
-                <Printer size={16} />
-                Imprimir
-              </button>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{isSelectedLoanOpen ? 'Historial de abonos' : 'Hoja de amortización'}</h3>
+              {!isSelectedLoanOpen && (
+                <button
+                  onClick={handlePrintAmortization}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  title="Imprimir hoja de amortización"
+                >
+                  <Printer size={16} />
+                  Imprimir
+                </button>
+              )}
             </div>
             <div className="overflow-x-auto max-h-[360px]">
+              {isSelectedLoanOpen ? (
+                <table className="w-full text-xs md:text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 sticky top-0">
+                    <tr>
+                      <th className="p-2 text-left">Fecha</th>
+                      <th className="p-2 text-right">Abono</th>
+                      <th className="p-2 text-right">A interés</th>
+                      <th className="p-2 text-right">A capital</th>
+                      <th className="p-2 text-right">Saldo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                    {(selectedLoan.freePayments || []).map(p => (
+                      <tr key={p.id}>
+                        <td className="p-2 text-slate-600 dark:text-slate-400">{formatDate(p.date)}</td>
+                        <td className="p-2 text-right text-slate-800 dark:text-slate-200">{formatCurrency(p.amount || 0)}</td>
+                        <td className="p-2 text-right text-red-500 dark:text-red-400">{formatCurrency(p.toInterest || 0)}</td>
+                        <td className="p-2 text-right text-green-600 dark:text-green-400">{formatCurrency(p.toPrincipal || 0)}</td>
+                        <td className="p-2 text-right text-slate-500 dark:text-slate-400">{formatCurrency(p.balanceAfter || 0)}</td>
+                      </tr>
+                    ))}
+                    {(!selectedLoan.freePayments || selectedLoan.freePayments.length === 0) && (
+                      <tr>
+                        <td colSpan={5} className="p-4 text-center text-slate-500 dark:text-slate-400">
+                          Aún no hay abonos registrados.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              ) : (
               <table className="w-full text-xs md:text-sm">
                 <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 sticky top-0">
                   <tr>
@@ -1163,6 +1323,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   ))}
                 </tbody>
               </table>
+              )}
             </div>
           </Card>
         </div>
