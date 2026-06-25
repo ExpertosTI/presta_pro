@@ -2,7 +2,7 @@
 
 const { daysBetween, parseDateOnly } = require('./dateUtils');
 
-const OPEN_LOAN_FREQUENCIES = ['Diario', 'Semanal', 'Mensual'];
+const OPEN_LOAN_FREQUENCIES = ['Diario', 'Semanal', 'Quincenal', 'Mensual'];
 
 function normalizeOpenFrequency(frequency) {
   if (OPEN_LOAN_FREQUENCIES.includes(frequency)) return frequency;
@@ -13,6 +13,7 @@ function getDaysPerPeriod(frequency) {
   switch (normalizeOpenFrequency(frequency)) {
     case 'Diario': return 1;
     case 'Semanal': return 7;
+    case 'Quincenal': return 15;
     case 'Mensual': return 30;
     default: return 1;
   }
@@ -22,6 +23,7 @@ function getPeriodsPerYear(frequency) {
   switch (normalizeOpenFrequency(frequency)) {
     case 'Diario': return 365;
     case 'Semanal': return 52;
+    case 'Quincenal': return 24;
     case 'Mensual': return 12;
     default: return 365;
   }

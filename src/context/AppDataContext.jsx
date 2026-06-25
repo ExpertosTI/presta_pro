@@ -167,7 +167,9 @@ export function AppDataProvider({ children, token, user }) {
           loanId,
           amount: paymentAmount,
           penaltyAmount: 0,
-          installmentNumber: 'ABONO LIBRE',
+          installmentNumber: options?.interestOnly
+            ? `RÉDITO #${options?.installmentNumber || '—'}`
+            : 'ABONO LIBRE',
           date: result?.payment?.date || new Date().toISOString(),
           loanAmount: loan?.amount,
           remainingBalance: summary?.remainingBalance ?? updatedLoan?.currentBalance ?? 0,

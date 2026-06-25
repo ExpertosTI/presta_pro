@@ -1165,6 +1165,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                       loanId: selectedLoan.id,
                       installmentId: firstPendingInstallment.id,
                       amount: firstPendingInstallment.payment,
+                      interestAmount: firstPendingInstallment.interest || 0,
                       number: firstPendingInstallment.number,
                       date: firstPendingInstallment.date,
                       clientName: selectedClient?.name || 'Sin cliente',

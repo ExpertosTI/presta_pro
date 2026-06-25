@@ -3,7 +3,7 @@
 import { daysBetween, isPastDate, parseDateOnly, startOfToday } from './dateUtils';
 import { calculateSchedule } from './amortization';
 
-export const OPEN_LOAN_FREQUENCIES = ['Diario', 'Semanal', 'Mensual'];
+export const OPEN_LOAN_FREQUENCIES = ['Diario', 'Semanal', 'Quincenal', 'Mensual'];
 
 export function normalizeOpenFrequency(frequency) {
   if (OPEN_LOAN_FREQUENCIES.includes(frequency)) return frequency;
@@ -14,6 +14,7 @@ export function getDaysPerPeriod(frequency) {
   switch (normalizeOpenFrequency(frequency)) {
     case 'Diario': return 1;
     case 'Semanal': return 7;
+    case 'Quincenal': return 15;
     case 'Mensual': return 30;
     default: return 1;
   }
@@ -23,6 +24,7 @@ export function getPeriodsPerYear(frequency) {
   switch (normalizeOpenFrequency(frequency)) {
     case 'Diario': return 365;
     case 'Semanal': return 52;
+    case 'Quincenal': return 24;
     case 'Mensual': return 12;
     default: return 365;
   }
@@ -199,4 +201,14 @@ export function calculateOpenLoanSchedule(principal, annualRatePercent, frequenc
   }
 
   return schedule;
+}
+
+/** Comparativa de rédito por frecuencia (préstamos abiertos) */
+export function calculateOpenInterestComparison(principal, annualRatePercent, customPeriodRatePercent = null) {
+  const frequencies = ['Semanal', 'Quincenal', 'Mensual', 'Diario'];
+  return frequencies.map(frequency => ({
+    frequency,
+    periodInterest: calculatePeriodInterest(principal, annualRatePercent, frequency, customPeriodRatePercent),
+    periodRatePercent: getPeriodRatePercent(annualRatePercent, frequency, customPeriodRatePercent)
+  }));
 }

@@ -7,6 +7,7 @@ import {
 import { calculateSchedule, calculateInstallmentVal, calculateRateFromInstallment } from '../../../shared/utils/amortization';
 import {
   calculateOpenLoanSchedule,
+  calculateOpenInterestComparison,
   calculatePeriodInterest,
   getPeriodRatePercent,
   OPEN_LOAN_FREQUENCIES,
@@ -24,6 +25,7 @@ const PRESETS = [
   { name: 'Largo Plazo', loanMode: 'FIXED', amount: 50000, rate: 8, term: 24, frequency: 'Mensual', amortizationType: 'FRENCH', icon: TrendingUp },
   { name: 'Micro Diario', loanMode: 'FIXED', amount: 3000, rate: 20, term: 30, frequency: 'Diario', amortizationType: 'FLAT', icon: Clock },
   { name: 'Abierto Mensual', loanMode: 'OPEN', amount: 25000, rate: 24, term: 12, frequency: 'Mensual', periodRate: '', icon: Percent },
+  { name: 'Abierto Quincenal', loanMode: 'OPEN', amount: 15000, rate: 30, term: 12, frequency: 'Quincenal', periodRate: '', icon: Clock },
   { name: 'Abierto Semanal', loanMode: 'OPEN', amount: 10000, rate: 36, term: 16, frequency: 'Semanal', periodRate: '', icon: Clock }
 ];
 
@@ -55,6 +57,14 @@ export function CalculatorView() {
       startDate: simData.startDate
     });
   }, [isOpenMode, simData]);
+
+  const openInterestComparison = useMemo(() => {
+    if (!isOpenMode) return [];
+    const totalAmount = (parseFloat(simData.amount) || 0) + (parseFloat(simData.closingCosts) || 0);
+    if (totalAmount <= 0) return [];
+    const customPeriodRate = simData.periodRate ? parseFloat(simData.periodRate) : null;
+    return calculateOpenInterestComparison(totalAmount, simData.rate, customPeriodRate);
+  }, [isOpenMode, simData.amount, simData.closingCosts, simData.rate, simData.periodRate]);
 
   const handleSimDataChange = (fields) => {
     setSimData(prev => {
@@ -446,6 +456,34 @@ _Simulación generada con Presta Pro_`;
                   </p>
                 )}
               </div>
+              )}
+
+              {isOpenMode && openInterestComparison.length > 0 && (
+                <div className="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-3">
+                  <p className="text-xs font-bold text-indigo-800 dark:text-indigo-300 mb-2 uppercase tracking-wide">
+                    Rédito por frecuencia (capital intacto)
+                  </p>
+                  <div className="space-y-2">
+                    {openInterestComparison.map(row => (
+                      <button
+                        key={row.frequency}
+                        type="button"
+                        onClick={() => handleSimDataChange({ frequency: row.frequency })}
+                        className={`w-full flex justify-between items-center text-xs px-2 py-1.5 rounded-lg transition-colors ${
+                          simData.frequency === row.frequency
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/30'
+                        }`}
+                      >
+                        <span className="font-semibold">{row.frequency}</span>
+                        <span>
+                          {formatCurrency(row.periodInterest)}
+                          <span className="opacity-70 ml-1">({row.periodRatePercent.toFixed(2)}%)</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
               <div>
