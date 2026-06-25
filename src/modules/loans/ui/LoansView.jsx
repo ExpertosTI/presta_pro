@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import Card from '../../../shared/components/ui/Card.jsx';
 import Badge from '../../../shared/components/ui/Badge.jsx';
+import MoneyInput from '../../../shared/components/ui/MoneyInput.jsx';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { calculateSchedule, calculateInstallmentVal, calculateRateFromInstallment } from '../../../shared/utils/amortization';
 import {
@@ -649,13 +650,11 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 <div className={`grid gap-3 ${createForm.loanType === 'OPEN' ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Monto</label>
-                    <input
-                      type="number"
-                      min="1"
+                    <MoneyInput
                       className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                       value={createForm.amount}
-                      onChange={(e) => handleCreateFormChange({ amount: e.target.value })}
-                      placeholder="15000"
+                      onChange={(val) => handleCreateFormChange({ amount: val })}
+                      placeholder="15,000"
                     />
                   </div>
                   {createForm.loanType !== 'OPEN' && (
@@ -744,7 +743,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa anual %</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa % por período</label>
                         <input
                           type="number"
                           min="0"
@@ -752,44 +751,19 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                           className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                           value={createForm.rate}
                           onChange={(e) => handleCreateFormChange({ rate: e.target.value })}
+                          placeholder="Ej: 5"
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                          Tasa por período % <span className="text-slate-400 font-normal">(opcional)</span>
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.0001"
-                          className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                          value={createForm.dailyRate}
-                          onChange={(e) => handleCreateFormChange({ dailyRate: e.target.value })}
-                          placeholder="Auto desde tasa anual"
-                        />
-                      </div>
-                      <div className="flex flex-col justify-end">
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg p-2">
-                          Interés {createForm.frequency.toLowerCase()} estimado:{' '}
-                          <span className="font-semibold text-blue-700 dark:text-blue-300">
-                            {formatCurrency(calculatePeriodInterest(
-                              (parseFloat(createForm.amount) || 0) + (parseFloat(createForm.closingCosts) || 0),
-                              parseFloat(createForm.rate) || 0,
-                              createForm.frequency,
-                              createForm.dailyRate ? parseFloat(createForm.dailyRate) : null
-                            ))}
-                          </span>
-                          <span className="block mt-1 text-[10px]">
-                            ({getPeriodRatePercent(
-                              parseFloat(createForm.rate) || 0,
-                              createForm.frequency,
-                              createForm.dailyRate ? parseFloat(createForm.dailyRate) : null
-                            ).toFixed(4)}% por período)
-                          </span>
-                        </p>
-                      </div>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 text-[11px] text-blue-700 dark:text-blue-300">
+                      Rédito {createForm.frequency.toLowerCase()} estimado:{' '}
+                      <span className="font-bold text-sm">
+                        {formatCurrency(calculatePeriodInterest(
+                          (parseFloat(createForm.amount) || 0) + (parseFloat(createForm.closingCosts) || 0),
+                          parseFloat(createForm.rate) || 0
+                        ))}
+                      </span>
+                      {' '}({(parseFloat(createForm.rate) || 0).toFixed(2)}% por período — capital intacto)
                     </div>
                   </>
                 )}
@@ -797,12 +771,10 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Gastos Cierre <span className="text-slate-400 font-normal">(opcional)</span></label>
-                    <input
-                      type="number"
-                      min="0"
+                    <MoneyInput
                       className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                       value={createForm.closingCosts}
-                      onChange={(e) => handleCreateFormChange({ closingCosts: e.target.value })}
+                      onChange={(val) => handleCreateFormChange({ closingCosts: val })}
                       placeholder="0"
                     />
                   </div>
@@ -1244,12 +1216,9 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   />
                   Solo abonar a interés (no rebaja capital)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <MoneyInput
                   value={freePaymentAmount}
-                  onChange={(e) => setFreePaymentAmount(e.target.value)}
+                  onChange={(val) => setFreePaymentAmount(val)}
                   className="w-full p-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                   placeholder="Monto del abono"
                 />

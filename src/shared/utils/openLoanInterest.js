@@ -30,31 +30,32 @@ export function getPeriodsPerYear(frequency) {
   }
 }
 
-/** Tasa por período en % (ej. 1.67 para ~20% anual mensual) */
-export function getPeriodRatePercent(annualRatePercent, frequency, customPeriodRatePercent = null) {
-  const custom = parseFloat(customPeriodRatePercent);
-  if (!Number.isNaN(custom) && custom > 0) return custom;
-  const annual = parseFloat(annualRatePercent) || 0;
-  return annual / getPeriodsPerYear(normalizeOpenFrequency(frequency));
+/**
+ * Para préstamos ABIERTOS la tasa se maneja directamente por período
+ * (ej: 5% mensual = se cobra 5% del capital cada mes).
+ * No se divide entre períodos del año.
+ */
+export function getPeriodRatePercent(periodRatePercent, _frequency = null, _deprecated = null) {
+  return parseFloat(periodRatePercent) || 0;
 }
 
 /** Interés acumulado proporcional al tiempo transcurrido */
-export function calculateAccruedInterest(principal, annualRatePercent, frequency, daysSinceLastCalc, customPeriodRatePercent = null) {
+export function calculateAccruedInterest(principal, periodRatePercent, frequency, daysSinceLastCalc) {
   const basePrincipal = parseFloat(principal) || 0;
   const days = parseInt(daysSinceLastCalc, 10) || 0;
   if (basePrincipal <= 0 || days <= 0) return 0;
 
-  const periodRateDecimal = getPeriodRatePercent(annualRatePercent, frequency, customPeriodRatePercent) / 100;
+  const rateDecimal = (parseFloat(periodRatePercent) || 0) / 100;
   const elapsedPeriods = days / getDaysPerPeriod(frequency);
-  return parseFloat((basePrincipal * periodRateDecimal * elapsedPeriods).toFixed(2));
+  return parseFloat((basePrincipal * rateDecimal * elapsedPeriods).toFixed(2));
 }
 
 /** Interés de un período completo sobre el capital vigente */
-export function calculatePeriodInterest(principal, annualRatePercent, frequency, customPeriodRatePercent = null) {
+export function calculatePeriodInterest(principal, periodRatePercent, frequency = null) {
   const basePrincipal = parseFloat(principal) || 0;
   if (basePrincipal <= 0) return 0;
-  const periodRateDecimal = getPeriodRatePercent(annualRatePercent, frequency, customPeriodRatePercent) / 100;
-  return parseFloat((basePrincipal * periodRateDecimal).toFixed(2));
+  const rateDecimal = (parseFloat(periodRatePercent) || 0) / 100;
+  return parseFloat((basePrincipal * rateDecimal).toFixed(2));
 }
 
 /** Interés total pendiente (guardado + devengado desde último cálculo) */
@@ -64,12 +65,13 @@ export function calculateTotalPendingInterest(loan, asOfDate = new Date()) {
   const daysSince = daysBetween(lastCalc, asOfDate);
   const principal = parseFloat(loan.currentBalance ?? loan.amount ?? 0) || 0;
   const accrued = parseFloat(loan.interestAccrued || 0) || 0;
+  // dailyRate almacena la tasa directa por período (compatible hacia atrás)
+  const effectiveRate = loan.dailyRate ?? loan.rate ?? 0;
   const newlyAccrued = calculateAccruedInterest(
     principal,
-    loan.rate,
-    loan.frequency || 'Diario',
-    daysSince,
-    loan.dailyRate
+    effectiveRate,
+    loan.frequency || 'Mensual',
+    daysSince
   );
   return parseFloat((accrued + newlyAccrued).toFixed(2));
 }
@@ -136,17 +138,14 @@ export function previewRetrospectiveLoan({
       daysSinceStart,
       pendingInterest: calculateAccruedInterest(
         principal,
-        rate,
+        parseFloat(rate) || 0,
         frequency || 'Mensual',
-        daysSinceStart,
-        dailyRate ? parseFloat(dailyRate) : null
+        daysSinceStart
       ),
       overdueInstallments: 0,
       periodInterest: calculatePeriodInterest(
         principal,
-        rate,
-        frequency || 'Mensual',
-        dailyRate ? parseFloat(dailyRate) : null
+        parseFloat(rate) || 0
       )
     };
   }
@@ -186,7 +185,7 @@ export function calculateOpenLoanSchedule(principal, annualRatePercent, frequenc
     currentDate = new Date(currentDate);
     currentDate.setDate(currentDate.getDate() + daysPerPeriod);
 
-    const interest = calculatePeriodInterest(basePrincipal, annualRatePercent, frequency, customPeriodRatePercent);
+    const interest = calculatePeriodInterest(basePrincipal, annualRatePercent);
     cumulativeInterest += interest;
 
     schedule.push({
@@ -203,12 +202,20 @@ export function calculateOpenLoanSchedule(principal, annualRatePercent, frequenc
   return schedule;
 }
 
-/** Comparativa de rédito por frecuencia (préstamos abiertos) */
-export function calculateOpenInterestComparison(principal, annualRatePercent, customPeriodRatePercent = null) {
+/**
+ * Comparativa informativa: dado un capital y una tasa base por período,
+ * muestra cuánto sería el rédito en distintas frecuencias si la tasa se
+ * ajustara proporcionalmente al período (referencia para decisión del usuario).
+ */
+export function calculateOpenInterestComparison(principal, periodRatePercent) {
+  // Convertimos la tasa del período base a tasa diaria para comparar equivalentemente
+  // No se calcula así en los préstamos reales; esto es solo referencia de simulación.
+  const rate = parseFloat(periodRatePercent) || 0;
+  // Devolvemos el interés con la tasa directa en cada frecuencia (la misma tasa)
   const frequencies = ['Semanal', 'Quincenal', 'Mensual', 'Diario'];
   return frequencies.map(frequency => ({
     frequency,
-    periodInterest: calculatePeriodInterest(principal, annualRatePercent, frequency, customPeriodRatePercent),
-    periodRatePercent: getPeriodRatePercent(annualRatePercent, frequency, customPeriodRatePercent)
+    periodInterest: calculatePeriodInterest(principal, rate),
+    periodRatePercent: rate
   }));
 }

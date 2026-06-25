@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
+import MoneyInput from '../../../shared/components/ui/MoneyInput.jsx';
 import { MapPin, Loader2 } from 'lucide-react';
 
 export default function PaymentConfirmationModal({
@@ -118,20 +119,13 @@ export default function PaymentConfirmationModal({
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                         {interestOnlyMode ? '💙 Monto solo a rédito' : '💵 Monto a cobrar'}
                     </label>
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.01"
+                    <MoneyInput
                         name="payment_custom_amount_unique_id"
                         autoComplete="off"
                         data-lpignore="true"
                         value={customPaymentAmount}
-                        onChange={(e) => setCustomPaymentAmount(e.target.value)}
-                        className={`w-full px-4 py-3 rounded-lg border-2 text-slate-900 dark:text-slate-100 text-xl font-bold focus:outline-none focus:ring-2 transition-all ${
-                            interestOnlyMode
-                                ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20 focus:ring-blue-500 focus:border-blue-600'
-                                : 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20 focus:ring-blue-500 focus:border-blue-600'
-                        }`}
+                        onChange={(val) => setCustomPaymentAmount(val)}
+                        className={`w-full px-4 py-3 rounded-lg border-2 text-slate-900 dark:text-slate-100 text-xl font-bold focus:outline-none focus:ring-2 transition-all border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20 focus:ring-blue-500 focus:border-blue-600`}
                         placeholder={interestOnlyMode
                             ? `Rédito: ${formatCurrency(interestAmount)}`
                             : `Sugerido: ${formatCurrency(paymentToConfirm.amount)}`}
@@ -145,9 +139,9 @@ export default function PaymentConfirmationModal({
                         </p>
                         <button
                             type="button"
-                            onClick={() => setCustomPaymentAmount(String(
-                                interestOnlyMode ? interestAmount : paymentToConfirm.amount
-                            ))}
+                            onClick={() => setCustomPaymentAmount(
+                                String(interestOnlyMode ? interestAmount : paymentToConfirm.amount).replace(/[^0-9.]/g, '')
+                            )}
                             className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
                         >
                             Usar sugerido
@@ -166,17 +160,14 @@ export default function PaymentConfirmationModal({
                         <label className="block text-sm font-bold text-amber-700 dark:text-amber-400 mb-2">
                             💰 Monto de mora (Adicional)
                         </label>
-                        <input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                        <MoneyInput
                             name="penalty_amount_unique_id"
                             autoComplete="off"
                             data-lpignore="true"
                             value={penaltyAmountInput}
-                            onChange={(e) => setPenaltyAmountInput(e.target.value)}
+                            onChange={(val) => setPenaltyAmountInput(val)}
                             className="w-full px-4 py-3 rounded-lg border-2 border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-slate-900 dark:text-slate-100 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-600"
-                            placeholder="Ej: 50.00"
+                            placeholder="Ej: 50"
                         />
                     </div>
                 )}

@@ -43,7 +43,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
       movedRef.current = true;
     }
 
-    const minMargin = 12;
+    const minMargin = 8;
     const buttonSize = 64;
     const maxRight = Math.max(minMargin, window.innerWidth - buttonSize - minMargin);
     const maxBottom = Math.max(minMargin, window.innerHeight - buttonSize - minMargin);
@@ -98,7 +98,14 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
       style={{ right: position.x, bottom: position.y }}
     >
       {open && (
-        <div className="pointer-events-auto w-[360px] max-w-[90vw] h-[520px] max-h-[80vh] rounded-2xl shadow-2xl border border-slate-800/80 bg-slate-950/95 backdrop-blur-2xl flex flex-col overflow-hidden animate-scale-in">
+        <div
+          className="pointer-events-auto rounded-2xl shadow-2xl border border-slate-800/80 bg-slate-950/95 backdrop-blur-2xl flex flex-col overflow-hidden animate-scale-in"
+          style={{
+            width: 'min(360px, calc(100vw - 24px))',
+            height: 'min(520px, calc(100dvh - 110px))',
+            maxHeight: 'calc(100dvh - 110px)',
+          }}
+        >
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/70 bg-slate-950/95">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white shadow-md">

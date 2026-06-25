@@ -29,28 +29,26 @@ function getPeriodsPerYear(frequency) {
   }
 }
 
-function getPeriodRatePercent(annualRatePercent, frequency, customPeriodRatePercent = null) {
-  const custom = parseFloat(customPeriodRatePercent);
-  if (!Number.isNaN(custom) && custom > 0) return custom;
-  const annual = parseFloat(annualRatePercent) || 0;
-  return annual / getPeriodsPerYear(normalizeOpenFrequency(frequency));
+// Para préstamos ABIERTOS la tasa es directa por período (no anual ÷ 12).
+function getPeriodRatePercent(periodRatePercent) {
+  return parseFloat(periodRatePercent) || 0;
 }
 
-function calculateAccruedInterest(principal, annualRatePercent, frequency, daysSinceLastCalc, customPeriodRatePercent = null) {
+function calculateAccruedInterest(principal, periodRatePercent, frequency, daysSinceLastCalc) {
   const basePrincipal = parseFloat(principal) || 0;
   const days = parseInt(daysSinceLastCalc, 10) || 0;
   if (basePrincipal <= 0 || days <= 0) return 0;
 
-  const periodRateDecimal = getPeriodRatePercent(annualRatePercent, frequency, customPeriodRatePercent) / 100;
+  const rateDecimal = (parseFloat(periodRatePercent) || 0) / 100;
   const elapsedPeriods = days / getDaysPerPeriod(frequency);
-  return parseFloat((basePrincipal * periodRateDecimal * elapsedPeriods).toFixed(2));
+  return parseFloat((basePrincipal * rateDecimal * elapsedPeriods).toFixed(2));
 }
 
-function calculatePeriodInterest(principal, annualRatePercent, frequency, customPeriodRatePercent = null) {
+function calculatePeriodInterest(principal, periodRatePercent) {
   const basePrincipal = parseFloat(principal) || 0;
   if (basePrincipal <= 0) return 0;
-  const periodRateDecimal = getPeriodRatePercent(annualRatePercent, frequency, customPeriodRatePercent) / 100;
-  return parseFloat((basePrincipal * periodRateDecimal).toFixed(2));
+  const rateDecimal = (parseFloat(periodRatePercent) || 0) / 100;
+  return parseFloat((basePrincipal * rateDecimal).toFixed(2));
 }
 
 function calculateTotalPendingInterest(loan, asOfDate = new Date()) {
@@ -59,12 +57,12 @@ function calculateTotalPendingInterest(loan, asOfDate = new Date()) {
   const daysSince = daysBetween(lastCalc, asOfDate);
   const principal = parseFloat(loan.currentBalance ?? loan.amount ?? 0) || 0;
   const accrued = parseFloat(loan.interestAccrued || 0) || 0;
+  const effectiveRate = loan.dailyRate ?? loan.rate ?? 0;
   const newlyAccrued = calculateAccruedInterest(
     principal,
-    loan.rate,
-    loan.frequency || 'Diario',
-    daysSince,
-    loan.dailyRate
+    effectiveRate,
+    loan.frequency || 'Mensual',
+    daysSince
   );
   return parseFloat((accrued + newlyAccrued).toFixed(2));
 }

@@ -194,6 +194,22 @@ export function AIHelper({
     const totalReceipts = aiMetrics?.receiptsCount ?? receipts.length;
     const employeesCount = employees.length;
 
+    // Réditos: interés cobrado histórico y pendiente en préstamos abiertos
+    const totalInterestCollected = receipts.reduce((acc, r) => {
+      return acc + (parseFloat(r.toInterest || r.interestAmount || 0) || 0);
+    }, 0);
+    const openLoans = loans.filter(l => l.loanType === 'OPEN' && l.status === 'ACTIVE');
+    const totalPendingInterestOpen = openLoans.reduce((acc, l) => {
+      return acc + (parseFloat(l.pendingInterest || l.interestAccrued || 0) || 0);
+    }, 0);
+    const interestCollectedToday = receipts
+      .filter(r => {
+        const d = new Date(r.date);
+        const tod = new Date(); tod.setHours(0,0,0,0);
+        return d >= tod;
+      })
+      .reduce((acc, r) => acc + (parseFloat(r.toInterest || r.interestAmount || 0) || 0), 0);
+
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const endOfToday = new Date(startOfToday);
@@ -313,7 +329,10 @@ export function AIHelper({
       `- Monto total prestado (capital): ${formatCurrency(totalLent)}\n` +
       `- Gastos totales acumulados: ${formatCurrency(totalExpenses)}\n` +
       `- Recibos de pago registrados (histórico): ${totalReceipts}\n` +
-      `- Empleados registrados: ${employeesCount}\n\n` +
+      `- Empleados registrados: ${employeesCount}\n` +
+      `- Réditos cobrados (histórico total): ${formatCurrency(totalInterestCollected)}\n` +
+      `- Réditos cobrados hoy: ${formatCurrency(interestCollectedToday)}\n` +
+      `- Rédito pendiente en préstamos abiertos activos: ${formatCurrency(totalPendingInterestOpen)}\n\n` +
       `Resumen diario de caja (hoy):\n` +
       `- Total cobrado hoy (cuotas + mora): ${formatCurrency(totalCollectedToday)}\n` +
       `- Mora cobrada hoy: ${formatCurrency(totalPenaltyToday)}\n` +
@@ -346,6 +365,7 @@ REGLAS DE ORO:
 3. DATOS REALES: Usa los números de arriba. Si te preguntan "cuánto presté", responde con el dato exacto.
 4. DETALLES A DEMANDA: Solo da listas detalladas si el usuario dice "dame detalles".
 5. NO INVENTES: Si no está en los datos de arriba, di "No veo ese dato aquí".
+11. RÉDITOS: Cuando pregunten "cuánto se ha cobrado de réditos", "réditos cobrados" o similar, usa el campo "Réditos cobrados (histórico total)" y "Réditos cobrados hoy". Rédito = interés cobrado en pagos de préstamos abiertos.
 6. TONO: Amigable, profesional, pero relajado.
 7. ENVIAR CORREO: Si el usuario pide "envía un correo" o "mándamelo", AÑADE al final: [[SEND_EMAIL]].
 8. AYUDA: Si preguntan cómo hacer algo, envíalos a **renace.tech/PrestApp**.

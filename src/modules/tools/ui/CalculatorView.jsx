@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import MoneyInput from '../../../shared/components/ui/MoneyInput.jsx';
 import Card from '../../../shared/components/ui/Card';
 import {
   Calculator, Download, Share2, Calendar, DollarSign,
@@ -62,9 +63,8 @@ export function CalculatorView() {
     if (!isOpenMode) return [];
     const totalAmount = (parseFloat(simData.amount) || 0) + (parseFloat(simData.closingCosts) || 0);
     if (totalAmount <= 0) return [];
-    const customPeriodRate = simData.periodRate ? parseFloat(simData.periodRate) : null;
-    return calculateOpenInterestComparison(totalAmount, simData.rate, customPeriodRate);
-  }, [isOpenMode, simData.amount, simData.closingCosts, simData.rate, simData.periodRate]);
+    return calculateOpenInterestComparison(totalAmount, simData.rate);
+  }, [isOpenMode, simData.amount, simData.closingCosts, simData.rate]);
 
   const handleSimDataChange = (fields) => {
     setSimData(prev => {
@@ -92,16 +92,13 @@ export function CalculatorView() {
     }
 
     const totalAmount = parseFloat(simData.amount) + parseFloat(simData.closingCosts || 0);
-    const customPeriodRate = simData.periodRate ? parseFloat(simData.periodRate) : null;
-
     if (simData.loanMode === 'OPEN') {
       setSchedule(calculateOpenLoanSchedule(
         totalAmount,
         simData.rate,
         simData.frequency,
         simData.term,
-        simData.startDate,
-        customPeriodRate
+        simData.startDate
       ));
       return;
     }
@@ -131,12 +128,7 @@ export function CalculatorView() {
     const costOfCredit = totalInterest + closingCosts;
     const effectiveRate = baseAmount > 0 ? ((costOfCredit / baseAmount) * 100).toFixed(2) : 0;
     const periodInterest = isOpenMode
-      ? calculatePeriodInterest(
-        financedAmount,
-        simData.rate,
-        simData.frequency,
-        simData.periodRate ? parseFloat(simData.periodRate) : null
-      )
+      ? calculatePeriodInterest(financedAmount, simData.rate)
       : (simData.amortizationType === 'INTEREST_ONLY' ? (schedule[0]?.interest || 0) : (schedule[0]?.payment || 0));
 
     return {
@@ -362,28 +354,24 @@ _Simulación generada con Presta Pro_`;
 
               <div>
                 <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Monto a Prestar</label>
-                <input
-                  type="number"
-                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                <MoneyInput
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 font-semibold"
                   value={simData.amount}
-                  onChange={e => handleSimDataChange({ amount: e.target.value })}
+                  onChange={val => handleSimDataChange({ amount: val })}
+                  placeholder="10,000"
                 />
-                <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                  {formatCurrency(simData.amount || 0)}
-                </p>
               </div>
 
-              {/* MEJORA 3: Closing costs */}
+              {/* Closing costs */}
               <div>
                 <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Gastos de Cierre</label>
-                <input
-                  type="number"
+                <MoneyInput
                   className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                   value={simData.closingCosts}
-                  onChange={e => handleSimDataChange({ closingCosts: e.target.value })}
+                  onChange={val => handleSimDataChange({ closingCosts: val })}
                   placeholder="0"
                 />
-                {simData.closingCosts > 0 && (
+                {parseFloat(simData.closingCosts) > 0 && (
                   <p className="mt-1 text-xs text-amber-600">
                     Total a financiar: {formatCurrency(parseFloat(simData.amount || 0) + parseFloat(simData.closingCosts || 0))}
                   </p>
@@ -441,18 +429,9 @@ _Simulación generada con Presta Pro_`;
               </div>
               ) : (
               <div>
-                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Tasa por período % (opcional)</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                  value={simData.periodRate}
-                  onChange={e => handleSimDataChange({ periodRate: e.target.value })}
-                  placeholder="Auto desde tasa anual"
-                />
                 {summary && (
-                  <p className="mt-1 text-xs text-blue-600 dark:text-blue-400 font-semibold">
-                    Interés {simData.frequency.toLowerCase()}: {formatCurrency(summary.periodInterest)} • Capital intacto: {formatCurrency(summary.financedAmount)}
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-900/20 rounded-lg px-2 py-1.5">
+                    Rédito {simData.frequency.toLowerCase()}: <span className="text-sm">{formatCurrency(summary.periodInterest)}</span> • Capital intacto: {formatCurrency(summary.financedAmount)}
                   </p>
                 )}
               </div>
@@ -487,7 +466,9 @@ _Simulación generada con Presta Pro_`;
               )}
 
               <div>
-                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Tasa %</label>
+                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  {isOpenMode ? `Tasa % por ${simData.frequency.toLowerCase()}` : 'Tasa %'}
+                </label>
                 <input
                   type="number"
                   step="0.1"
