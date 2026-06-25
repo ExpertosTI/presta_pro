@@ -4,6 +4,15 @@ import Badge from '../../../shared/components/ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { calculateSchedule, calculateInstallmentVal, calculateRateFromInstallment } from '../../../shared/utils/amortization';
 import {
+  calculatePeriodInterest,
+  calculateTotalPendingInterest,
+  getPeriodRatePercent,
+  getRetrospectiveLoanSummary,
+  OPEN_LOAN_FREQUENCIES,
+  previewRetrospectiveLoan
+} from '../../../shared/utils/openLoanInterest';
+import { isFutureDate, parseDateOnly, toDateInputValue } from '../../../shared/utils/dateUtils';
+import {
   FileText, Sparkles, X, Printer, FileCheck, Plus, Banknote, Archive, Trash2, XCircle,
   ArrowUpDown, Filter, Calendar, TrendingUp, RefreshCw, Wallet, Clock, History,
   StickyNote, UserCheck
@@ -30,6 +39,8 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
   const [createError, setCreateError] = useState('');
   const [freePaymentAmount, setFreePaymentAmount] = useState('');
   const [freePaymentNotes, setFreePaymentNotes] = useState('');
+  const [freePaymentInterestOnly, setFreePaymentInterestOnly] = useState(false);
+  const [freePaymentDate, setFreePaymentDate] = useState(toDateInputValue(new Date()));
 
   const handleCreateFormChange = (fields) => {
     setCreateForm(prev => {
@@ -169,6 +180,31 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
     return selectedLoan.schedule
       .filter(s => s.status !== 'PAID')
       .reduce((sum, s) => sum + (parseFloat(s.interest || 0)), 0);
+  }, [selectedLoan, isSelectedLoanOpen]);
+
+  const openLoanPendingInterest = useMemo(() => {
+    if (!selectedLoan || !isSelectedLoanOpen) return 0;
+    return selectedLoan.pendingInterest ?? calculateTotalPendingInterest(selectedLoan);
+  }, [selectedLoan, isSelectedLoanOpen]);
+
+  const selectedLoanRetrospective = useMemo(() => {
+    if (!selectedLoan) return null;
+    return getRetrospectiveLoanSummary(selectedLoan);
+  }, [selectedLoan]);
+
+  const createRetrospectivePreview = useMemo(() => {
+    return previewRetrospectiveLoan(createForm);
+  }, [createForm]);
+
+  const openLoanPeriodInterest = useMemo(() => {
+    if (!selectedLoan || !isSelectedLoanOpen) return 0;
+    return selectedLoan.periodInterestEstimate
+      ?? calculatePeriodInterest(
+        selectedLoan.currentBalance || selectedLoan.amount || 0,
+        selectedLoan.rate,
+        selectedLoan.frequency || 'Mensual',
+        selectedLoan.dailyRate
+      );
   }, [selectedLoan, isSelectedLoanOpen]);
 
   // MEJORA 4: Portfolio statistics
@@ -546,6 +582,10 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   setCreateError('Completa todos los campos correctamente.');
                   return;
                 }
+                if (isFutureDate(createForm.startDate)) {
+                  setCreateError('La fecha de inicio no puede ser futura. Use una fecha pasada para préstamos retroactivos.');
+                  return;
+                }
                 const closingCosts = parseFloat(createForm.closingCosts || '0');
                 onCreateLoan({
                   clientId: createForm.clientId,
@@ -553,7 +593,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   amount,
                   rate,
                   term: isOpenLoan ? undefined : term,
-                  frequency: isOpenLoan ? undefined : createForm.frequency,
+                  frequency: isOpenLoan ? createForm.frequency : createForm.frequency,
                   startDate: createForm.startDate,
                   closingCosts,
                   amortizationType: isOpenLoan ? undefined : createForm.amortizationType,
@@ -657,6 +697,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                         >
                           <option value="FLAT">Saldo Absoluto (Interés Simple)</option>
                           <option value="FRENCH">Saldo Insoluto (Interés Compuesto)</option>
+                          <option value="INTEREST_ONLY">Solo Interés (capital intacto)</option>
                         </select>
                       </div>
                     </div>
@@ -688,31 +729,69 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     </div>
                   </>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa anual %</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                        value={createForm.rate}
-                        onChange={(e) => handleCreateFormChange({ rate: e.target.value })}
-                      />
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Frecuencia de interés</label>
+                        <select
+                          className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                          value={createForm.frequency}
+                          onChange={(e) => handleCreateFormChange({ frequency: e.target.value })}
+                        >
+                          {OPEN_LOAN_FREQUENCIES.map(freq => (
+                            <option key={freq} value={freq}>{freq}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa anual %</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                          value={createForm.rate}
+                          onChange={(e) => handleCreateFormChange({ rate: e.target.value })}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa diaria % <span className="text-slate-400 font-normal">(opcional)</span></label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.0001"
-                        className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                        value={createForm.dailyRate}
-                        onChange={(e) => handleCreateFormChange({ dailyRate: e.target.value })}
-                        placeholder="Ej: 0.5"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                          Tasa por período % <span className="text-slate-400 font-normal">(opcional)</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.0001"
+                          className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                          value={createForm.dailyRate}
+                          onChange={(e) => handleCreateFormChange({ dailyRate: e.target.value })}
+                          placeholder="Auto desde tasa anual"
+                        />
+                      </div>
+                      <div className="flex flex-col justify-end">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg p-2">
+                          Interés {createForm.frequency.toLowerCase()} estimado:{' '}
+                          <span className="font-semibold text-blue-700 dark:text-blue-300">
+                            {formatCurrency(calculatePeriodInterest(
+                              (parseFloat(createForm.amount) || 0) + (parseFloat(createForm.closingCosts) || 0),
+                              parseFloat(createForm.rate) || 0,
+                              createForm.frequency,
+                              createForm.dailyRate ? parseFloat(createForm.dailyRate) : null
+                            ))}
+                          </span>
+                          <span className="block mt-1 text-[10px]">
+                            ({getPeriodRatePercent(
+                              parseFloat(createForm.rate) || 0,
+                              createForm.frequency,
+                              createForm.dailyRate ? parseFloat(createForm.dailyRate) : null
+                            ).toFixed(4)}% por período)
+                          </span>
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 <div className="grid grid-cols-2 gap-3">
@@ -728,15 +807,39 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Fecha inicio</label>
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Fecha inicio
+                      <span className="text-slate-400 font-normal"> (puede ser retroactiva)</span>
+                    </label>
                     <input
                       type="date"
+                      max={toDateInputValue(new Date())}
                       className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                       value={createForm.startDate}
                       onChange={(e) => handleCreateFormChange({ startDate: e.target.value })}
                     />
                   </div>
                 </div>
+
+                {createRetrospectivePreview?.isRetrospective && (
+                  <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 text-xs text-amber-900 dark:text-amber-200">
+                    <p className="font-bold mb-1">Préstamo retroactivo ({createRetrospectivePreview.daysSinceStart} días desde el inicio)</p>
+                    {createForm.loanType === 'OPEN' ? (
+                      <p>
+                        Interés devengado hasta hoy:{' '}
+                        <span className="font-semibold">{formatCurrency(createRetrospectivePreview.pendingInterest)}</span>
+                        {' '}• Por {createForm.frequency.toLowerCase()}:{' '}
+                        <span className="font-semibold">{formatCurrency(createRetrospectivePreview.periodInterest || 0)}</span>
+                      </p>
+                    ) : (
+                      <p>
+                        Cuotas vencidas al crear:{' '}
+                        <span className="font-semibold">{createRetrospectivePreview.overdueInstallments}</span>
+                        {' '}de {createRetrospectivePreview.totalPendingInstallments || createForm.term} cuotas proyectadas
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {createForm.closingCosts > 0 && (
                   <p className="text-[10px] text-slate-400 mt-1">Se suma al capital para calcular las cuotas</p>
@@ -1079,27 +1182,67 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 <p className="font-bold text-blue-800 dark:text-blue-300 text-base">
                   {isSelectedLoanOpen ? 'Abono libre (préstamo abierto)' : 'Abono a rédito/capital'}
                 </p>
+                {selectedLoanRetrospective?.isRetrospective && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-2 py-1">
+                    Retroactivo: {selectedLoanRetrospective.daysSinceStart} días desde {formatDate(selectedLoan.startDate)}
+                    {isSelectedLoanOpen && selectedLoanRetrospective.overdueInstallments === 0 && (
+                      <> • Interés devengado calculado hasta hoy</>
+                    )}
+                    {!isSelectedLoanOpen && selectedLoanRetrospective.overdueInstallments > 0 && (
+                      <> • {selectedLoanRetrospective.overdueInstallments} cuota(s) vencida(s)</>
+                    )}
+                  </p>
+                )}
                 <p className="text-slate-700 dark:text-slate-300">
                   Saldo actual: <span className="font-semibold">{formatCurrency(selectedLoan.currentBalance || 0)}</span>
                 </p>
                 <p className="text-slate-700 dark:text-slate-300">
                   {isSelectedLoanOpen
                     ? (
-                      <>Interés acumulado: <span className="font-semibold">{formatCurrency(selectedLoan.interestAccrued || 0)}</span></>
+                      <>
+                        Interés pendiente (incl. devengado): <span className="font-semibold">{formatCurrency(openLoanPendingInterest)}</span>
+                        <span className="block text-xs text-slate-500 mt-1">
+                          Registrado: {formatCurrency(selectedLoan.interestAccrued || 0)} • Por {selectedLoan.frequency || 'Mensual'}: {formatCurrency(openLoanPeriodInterest)}
+                        </span>
+                      </>
                     )
                     : (
                       <>Rédito pendiente (cuotas): <span className="font-semibold">{formatCurrency(fixedRemainingInterest || 0)}</span></>
                     )}
                 </p>
+                {isSelectedLoanOpen && openLoanPendingInterest > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFreePaymentAmount(String(openLoanPendingInterest));
+                      setFreePaymentInterestOnly(true);
+                    }}
+                    className="w-full border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 py-2 rounded-lg font-semibold text-xs hover:bg-blue-100/60 dark:hover:bg-blue-900/20"
+                  >
+                    Pagar solo interés pendiente ({formatCurrency(openLoanPendingInterest)}) — capital intacto
+                  </button>
+                )}
                 {!isSelectedLoanOpen && firstPendingInstallment && (
                   <button
                     type="button"
-                    onClick={() => setFreePaymentAmount(String(firstPendingInstallment.interest || 0))}
+                    onClick={() => {
+                      setFreePaymentAmount(String(firstPendingInstallment.interest || 0));
+                      setFreePaymentInterestOnly(true);
+                    }}
                     className="w-full border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 py-2 rounded-lg font-semibold text-xs hover:bg-blue-100/60 dark:hover:bg-blue-900/20"
                   >
                     Usar solo rédito de próxima cuota ({formatCurrency(firstPendingInstallment.interest || 0)})
                   </button>
                 )}
+                <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={freePaymentInterestOnly}
+                    onChange={(e) => setFreePaymentInterestOnly(e.target.checked)}
+                    className="rounded border-slate-300 text-blue-600"
+                  />
+                  Solo abonar a interés (no rebaja capital)
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -1109,6 +1252,18 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   className="w-full p-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                   placeholder="Monto del abono"
                 />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                    Fecha del abono <span className="text-slate-400 font-normal">(para pagos retroactivos)</span>
+                  </label>
+                  <input
+                    type="date"
+                    max={toDateInputValue(new Date())}
+                    value={freePaymentDate}
+                    onChange={(e) => setFreePaymentDate(e.target.value)}
+                    className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  />
+                </div>
                 <textarea
                   value={freePaymentNotes}
                   onChange={(e) => setFreePaymentNotes(e.target.value)}
@@ -1121,24 +1276,30 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     const receipt = await registerPayment(selectedLoan.id, null, {
                       customAmount: parseFloat(freePaymentAmount || 0),
                       useFreePayment: true,
+                      interestOnly: freePaymentInterestOnly,
+                      paymentDate: freePaymentDate || null,
                       notes: freePaymentNotes || null
                     });
                     if (receipt) {
                       setReceiptToShow(receipt);
                       setFreePaymentAmount('');
                       setFreePaymentNotes('');
+                      setFreePaymentInterestOnly(false);
+                      setFreePaymentDate(toDateInputValue(new Date()));
                     }
                   }}
                   className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md hover:shadow-lg transition-all"
                 >
-                  {isSelectedLoanOpen ? 'Registrar Abono Libre' : 'Registrar Abono a Rédito/Capital'}
+                  {freePaymentInterestOnly
+                    ? 'Registrar Abono Solo a Interés'
+                    : isSelectedLoanOpen ? 'Registrar Abono Libre' : 'Registrar Abono a Rédito/Capital'}
                 </button>
               </div>
             )}
 
             {isSelectedLoanOpen ? (
               <p className="mt-4 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 p-2 rounded">
-                Este préstamo abierto se gestiona con abonos libres.
+                Préstamo abierto con interés {selectedLoan.frequency?.toLowerCase() || 'mensual'}. Puedes abonar solo interés para mantener el capital intacto.
               </p>
             ) : Array.isArray(selectedLoan.schedule) && selectedLoan.schedule.some(i => i.status === 'PAID') ? (
               <p className="mt-4 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 p-2 rounded">
@@ -1287,8 +1448,12 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {selectedLoan.schedule.map(inst => (
-                    <tr key={inst.id}>
+                  {selectedLoan.schedule.map(inst => {
+                    const isOverdue = inst.status !== 'PAID'
+                      && parseDateOnly(inst.date)
+                      && parseDateOnly(inst.date) < parseDateOnly(new Date());
+                    return (
+                    <tr key={inst.id} className={isOverdue ? 'bg-rose-50/50 dark:bg-rose-900/10' : ''}>
                       <td className="p-2 text-slate-800 dark:text-slate-300">{inst.number}</td>
                       <td className="p-2 text-slate-600 dark:text-slate-400">{formatDate(inst.date)}</td>
                       <td className="p-2 text-right text-slate-800 dark:text-slate-200">{formatCurrency(inst.payment)}</td>
@@ -1296,7 +1461,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                       <td className="p-2 text-right text-green-600 dark:text-green-400 hidden sm:table-cell">{formatCurrency(inst.principal ?? 0)}</td>
                       <td className="p-2 text-right text-slate-500 dark:text-slate-400">{formatCurrency(inst.balance ?? 0)}</td>
                       <td className="p-2 text-right">
-                        <Badge status={inst.status === 'PAID' ? 'PAID' : 'PENDING'} />
+                        <Badge status={inst.status === 'PAID' ? 'PAID' : isOverdue ? 'LATE' : 'PENDING'} />
                       </td>
                       <td className="p-2 text-center">
                         {inst.status === 'PAID' && (
@@ -1320,7 +1485,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                         )}
                       </td>
                     </tr>
-                  ))}
+                  );})}
                 </tbody>
               </table>
               )}

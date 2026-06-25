@@ -152,7 +152,9 @@ export function AppDataProvider({ children, token, user }) {
         const result = await loanService.createFreePayment(loanId, {
           amount: paymentAmount,
           notes: options?.notes || null,
-          collectorId: options?.collectorId || null
+          collectorId: options?.collectorId || null,
+          interestOnly: options?.interestOnly === true,
+          paymentDate: options?.paymentDate || null
         });
 
         const updatedLoan = result?.loan || loan;
@@ -172,7 +174,10 @@ export function AppDataProvider({ children, token, user }) {
           isOpenLoan: loan?.loanType === 'OPEN',
           paidToInterest: summary?.paidToInterest || 0,
           paidToPrincipal: summary?.paidToPrincipal || 0,
-          concept: loan?.loanType === 'OPEN'
+          interestOnly: options?.interestOnly === true,
+          concept: options?.interestOnly
+            ? 'Abono solo a interés (capital intacto)'
+            : loan?.loanType === 'OPEN'
             ? 'Abono libre (préstamo abierto)'
             : 'Abono a rédito/capital (préstamo con cuotas)'
         };
@@ -187,6 +192,9 @@ export function AppDataProvider({ children, token, user }) {
         }));
 
         showToast('Abono libre registrado', 'success');
+        if (summary?.unusedAmount > 0) {
+          showToast(`Solo se aplicó a interés. Excedente no aplicado: ${formatCurrency(summary.unusedAmount)}`, 'warning');
+        }
         return openLoanReceipt;
       }
 

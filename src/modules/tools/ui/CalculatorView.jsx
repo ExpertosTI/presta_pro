@@ -5,20 +5,31 @@ import {
   TrendingUp, Percent, Clock, Zap
 } from 'lucide-react';
 import { calculateSchedule, calculateInstallmentVal, calculateRateFromInstallment } from '../../../shared/utils/amortization';
+import {
+  calculateOpenLoanSchedule,
+  calculatePeriodInterest,
+  getPeriodRatePercent,
+  OPEN_LOAN_FREQUENCIES,
+  previewRetrospectiveLoan
+} from '../../../shared/utils/openLoanInterest';
+import { toDateInputValue } from '../../../shared/utils/dateUtils';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
 import { WhatsAppIcon } from '../../../shared/components/ui/WhatsAppIcon';
 
 // MEJORA 6: Product presets
 const PRESETS = [
-  { name: 'Corto Plazo', amount: 5000, rate: 15, term: 4, frequency: 'Semanal', icon: Zap },
-  { name: 'Personal', amount: 20000, rate: 10, term: 12, frequency: 'Mensual', icon: DollarSign },
-  { name: 'Largo Plazo', amount: 50000, rate: 8, term: 24, frequency: 'Mensual', icon: TrendingUp },
-  { name: 'Micro Diario', amount: 3000, rate: 20, term: 30, frequency: 'Diario', icon: Clock }
+  { name: 'Corto Plazo', loanMode: 'FIXED', amount: 5000, rate: 15, term: 4, frequency: 'Semanal', amortizationType: 'FLAT', icon: Zap },
+  { name: 'Personal', loanMode: 'FIXED', amount: 20000, rate: 10, term: 12, frequency: 'Mensual', amortizationType: 'FLAT', icon: DollarSign },
+  { name: 'Largo Plazo', loanMode: 'FIXED', amount: 50000, rate: 8, term: 24, frequency: 'Mensual', amortizationType: 'FRENCH', icon: TrendingUp },
+  { name: 'Micro Diario', loanMode: 'FIXED', amount: 3000, rate: 20, term: 30, frequency: 'Diario', amortizationType: 'FLAT', icon: Clock },
+  { name: 'Abierto Mensual', loanMode: 'OPEN', amount: 25000, rate: 24, term: 12, frequency: 'Mensual', periodRate: '', icon: Percent },
+  { name: 'Abierto Semanal', loanMode: 'OPEN', amount: 10000, rate: 36, term: 16, frequency: 'Semanal', periodRate: '', icon: Clock }
 ];
 
 export function CalculatorView() {
   const [simData, setSimData] = useState({
+    loanMode: 'FIXED',
     amount: 10000,
     rate: 10,
     term: 12,
@@ -26,12 +37,30 @@ export function CalculatorView() {
     startDate: new Date().toISOString().split('T')[0],
     amortizationType: 'FLAT',
     closingCosts: 0,
+    periodRate: '',
     installment: '916.67'
   });
+
+  const isOpenMode = simData.loanMode === 'OPEN';
+
+  const retrospectivePreview = useMemo(() => {
+    if (!isOpenMode) return null;
+    return previewRetrospectiveLoan({
+      loanType: 'OPEN',
+      amount: simData.amount,
+      closingCosts: simData.closingCosts,
+      rate: simData.rate,
+      frequency: simData.frequency,
+      dailyRate: simData.periodRate,
+      startDate: simData.startDate
+    });
+  }, [isOpenMode, simData]);
 
   const handleSimDataChange = (fields) => {
     setSimData(prev => {
       let updated = { ...prev, ...fields };
+      if (updated.loanMode === 'OPEN') return updated;
+
       const totalAmount = (parseFloat(updated.amount) || 0) + (parseFloat(updated.closingCosts) || 0);
       if (fields.hasOwnProperty('installment')) {
         const rateVal = calculateRateFromInstallment(totalAmount, fields.installment, updated.term, updated.frequency, updated.amortizationType);
@@ -47,20 +76,36 @@ export function CalculatorView() {
   const [schedule, setSchedule] = useState([]);
 
   useEffect(() => {
-    if (simData.amount && simData.rate && simData.term) {
-      // Include closing costs in the calculation
-      const totalAmount = parseFloat(simData.amount) + parseFloat(simData.closingCosts || 0);
-      setSchedule(
-        calculateSchedule(
-          totalAmount,
-          simData.rate,
-          simData.term,
-          simData.frequency,
-          simData.startDate,
-          simData.amortizationType
-        ),
-      );
+    if (!simData.amount || !simData.rate || !simData.term) {
+      setSchedule([]);
+      return;
     }
+
+    const totalAmount = parseFloat(simData.amount) + parseFloat(simData.closingCosts || 0);
+    const customPeriodRate = simData.periodRate ? parseFloat(simData.periodRate) : null;
+
+    if (simData.loanMode === 'OPEN') {
+      setSchedule(calculateOpenLoanSchedule(
+        totalAmount,
+        simData.rate,
+        simData.frequency,
+        simData.term,
+        simData.startDate,
+        customPeriodRate
+      ));
+      return;
+    }
+
+    setSchedule(
+      calculateSchedule(
+        totalAmount,
+        simData.rate,
+        simData.term,
+        simData.frequency,
+        simData.startDate,
+        simData.amortizationType
+      ),
+    );
   }, [simData]);
 
   // MEJORA 4: Summary calculations
@@ -72,20 +117,32 @@ export function CalculatorView() {
     const totalPayment = schedule.reduce((a, b) => a + (b.payment || 0), 0);
     const baseAmount = parseFloat(simData.amount) || 0;
     const closingCosts = parseFloat(simData.closingCosts) || 0;
+    const financedAmount = baseAmount + closingCosts;
     const costOfCredit = totalInterest + closingCosts;
     const effectiveRate = baseAmount > 0 ? ((costOfCredit / baseAmount) * 100).toFixed(2) : 0;
+    const periodInterest = isOpenMode
+      ? calculatePeriodInterest(
+        financedAmount,
+        simData.rate,
+        simData.frequency,
+        simData.periodRate ? parseFloat(simData.periodRate) : null
+      )
+      : (simData.amortizationType === 'INTEREST_ONLY' ? (schedule[0]?.interest || 0) : (schedule[0]?.payment || 0));
 
     return {
       monthlyPayment: schedule[0]?.payment || 0,
+      periodInterest,
       totalInterest,
       totalPrincipal,
       totalPayment,
       costOfCredit,
       effectiveRate,
       closingCosts,
-      baseAmount
+      baseAmount,
+      financedAmount,
+      capitalUnchanged: isOpenMode || simData.amortizationType === 'INTEREST_ONLY'
     };
-  }, [schedule, simData.amount, simData.closingCosts]);
+  }, [schedule, simData.amount, simData.closingCosts, simData.loanMode, simData.amortizationType, simData.rate, simData.frequency, simData.periodRate, isOpenMode]);
 
   // MEJORA 9: Chart data for amortization visualization
   const chartData = useMemo(() => {
@@ -101,15 +158,35 @@ export function CalculatorView() {
   // MEJORA 6: Apply preset
   const applyPreset = (preset) => {
     const totalAmount = parseFloat(preset.amount) || 0;
-    const inst = calculateInstallmentVal(totalAmount, preset.rate, preset.term, preset.frequency, simData.amortizationType);
+    const loanMode = preset.loanMode || 'FIXED';
+    const inst = loanMode === 'OPEN'
+      ? calculatePeriodInterest(totalAmount, preset.rate, preset.frequency, preset.periodRate ? parseFloat(preset.periodRate) : null).toFixed(2)
+      : calculateInstallmentVal(totalAmount, preset.rate, preset.term, preset.frequency, preset.amortizationType || simData.amortizationType);
     setSimData({
       ...simData,
+      loanMode,
       amount: preset.amount,
       rate: preset.rate,
       term: preset.term,
       frequency: preset.frequency,
+      amortizationType: preset.amortizationType || simData.amortizationType,
+      periodRate: preset.periodRate || '',
       installment: inst
     });
+  };
+
+  const amortizationTypeLabel = (type) => {
+    if (type === 'FLAT') return 'Saldo Absoluto';
+    if (type === 'FRENCH') return 'Saldo Insoluto';
+    if (type === 'INTEREST_ONLY') return 'Solo Interés';
+    return type;
+  };
+
+  const getModeDescription = () => {
+    if (isOpenMode) {
+      return `Préstamo abierto • Interés ${simData.frequency.toLowerCase()} • Capital intacto`;
+    }
+    return `${amortizationTypeLabel(simData.amortizationType)} • ${simData.term} cuotas ${simData.frequency.toLowerCase()}`;
   };
 
   // MEJORA 7: Export to PDF
@@ -137,22 +214,21 @@ export function CalculatorView() {
             <p style="margin:5px 0 0;font-size:20px;font-weight:bold;color:#166534">${formatCurrency(summary.baseAmount)}</p>
           </div>
           <div style="background:#eff6ff;padding:15px;border-radius:8px;border:1px solid #93c5fd">
-            <p style="margin:0;font-size:12px;color:#1e40af">Cuota ${simData.frequency}</p>
-            <p style="margin:5px 0 0;font-size:20px;font-weight:bold;color:#1e40af">${formatCurrency(summary.monthlyPayment)}</p>
+            <p style="margin:0;font-size:12px;color:#1e40af">${isOpenMode ? `Interés ${simData.frequency}` : `Cuota ${simData.frequency}`}</p>
+            <p style="margin:5px 0 0;font-size:20px;font-weight:bold;color:#1e40af">${formatCurrency(isOpenMode ? summary.periodInterest : summary.monthlyPayment)}</p>
           </div>
           <div style="background:#fef3c7;padding:15px;border-radius:8px;border:1px solid #fcd34d">
-            <p style="margin:0;font-size:12px;color:#92400e">Total a Pagar</p>
-            <p style="margin:5px 0 0;font-size:20px;font-weight:bold;color:#92400e">${formatCurrency(summary.totalPayment)}</p>
+            <p style="margin:0;font-size:12px;color:#92400e">${isOpenMode || simData.amortizationType === 'INTEREST_ONLY' ? 'Total Interés Simulado' : 'Total a Pagar'}</p>
+            <p style="margin:5px 0 0;font-size:20px;font-weight:bold;color:#92400e">${formatCurrency(isOpenMode || simData.amortizationType === 'INTEREST_ONLY' ? summary.totalInterest : summary.totalPayment)}</p>
           </div>
         </div>
         
         <p style="margin:10px 0;font-size:14px;color:#64748b">
-          <strong>Tipo:</strong> ${simData.amortizationType === 'FLAT' ? 'Saldo Absoluto' : 'Saldo Insoluto'} | 
-          <strong>Tasa:</strong> ${simData.rate}% | 
-          <strong>Plazo:</strong> ${simData.term} cuotas ${simData.frequency.toLowerCase()}
+          <strong>Modo:</strong> ${getModeDescription()} | 
+          <strong>Tasa:</strong> ${simData.rate}%${isOpenMode ? ` (${getPeriodRatePercent(simData.rate, simData.frequency, simData.periodRate ? parseFloat(simData.periodRate) : null).toFixed(4)}% por período)` : ''}
         </p>
         
-        <h2 style="color:#1e293b;margin-top:30px">Tabla de Amortización</h2>
+        <h2 style="color:#1e293b;margin-top:30px">${isOpenMode ? 'Proyección de Intereses (capital intacto)' : 'Tabla de Amortización'}</h2>
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead>
             <tr style="background:#f1f5f9">
@@ -192,13 +268,14 @@ export function CalculatorView() {
     const message = `📊 *Simulación de Préstamo*
 
 💰 Monto: ${formatCurrency(summary.baseAmount)}
-📅 Plazo: ${simData.term} cuotas ${simData.frequency.toLowerCase()}
+📅 ${isOpenMode ? `Períodos: ${simData.term} (${simData.frequency.toLowerCase()})` : `Plazo: ${simData.term} cuotas ${simData.frequency.toLowerCase()}`}
 📈 Tasa: ${simData.rate}%
-🏦 Tipo: ${simData.amortizationType === 'FLAT' ? 'Saldo Absoluto' : 'Saldo Insoluto'}
+🏦 ${getModeDescription()}
 
-💵 *Cuota ${simData.frequency}:* ${formatCurrency(summary.monthlyPayment)}
-💰 *Total a Pagar:* ${formatCurrency(summary.totalPayment)}
+💵 *${isOpenMode ? `Interés ${simData.frequency}` : `Cuota ${simData.frequency}`}:* ${formatCurrency(isOpenMode ? summary.periodInterest : summary.monthlyPayment)}
+💰 *${isOpenMode || simData.amortizationType === 'INTEREST_ONLY' ? 'Total interés simulado' : 'Total a pagar'}:* ${formatCurrency(isOpenMode || simData.amortizationType === 'INTEREST_ONLY' ? summary.totalInterest : summary.totalPayment)}
 📉 *Costo del Crédito:* ${formatCurrency(summary.costOfCredit)}
+${summary.capitalUnchanged ? '🔒 Capital se mantiene intacto con abonos solo a interés' : ''}
 
 _Simulación generada con Presta Pro_`;
 
@@ -262,6 +339,18 @@ _Simulación generada con Presta Pro_`;
             </h3>
             <div className="space-y-4">
               <div>
+                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Modo de préstamo</label>
+                <select
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={simData.loanMode}
+                  onChange={e => handleSimDataChange({ loanMode: e.target.value })}
+                >
+                  <option value="FIXED">Cuotas fijas</option>
+                  <option value="OPEN">Abierto (solo interés / capital intacto)</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Monto a Prestar</label>
                 <input
                   type="number"
@@ -293,7 +382,7 @@ _Simulación generada con Presta Pro_`;
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Plazo</label>
+                  <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">{isOpenMode ? 'Períodos a simular' : 'Plazo'}</label>
                   <input
                     type="number"
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
@@ -308,14 +397,14 @@ _Simulación generada con Presta Pro_`;
                     value={simData.frequency}
                     onChange={e => handleSimDataChange({ frequency: e.target.value })}
                   >
-                    <option>Diario</option>
-                    <option>Semanal</option>
-                    <option>Quincenal</option>
-                    <option>Mensual</option>
+                    {(isOpenMode ? OPEN_LOAN_FREQUENCIES : ['Diario', 'Semanal', 'Quincenal', 'Mensual']).map(freq => (
+                      <option key={freq}>{freq}</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
+              {!isOpenMode ? (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Tipo</label>
@@ -326,6 +415,7 @@ _Simulación generada con Presta Pro_`;
                   >
                     <option value="FLAT">Saldo Absoluto</option>
                     <option value="FRENCH">Saldo Insoluto</option>
+                    <option value="INTEREST_ONLY">Solo Interés (capital intacto)</option>
                   </select>
                 </div>
                 <div>
@@ -339,6 +429,24 @@ _Simulación generada con Presta Pro_`;
                   />
                 </div>
               </div>
+              ) : (
+              <div>
+                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Tasa por período % (opcional)</label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  value={simData.periodRate}
+                  onChange={e => handleSimDataChange({ periodRate: e.target.value })}
+                  placeholder="Auto desde tasa anual"
+                />
+                {summary && (
+                  <p className="mt-1 text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                    Interés {simData.frequency.toLowerCase()}: {formatCurrency(summary.periodInterest)} • Capital intacto: {formatCurrency(summary.financedAmount)}
+                  </p>
+                )}
+              </div>
+              )}
 
               <div>
                 <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-1">Tasa %</label>
@@ -355,13 +463,20 @@ _Simulación generada con Presta Pro_`;
               <div>
                 <label className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center gap-1">
                   <Calendar size={14} /> Fecha Inicio
+                  <span className="text-slate-400 font-normal text-xs">(retroactiva permitida)</span>
                 </label>
                 <input
                   type="date"
+                  max={toDateInputValue(new Date())}
                   className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                   value={simData.startDate}
                   onChange={e => setSimData({ ...simData, startDate: e.target.value })}
                 />
+                {retrospectivePreview?.isRetrospective && (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                    Interés devengado hasta hoy: {formatCurrency(retrospectivePreview.pendingInterest)} ({retrospectivePreview.daysSinceStart} días)
+                  </p>
+                )}
               </div>
             </div>
           </Card>
@@ -372,9 +487,19 @@ _Simulación generada con Presta Pro_`;
               <h3 className="font-bold text-sm text-blue-800 dark:text-blue-300 mb-3 uppercase tracking-wider">Resumen</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-blue-700 dark:text-blue-400">Cuota {simData.frequency}:</span>
-                  <span className="font-bold text-lg text-blue-900 dark:text-blue-200">{formatCurrency(summary.monthlyPayment)}</span>
+                  <span className="text-sm text-blue-700 dark:text-blue-400">
+                    {isOpenMode ? `Interés ${simData.frequency}` : simData.amortizationType === 'INTEREST_ONLY' ? `Cuota interés ${simData.frequency}` : `Cuota ${simData.frequency}`}:
+                  </span>
+                  <span className="font-bold text-lg text-blue-900 dark:text-blue-200">
+                    {formatCurrency(isOpenMode || simData.amortizationType === 'INTEREST_ONLY' ? summary.periodInterest : summary.monthlyPayment)}
+                  </span>
                 </div>
+                {summary.capitalUnchanged && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600 dark:text-slate-400">Capital (sin cambio):</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(summary.financedAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-600 dark:text-slate-400">Total Interés:</span>
                   <span className="font-semibold text-rose-600 dark:text-rose-400">{formatCurrency(summary.totalInterest)}</span>
@@ -397,8 +522,12 @@ _Simulación generada con Presta Pro_`;
                 </div>
                 <div className="pt-2 border-t border-blue-200 dark:border-blue-700">
                   <div className="flex justify-between">
-                    <span className="font-bold text-blue-800 dark:text-blue-300">TOTAL A PAGAR:</span>
-                    <span className="font-black text-xl text-blue-900 dark:text-blue-200">{formatCurrency(summary.totalPayment)}</span>
+                    <span className="font-bold text-blue-800 dark:text-blue-300">
+                      {isOpenMode || simData.amortizationType === 'INTEREST_ONLY' ? 'TOTAL INTERÉS SIMULADO:' : 'TOTAL A PAGAR:'}
+                    </span>
+                    <span className="font-black text-xl text-blue-900 dark:text-blue-200">
+                      {formatCurrency(isOpenMode || simData.amortizationType === 'INTEREST_ONLY' ? summary.totalInterest : summary.totalPayment)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -446,7 +575,9 @@ _Simulación generada con Presta Pro_`;
 
           {/* Amortization Table */}
           <Card className="overflow-hidden flex flex-col">
-            <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-slate-100">Tabla de Amortización</h3>
+            <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-slate-100">
+              {isOpenMode ? 'Proyección de intereses (capital intacto)' : 'Tabla de Amortización'}
+            </h3>
             <div className="flex-1 overflow-y-auto max-h-[400px]">
               <table className="w-full text-sm text-left">
                 <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 sticky top-0">
@@ -456,7 +587,7 @@ _Simulación generada con Presta Pro_`;
                     <th className="p-2 text-right">Cuota</th>
                     <th className="p-2 text-right">Interés</th>
                     <th className="p-2 text-right">Capital</th>
-                    <th className="p-2 text-right">Saldo</th>
+                    <th className="p-2 text-right">{isOpenMode ? 'Acumulado' : 'Saldo'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -467,7 +598,9 @@ _Simulación generada con Presta Pro_`;
                       <td className="p-2 text-right font-bold text-slate-800 dark:text-slate-200">{formatCurrency(item.payment)}</td>
                       <td className="p-2 text-right text-rose-500 dark:text-rose-400">{formatCurrency(item.interest)}</td>
                       <td className="p-2 text-right text-emerald-600 dark:text-emerald-400">{formatCurrency(item.principal)}</td>
-                      <td className="p-2 text-right text-slate-500 dark:text-slate-400">{formatCurrency(item.balance)}</td>
+                      <td className="p-2 text-right text-slate-500 dark:text-slate-400">
+                        {formatCurrency(isOpenMode ? (item.cumulativeInterest ?? item.balance) : item.balance)}
+                      </td>
                     </tr>
                   ))}
                   {/* Totals row */}

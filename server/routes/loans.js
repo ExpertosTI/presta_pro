@@ -3,6 +3,15 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
 const notify = require('../services/notificationHelper');
+const {
+    normalizeOpenFrequency,
+    calculateAccruedInterest,
+    calculatePeriodInterest,
+    getPeriodRatePercent,
+    calculateTotalPendingInterest,
+    getRetrospectiveLoanSummary
+} = require('../lib/openLoanInterest');
+const { daysBetween, isFutureDate, toStoredDate } = require('../lib/dateUtils');
 
 // --- Helper: Calculate amortization schedule ---
 // amortizationType: 'FLAT' (default, simple interest), 'FRENCH' (compound on balance), 'INTEREST_ONLY'
@@ -155,6 +164,12 @@ function mapLoanToResponse(loanWithRelations) {
         currentBalance = currentBalance - totalPaidToPrincipal;
     }
 
+    const retrospective = getRetrospectiveLoanSummary(
+        { ...loan, freePayments },
+        installments || [],
+        new Date()
+    );
+
     return {
         id: loan.id,
         clientId: loan.clientId,
@@ -173,6 +188,23 @@ function mapLoanToResponse(loanWithRelations) {
         interestAccrued: loan.interestAccrued || 0,
         dailyRate: loan.dailyRate || null,
         lastInterestCalc: loan.lastInterestCalc || null,
+        periodRatePercent: loan.loanType === 'OPEN'
+            ? getPeriodRatePercent(loan.rate, loan.frequency, loan.dailyRate)
+            : null,
+        periodInterestEstimate: loan.loanType === 'OPEN'
+            ? calculatePeriodInterest(
+                currentBalance,
+                loan.rate,
+                loan.frequency,
+                loan.dailyRate
+            )
+            : null,
+        pendingInterest: loan.loanType === 'OPEN'
+            ? calculateTotalPendingInterest({ ...loan, currentBalance }, new Date())
+            : 0,
+        isRetrospective: retrospective?.isRetrospective || false,
+        daysSinceStart: retrospective?.daysSinceStart || 0,
+        overdueInstallments: retrospective?.overdueInstallments || 0,
         currentBalance: currentBalance,
         closingCosts: loan.closingCosts || 0,
         // Archive/Cancel fields
@@ -244,6 +276,12 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Para préstamos con cuotas fijas se requiere term y frequency' });
         }
 
+        if (isFutureDate(startDate)) {
+            return res.status(400).json({ error: 'La fecha de inicio no puede ser futura. Use una fecha pasada o de hoy para registrar préstamos retroactivos.' });
+        }
+
+        const storedStartDate = toStoredDate(startDate);
+
         // Verificar que el cliente existe y pertenece al tenant
         const client = await prisma.client.findFirst({
             where: { id: clientId, tenantId: req.user.tenantId }
@@ -301,21 +339,22 @@ router.post('/', async (req, res) => {
         let loanData;
 
         if (isOpenLoan) {
-            // Préstamo abierto - sin cuotas fijas
-            const parsedDailyRate = parseFloat(dailyRate) || (parseFloat(rate) / 365); // Tasa diaria
+            // Préstamo abierto - interés por período (diario, semanal o mensual)
+            const openFrequency = normalizeOpenFrequency(frequency || 'Mensual');
+            const parsedPeriodRate = dailyRate ? parseFloat(dailyRate) : null;
             loanData = {
                 amount: parsedAmount,
                 rate: parseFloat(rate),
-                term: 0, // Sin término fijo
-                frequency: 'Libre',
-                startDate: new Date(startDate),
+                term: 0,
+                frequency: openFrequency,
+                startDate: storedStartDate,
                 status: 'ACTIVE',
                 totalInterest: 0,
                 totalPaid: 0,
                 loanType: 'OPEN',
-                dailyRate: parsedDailyRate,
+                dailyRate: parsedPeriodRate,
                 interestAccrued: 0,
-                lastInterestCalc: new Date(startDate),
+                lastInterestCalc: storedStartDate,
                 tenantId: req.user.tenantId,
                 clientId,
                 closingCosts: parsedClosingCosts
@@ -327,11 +366,12 @@ router.post('/', async (req, res) => {
                 rate: parseFloat(rate),
                 term: parseInt(term),
                 frequency,
-                startDate: new Date(startDate),
+                startDate: storedStartDate,
                 status: 'ACTIVE',
                 totalInterest,
                 totalPaid: 0,
                 loanType: 'FIXED',
+                amortizationType: amortizationType || 'FLAT',
                 tenantId: req.user.tenantId,
                 clientId,
                 closingCosts: parsedClosingCosts,
@@ -592,10 +632,14 @@ router.post('/:id/payments', async (req, res) => {
 router.post('/:id/free-payment', async (req, res) => {
     try {
         const { id } = req.params;
-        const { amount, notes, collectorId } = req.body;
+        const { amount, notes, collectorId, interestOnly, paymentDate } = req.body;
 
         if (!amount || amount <= 0) {
             return res.status(400).json({ error: 'El monto del abono debe ser mayor a 0' });
+        }
+
+        if (paymentDate && isFutureDate(paymentDate)) {
+            return res.status(400).json({ error: 'La fecha del abono no puede ser futura' });
         }
 
         // Obtener préstamo
@@ -608,7 +652,8 @@ router.post('/:id/free-payment', async (req, res) => {
             return res.status(404).json({ error: 'Préstamo no encontrado' });
         }
         const paymentAmount = parseFloat(amount);
-        const now = new Date();
+        const paymentAt = paymentDate ? toStoredDate(paymentDate) : new Date();
+        const now = paymentAt;
 
         let toInterest = 0;
         let toPrincipal = 0;
@@ -618,25 +663,35 @@ router.post('/:id/free-payment', async (req, res) => {
         let newStatus = loan.status;
 
         if (loan.loanType === 'OPEN') {
-            // OPEN: interés acumulado por día, luego capital
             const lastCalc = loan.lastInterestCalc || loan.startDate;
-            const daysSinceLastCalc = Math.floor((now - new Date(lastCalc)) / (1000 * 60 * 60 * 24));
+            const daysSinceLastCalc = daysBetween(lastCalc, paymentAt);
+            const openFrequency = normalizeOpenFrequency(loan.frequency);
 
             const totalPaidToPrincipal = loan.freePayments.reduce((sum, p) => sum + (p.toPrincipal || 0), 0);
             const currentPrincipal = loan.amount + (loan.closingCosts || 0) - totalPaidToPrincipal;
 
-            const dailyRate = loan.dailyRate || (loan.rate / 365 / 100);
-            const newInterest = currentPrincipal * dailyRate * daysSinceLastCalc;
+            const newInterest = calculateAccruedInterest(
+                currentPrincipal,
+                loan.rate,
+                openFrequency,
+                daysSinceLastCalc,
+                loan.dailyRate
+            );
             const totalInterestAccrued = (loan.interestAccrued || 0) + newInterest;
 
-            toInterest = Math.min(paymentAmount, totalInterestAccrued);
-            toPrincipal = paymentAmount - toInterest;
-
-            if (toPrincipal > currentPrincipal) {
-                toPrincipal = currentPrincipal;
+            if (interestOnly) {
+                toInterest = Math.min(paymentAmount, totalInterestAccrued);
+                toPrincipal = 0;
+                appliedAmount = toInterest;
+            } else {
+                toInterest = Math.min(paymentAmount, totalInterestAccrued);
+                toPrincipal = paymentAmount - toInterest;
+                if (toPrincipal > currentPrincipal) {
+                    toPrincipal = currentPrincipal;
+                }
+                appliedAmount = toInterest + toPrincipal;
             }
 
-            appliedAmount = toInterest + toPrincipal;
             balanceAfter = currentPrincipal - toPrincipal;
             remainingInterest = totalInterestAccrued - toInterest;
             newStatus = balanceAfter <= 0 ? 'COMPLETED' : 'ACTIVE';
@@ -661,8 +716,11 @@ router.post('/:id/free-payment', async (req, res) => {
                 const payToInterestInst = Math.min(paymentRemaining, interestRemaining);
                 paymentRemaining -= payToInterestInst;
 
-                const payToPrincipalInst = Math.min(paymentRemaining, principalRemaining);
-                paymentRemaining -= payToPrincipalInst;
+                let payToPrincipalInst = 0;
+                if (!interestOnly) {
+                    payToPrincipalInst = Math.min(paymentRemaining, principalRemaining);
+                    paymentRemaining -= payToPrincipalInst;
+                }
 
                 const installmentApplied = payToInterestInst + payToPrincipalInst;
                 if (installmentApplied <= 0) continue;
@@ -671,7 +729,7 @@ router.post('/:id/free-payment', async (req, res) => {
                 toPrincipal += payToPrincipalInst;
 
                 const newPaidAmount = paidSoFar + installmentApplied;
-                const isPaid = newPaidAmount >= (inst.payment || 0) - 0.01;
+                const isPaid = !interestOnly && newPaidAmount >= (inst.payment || 0) - 0.01;
 
                 await prisma.loanInstallment.update({
                     where: { id: inst.id },
@@ -778,7 +836,8 @@ router.post('/:id/free-payment', async (req, res) => {
                 paidToPrincipal: toPrincipal,
                 remainingBalance: balanceAfter,
                 remainingInterest: remainingInterest,
-                loanStatus: newStatus
+                loanStatus: newStatus,
+                unusedAmount: interestOnly ? Math.max(0, paymentAmount - toInterest) : 0
             }
         });
 

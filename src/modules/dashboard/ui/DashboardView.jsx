@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import Card from '../../../shared/components/ui/Card';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
+import { calculateTotalPendingInterest } from '../../../shared/utils/openLoanInterest';
+import { parseDateOnly } from '../../../shared/utils/dateUtils';
 import {
     TrendingUp, TrendingDown, Users, Wallet, Calendar, AlertTriangle,
     CheckCircle, Clock, DollarSign, Bell, Filter, ChevronRight, Crown, MapPin
@@ -72,21 +74,43 @@ export default function DashboardView({
 
     // Overdue installments (notifications)
     const overdueInstallments = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = parseDateOnly(new Date());
 
-        return activeLoansOnly.flatMap(loan => {
+        const fixedOverdue = activeLoansOnly.flatMap(loan => {
             const client = clients.find(c => c.id === loan.clientId);
             return (loan.schedule || [])
-                .filter(inst => inst.status !== 'PAID' && new Date(inst.date) < today)
+                .filter(inst => inst.status !== 'PAID' && parseDateOnly(inst.date) < today)
                 .map(inst => ({
                     ...inst,
                     loanId: loan.id,
                     clientName: client?.name || 'Sin nombre',
                     clientPhone: client?.phone,
-                    daysOverdue: Math.floor((today - new Date(inst.date)) / (1000 * 60 * 60 * 24)),
+                    daysOverdue: Math.floor((today - parseDateOnly(inst.date)) / (1000 * 60 * 60 * 24)),
+                    type: 'INSTALLMENT'
                 }));
-        }).sort((a, b) => b.daysOverdue - a.daysOverdue);
+        });
+
+        const openWithInterest = activeLoansOnly
+            .filter(l => l.loanType === 'OPEN' && l.status === 'ACTIVE')
+            .map(loan => {
+                const client = clients.find(c => c.id === loan.clientId);
+                const pending = loan.pendingInterest ?? calculateTotalPendingInterest(loan);
+                if (pending <= 0) return null;
+                const daysSinceStart = Math.floor((today - parseDateOnly(loan.startDate)) / (1000 * 60 * 60 * 24));
+                return {
+                    loanId: loan.id,
+                    clientName: client?.name || 'Sin nombre',
+                    clientPhone: client?.phone,
+                    pendingInterest: pending,
+                    daysOverdue: daysSinceStart,
+                    type: 'OPEN_INTEREST',
+                    number: 'INT'
+                };
+            })
+            .filter(Boolean);
+
+        return [...fixedOverdue, ...openWithInterest]
+            .sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0));
     }, [activeLoansOnly, clients]);
 
     // Upcoming due today
@@ -349,7 +373,7 @@ export default function DashboardView({
                     {overdueInstallments.length === 0 ? (
                         <div className="flex flex-col items-center py-6 text-center">
                             <CheckCircle size={32} className="text-emerald-500 mb-2" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Sin cuotas vencidas</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Sin mora ni interés pendiente</p>
                         </div>
                     ) : (
                         <ul className="space-y-1.5 max-h-56 overflow-y-auto overscroll-contain">
@@ -363,11 +387,17 @@ export default function DashboardView({
                                         <AlertTriangle size={14} className="text-rose-500 flex-shrink-0" />
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{inst.clientName}</p>
-                                            <p className="text-xs text-slate-500">Cuota #{inst.number} • {inst.daysOverdue}d vencida</p>
+                                            <p className="text-xs text-slate-500">
+                                              {inst.type === 'OPEN_INTEREST'
+                                                ? `Interés pendiente • ${inst.daysOverdue}d desde inicio`
+                                                : `Cuota #${inst.number} • ${inst.daysOverdue}d vencida`}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                                        <span className="text-sm font-bold text-rose-600">{formatCurrency(inst.payment)}</span>
+                                        <span className="text-sm font-bold text-rose-600">
+                                          {formatCurrency(inst.type === 'OPEN_INTEREST' ? inst.pendingInterest : inst.payment)}
+                                        </span>
                                         <ChevronRight size={14} className="text-slate-400" />
                                     </div>
                                 </li>

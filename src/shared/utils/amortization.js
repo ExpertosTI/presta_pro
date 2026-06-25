@@ -154,6 +154,16 @@ export const calculateInstallmentVal = (amount, rate, term, frequency, type = 'F
     const totalInterest = principal * (rateVal / 100);
     const totalAmount = principal + totalInterest;
     return (totalAmount / n).toFixed(2);
+  } else if (type === 'INTEREST_ONLY') {
+    let periodsPerYear = 12;
+    switch (frequency) {
+      case 'Diario': periodsPerYear = 365; break;
+      case 'Semanal': periodsPerYear = 52; break;
+      case 'Quincenal': periodsPerYear = 24; break;
+      case 'Mensual': periodsPerYear = 12; break;
+    }
+    const ratePerPeriod = (rateVal / 100) / periodsPerYear;
+    return (principal * ratePerPeriod).toFixed(2);
   } else if (type === 'FRENCH') {
     let periodsPerYear = 12;
     switch (frequency) {
@@ -182,6 +192,16 @@ export const calculateRateFromInstallment = (amount, installment, term, frequenc
   if (type === 'FLAT') {
     const rate = ((pmt * n / principal) - 1) * 100;
     return Math.max(0, rate).toFixed(2);
+  } else if (type === 'INTEREST_ONLY') {
+    let periodsPerYear = 12;
+    switch (frequency) {
+      case 'Diario': periodsPerYear = 365; break;
+      case 'Semanal': periodsPerYear = 52; break;
+      case 'Quincenal': periodsPerYear = 24; break;
+      case 'Mensual': periodsPerYear = 12; break;
+    }
+    const annualRate = (pmt / principal) * periodsPerYear * 100;
+    return Math.max(0, annualRate).toFixed(2);
   } else if (type === 'FRENCH') {
     let periodsPerYear = 12;
     switch (frequency) {
