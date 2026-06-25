@@ -5,10 +5,18 @@ import App from './App.jsx'
 import './index.css'
 import { ToastProvider } from './shared/components/ui/Toast.jsx';
 import { initAppLock } from './sync/AppLock.js';
+import { registerSW } from 'virtual:pwa-register';
 
 // Inicializar lock global anti-pérdida de datos
 // (se activa antes de que React monte para capturar beforeunload desde el inicio)
 initAppLock();
+
+registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    window.location.reload();
+  },
+});
 
 // Hardcode Google Client ID as fallback - env var interpolation fails in Docker
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '609647959676-ujoqo6p8qe10ehu3cro2i26ci8nnks8j.apps.googleusercontent.com';

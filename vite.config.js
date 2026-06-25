@@ -8,8 +8,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      selfDestroying: true,
       includeAssets: ['favicon.ico', 'logo.png', 'icon-180.png'],
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // Cache the app shell (JS/CSS/HTML) with stale-while-revalidate
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
