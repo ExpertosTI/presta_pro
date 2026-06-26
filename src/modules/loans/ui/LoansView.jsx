@@ -9,6 +9,7 @@ import {
   calculateTotalPendingInterest,
   getPeriodRatePercent,
   getRetrospectiveLoanSummary,
+  getOpenLoanSummary,
   OPEN_LOAN_FREQUENCIES,
   previewRetrospectiveLoan
 } from '../../../shared/utils/openLoanInterest';
@@ -16,7 +17,7 @@ import { isFutureDate, parseDateOnly, toDateInputValue } from '../../../shared/u
 import {
   FileText, Sparkles, X, Printer, FileCheck, Plus, Banknote, Archive, Trash2, XCircle,
   ArrowUpDown, Filter, Calendar, TrendingUp, RefreshCw, Wallet, Clock, History,
-  StickyNote, UserCheck
+  StickyNote, UserCheck, ChevronRight, Percent, AlertTriangle, LayoutList, Receipt
 } from 'lucide-react';
 import { PaymentConfirmationModal } from '../../payments';
 import { printHtmlContent } from '../../../shared/utils/printUtils';
@@ -36,11 +37,12 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
   // Create Loan Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
+  const [createForm, setCreateForm] = useState({ clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', openTerm: '60', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
   const [createError, setCreateError] = useState('');
   const [freePaymentAmount, setFreePaymentAmount] = useState('');
   const [freePaymentNotes, setFreePaymentNotes] = useState('');
-  const [freePaymentInterestOnly, setFreePaymentInterestOnly] = useState(false);
+  const [freePaymentInterestOnly, setFreePaymentInterestOnly] = useState(true);
+  const [detailTab, setDetailTab] = useState('overview');
   const [freePaymentDate, setFreePaymentDate] = useState(toDateInputValue(new Date()));
 
   const handleCreateFormChange = (fields) => {
@@ -183,10 +185,19 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
       .reduce((sum, s) => sum + (parseFloat(s.interest || 0)), 0);
   }, [selectedLoan, isSelectedLoanOpen]);
 
+  const openLoanSummary = useMemo(() => {
+    if (!selectedLoan || !isSelectedLoanOpen) return null;
+    return getOpenLoanSummary(
+      selectedLoan,
+      new Date(),
+      systemSettings?.defaultPenaltyRate ?? 5
+    );
+  }, [selectedLoan, isSelectedLoanOpen, systemSettings?.defaultPenaltyRate]);
+
   const openLoanPendingInterest = useMemo(() => {
     if (!selectedLoan || !isSelectedLoanOpen) return 0;
-    return selectedLoan.pendingInterest ?? calculateTotalPendingInterest(selectedLoan);
-  }, [selectedLoan, isSelectedLoanOpen]);
+    return openLoanSummary?.totalPending ?? selectedLoan.pendingInterest ?? calculateTotalPendingInterest(selectedLoan);
+  }, [selectedLoan, isSelectedLoanOpen, openLoanSummary]);
 
   const selectedLoanRetrospective = useMemo(() => {
     if (!selectedLoan) return null;
@@ -588,12 +599,13 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   return;
                 }
                 const closingCosts = parseFloat(createForm.closingCosts || '0');
+                const openTerm = parseInt(createForm.openTerm || '60', 10);
                 onCreateLoan({
                   clientId: createForm.clientId,
                   loanType: createForm.loanType,
                   amount,
                   rate,
-                  term: isOpenLoan ? undefined : term,
+                  term: isOpenLoan ? openTerm : term,
                   frequency: isOpenLoan ? createForm.frequency : createForm.frequency,
                   startDate: createForm.startDate,
                   closingCosts,
@@ -601,7 +613,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   dailyRate: isOpenLoan && createForm.dailyRate ? parseFloat(createForm.dailyRate) : undefined
                 });
                 setCreateModalOpen(false);
-                setCreateForm({ clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
+                setCreateForm({ clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', openTerm: '60', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
                 setCreateError('');
               }} className="space-y-3 text-sm">
                 <div>
@@ -731,7 +743,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   <>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Frecuencia de interés</label>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Frecuencia de rédito</label>
                         <select
                           className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                           value={createForm.frequency}
@@ -751,19 +763,32 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                           className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                           value={createForm.rate}
                           onChange={(e) => handleCreateFormChange({ rate: e.target.value })}
-                          placeholder="Ej: 5"
+                          placeholder="Ej: 4"
                         />
                       </div>
                     </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        Períodos de rédito proyectados
+                        <span className="text-slate-400 font-normal"> (calendario de vencimientos)</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                        value={createForm.openTerm}
+                        onChange={(e) => handleCreateFormChange({ openTerm: e.target.value })}
+                      />
+                    </div>
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 text-[11px] text-blue-700 dark:text-blue-300">
-                      Rédito {createForm.frequency.toLowerCase()} estimado:{' '}
+                      Rédito {createForm.frequency.toLowerCase()}:{' '}
                       <span className="font-bold text-sm">
                         {formatCurrency(calculatePeriodInterest(
                           (parseFloat(createForm.amount) || 0) + (parseFloat(createForm.closingCosts) || 0),
                           parseFloat(createForm.rate) || 0
                         ))}
                       </span>
-                      {' '}({(parseFloat(createForm.rate) || 0).toFixed(2)}% por período — capital intacto)
+                      {' '}({(parseFloat(createForm.rate) || 0).toFixed(2)}% — el capital permanece intacto si solo paga réditos)
                     </div>
                   </>
                 )}
@@ -838,632 +863,526 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
         </div>
       )}
 
-      <div className={selectedLoan ? "hidden lg:block space-y-6" : "space-y-6"}>
-        <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-          <Banknote className="w-6 h-6 text-blue-600" />
-          Préstamos y Cobros
-        </h2>
-        {onCreateLoan && (
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-colors min-h-[44px] active:scale-95 touch-manipulation"
-          >
-            <Plus size={18} /> Nuevo Préstamo
-          </button>
-        )}
-      </div>
-
-      {/* MEJORA 4: Portfolio Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 overflow-hidden">
-          <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1"><Wallet size={12} /> Cartera</p>
-          <p className="text-base sm:text-lg font-bold text-blue-800 dark:text-blue-200 truncate tabular-nums">{formatCurrency(loanStats.totalPortfolio)}</p>
-          <p className="text-xs text-blue-600">{loanStats.activeCount} activos</p>
-        </div>
-        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 overflow-hidden">
-          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1"><TrendingUp size={12} /> Interés Esperado</p>
-          <p className="text-base sm:text-lg font-bold text-emerald-800 dark:text-emerald-200 truncate tabular-nums">{formatCurrency(loanStats.totalExpectedInterest)}</p>
-        </div>
-        <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 overflow-hidden">
-          <p className="text-xs text-violet-600 dark:text-violet-400 font-semibold flex items-center gap-1"><Clock size={12} /> Por Cobrar</p>
-          <p className="text-base sm:text-lg font-bold text-violet-800 dark:text-violet-200 truncate tabular-nums">{formatCurrency(loanStats.totalPending)}</p>
-        </div>
-        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Por Tipo</p>
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{loanStats.fixedCount} cuotas · {loanStats.openCount} abiertos</p>
-        </div>
-      </div>
-
-      {/* Search and Enhanced Filter Bar */}
-      <Card>
-        <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
-          <div className="flex-1 min-w-[140px] sm:min-w-[180px]">
-            <input
-              type="text"
-              placeholder="Buscar cliente..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 text-sm"
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
-          >
-            <option value="ALL">Todos estados</option>
-            <option value="ACTIVE">Activos</option>
-            <option value="COMPLETED">Completados</option>
-            <option value="DEFAULTED">En mora</option>
-          </select>
-          {/* MEJORA 3: Type filter */}
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
-          >
-            <option value="ALL">Todos tipos</option>
-            <option value="FIXED">Cuotas fijas</option>
-            <option value="OPEN">Abonos libres</option>
-          </select>
-          {/* MEJORA 6: Collector filter */}
-          {collectors.length > 0 && (
-            <select
-              value={collectorFilter}
-              onChange={(e) => setCollectorFilter(e.target.value)}
-              className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
-            >
-              <option value="ALL">Todos cobradores</option>
-              {collectors.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          )}
-          {/* MEJORA 1: Sort dropdown */}
-          <select
-            value={`${sortBy}-${sortOrder}`}
-            onChange={(e) => {
-              const [field, order] = e.target.value.split('-');
-              setSortBy(field);
-              setSortOrder(order);
-            }}
-            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
-          >
-            <option value="date-desc">Más reciente</option>
-            <option value="date-asc">Más antiguo</option>
-            <option value="amount-desc">Mayor monto</option>
-            <option value="amount-asc">Menor monto</option>
-            <option value="client-asc">Cliente A-Z</option>
-            <option value="client-desc">Cliente Z-A</option>
-          </select>
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className={`px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-all ${showArchived
-              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
-              : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-600'
-              }`}
-          >
-            <Archive size={14} />
-            {showArchived ? 'Ocultar arch.' : 'Ver arch.'}
-          </button>
-        </div>
-        {/* MEJORA 8: Date filter row */}
-        <div className="flex flex-wrap gap-3 items-center mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-          <span className="text-xs text-slate-500 flex items-center gap-1"><Calendar size={12} /> Rango de fecha:</span>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
-          />
-          <span className="text-xs text-slate-400">a</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm min-h-[44px]"
-          />
-          {(dateFrom || dateTo) && (
-            <button
-              onClick={() => { setDateFrom(''); setDateTo(''); }}
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Limpiar
-            </button>
-          )}
-          <span className="ml-auto text-sm text-slate-500 dark:text-slate-400">
-            {filteredLoans.length} de {loans.filter(l => !l.archived).length}
-          </span>
-        </div>
-      </Card>
-
-      <Card>
-        {/* Mobile View: Card List */}
-        <div className="block sm:hidden space-y-2.5">
-          {filteredLoans.map(l => {
-            const client = clients.find(c => c.id === l.clientId);
-            const isSelected = selectedLoanId === l.id;
-            const hasDocuments = client?.documents && client.documents.length > 0;
-            return (
-              <div
-                key={l.id}
-                onClick={() => onSelectLoan && onSelectLoan(l.id)}
-                className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm'
-                    : 'bg-white dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                }`}
+      {/* Master-detail layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
+        {/* ── Panel izquierdo: lista ── */}
+        <div className={`lg:col-span-5 xl:col-span-4 flex flex-col gap-3 min-h-0 ${selectedLoan ? 'hidden lg:flex' : 'flex'}`}>
+          <div className="flex items-center justify-between flex-shrink-0">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <Banknote className="w-5 h-5 text-blue-600" />
+              Préstamos
+            </h2>
+            {onCreateLoan && (
+              <button
+                onClick={() => setCreateModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all min-h-[40px] active:scale-95 shadow-sm shadow-blue-600/20"
               >
-                <div className="flex justify-between items-start mb-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                      {client?.name || 'Sin cliente'}
+                <Plus size={16} /> Nuevo
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 flex-shrink-0">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-900/10 border border-blue-100 dark:border-blue-800">
+              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide">Cartera</p>
+              <p className="text-sm font-bold text-blue-900 dark:text-blue-100 tabular-nums truncate">{formatCurrency(loanStats.totalPortfolio)}</p>
+            </div>
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-50 to-violet-100/50 dark:from-violet-900/30 dark:to-violet-900/10 border border-violet-100 dark:border-violet-800">
+              <p className="text-[10px] text-violet-600 dark:text-violet-400 font-semibold uppercase tracking-wide">Por cobrar</p>
+              <p className="text-sm font-bold text-violet-900 dark:text-violet-100 tabular-nums truncate">{formatCurrency(loanStats.totalPending)}</p>
+            </div>
+          </div>
+
+          <Card className="flex-shrink-0 !p-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              <input
+                type="text"
+                placeholder="Buscar cliente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 min-w-[120px] p-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 text-sm"
+              />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="p-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-xs"
+              >
+                <option value="ALL">Estados</option>
+                <option value="ACTIVE">Activos</option>
+                <option value="COMPLETED">Completados</option>
+                <option value="DEFAULTED">En mora</option>
+              </select>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="p-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-xs"
+              >
+                <option value="ALL">Tipos</option>
+                <option value="FIXED">Cuotas</option>
+                <option value="OPEN">Libres</option>
+              </select>
+              <select
+                value={`${sortBy}-${sortOrder}`}
+                onChange={(e) => {
+                  const [field, order] = e.target.value.split('-');
+                  setSortBy(field);
+                  setSortOrder(order);
+                }}
+                className="p-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-xs"
+              >
+                <option value="date-desc">Reciente</option>
+                <option value="amount-desc">Mayor monto</option>
+                <option value="client-asc">A-Z</option>
+              </select>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-2 text-right">{filteredLoans.length} préstamos</p>
+          </Card>
+
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-0.5 scrollbar-thin">
+            {filteredLoans.map(l => {
+              const client = clients.find(c => c.id === l.clientId);
+              const isSelected = selectedLoanId === l.id;
+              const isOpen = l.loanType === 'OPEN' || l.amortizationType === 'OPEN';
+              const progress = getPaymentProgress(l);
+              return (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => { onSelectLoan?.(l.id); setDetailTab('overview'); }}
+                  className={`w-full text-left p-3 rounded-xl border transition-all duration-200 group ${
+                    isSelected
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/25 scale-[1.01]'
+                      : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="min-w-0">
+                      <p className={`font-semibold truncate text-sm ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-100'}`}>
+                        {client?.name || 'Sin cliente'}
+                      </p>
+                      <p className={`text-xs mt-0.5 ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                        {formatCurrency(l.amount)} · {l.rate}% {isOpen ? 'libre' : `${l.term || ''} cuotas`}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} className={`flex-shrink-0 mt-0.5 transition-transform group-hover:translate-x-0.5 ${isSelected ? 'text-blue-200' : 'text-slate-300'}`} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                      isOpen
+                        ? isSelected ? 'bg-white/20 text-white' : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                        : isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}>
+                      {isOpen ? 'Libre' : 'Cuotas'}
                     </span>
-                    {hasDocuments && (
-                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded px-1.5 py-0.5 text-[9px] font-bold flex items-center gap-0.5">
-                        <FileText size={8} /> {client.documents.length}
-                      </span>
+                    {!isOpen && progress > 0 && (
+                      <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${isSelected ? 'bg-white/80' : 'bg-emerald-500'}`} style={{ width: `${progress}%` }} />
+                      </div>
+                    )}
+                    <Badge status={l.status} />
+                  </div>
+                </button>
+              );
+            })}
+            {filteredLoans.length === 0 && (
+              <div className="p-8 text-center text-slate-400 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                <LayoutList size={32} className="mx-auto mb-2 opacity-40" />
+                <p className="text-sm">No hay préstamos</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Panel derecho: detalle ── */}
+        <div className={`lg:col-span-7 xl:col-span-8 min-h-0 ${!selectedLoan ? 'hidden lg:block' : ''}`}>
+          {!selectedLoan ? (
+            <div className="h-full min-h-[400px] flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 p-8 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+                <Banknote size={28} className="text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-1">Selecciona un préstamo</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">
+                Elige un cliente de la lista para ver detalles, registrar pagos y consultar el cronograma.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4 h-full animate-fade-in">
+              {/* Header del detalle */}
+              <div className="flex items-start justify-between gap-3 flex-shrink-0">
+                <div className="min-w-0">
+                  <button
+                    onClick={() => onSelectLoan?.(null)}
+                    className="lg:hidden flex items-center gap-1 text-xs text-blue-600 font-semibold mb-2"
+                  >
+                    <X size={14} /> Volver a la lista
+                  </button>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate">
+                    {selectedClient?.name || 'Cliente'}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <span className="text-sm font-semibold text-slate-600 dark:text-slate-300 tabular-nums">
+                      {formatCurrency(selectedLoan.amount)}
+                    </span>
+                    <span className="text-xs text-slate-400">·</span>
+                    <span className="text-xs text-slate-500">{selectedLoan.rate}% {isSelectedLoanOpen ? `/${selectedLoan.frequency?.toLowerCase() || 'mes'}` : ''}</span>
+                    <Badge status={selectedLoan.status} />
+                    {isSelectedLoanOpen && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">Libre</span>
                     )}
                   </div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
-                    {formatCurrency(l.amount)}
-                  </span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-500">Tasa: {l.rate}%</span>
-                  <Badge status={l.status} />
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {onNavigateToDocuments && selectedClient && (
+                    <button
+                      onClick={() => onNavigateToDocuments(selectedClient.id)}
+                      className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                      title="Documentos"
+                    >
+                      <FileText size={16} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onSelectLoan?.(null)}
+                    className="hidden lg:flex p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                    title="Cerrar"
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
               </div>
-            );
-          })}
-          {loans.length === 0 && (
-            <div className="p-4 text-center text-slate-400 bg-white dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800">
-              No hay préstamos registrados.
+
+              {/* Tabs */}
+              <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl flex-shrink-0 overflow-x-auto">
+                {[
+                  { id: 'overview', label: 'Cobro', icon: Wallet },
+                  { id: 'schedule', label: isSelectedLoanOpen ? 'Réditos' : 'Amortización', icon: LayoutList },
+                  { id: 'history', label: 'Historial', icon: Receipt },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setDetailTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                      detailTab === tab.id
+                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                    }`}
+                  >
+                    <tab.icon size={14} />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab: Cobro */}
+              {detailTab === 'overview' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0 overflow-y-auto">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                        <p className="text-[10px] text-slate-500 uppercase font-semibold">Capital</p>
+                        <p className="text-base font-bold text-slate-800 dark:text-slate-100 tabular-nums">{formatCurrency(selectedLoan.currentBalance || selectedLoan.amount)}</p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                        <p className="text-[10px] text-slate-500 uppercase font-semibold">Total pagado</p>
+                        <p className="text-base font-bold text-emerald-600 tabular-nums">{formatCurrency(selectedLoan.totalPaid || 0)}</p>
+                      </div>
+                    </div>
+
+                    {firstPendingInstallment && !isSelectedLoanOpen && (
+                      <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/10 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                        <p className="font-bold text-emerald-800 dark:text-emerald-300 text-sm mb-2">Próxima cuota</p>
+                        <p className="text-sm text-slate-700 dark:text-slate-300">#{firstPendingInstallment.number} · {formatDate(firstPendingInstallment.date)}</p>
+                        <p className="text-xl font-bold text-slate-800 dark:text-slate-100 my-2 tabular-nums">{formatCurrency(firstPendingInstallment.payment)}</p>
+                        <button
+                          onClick={() => {
+                            setPenaltyAmountInput('');
+                            setPaymentToConfirm({
+                              loanId: selectedLoan.id,
+                              installmentId: firstPendingInstallment.id,
+                              amount: firstPendingInstallment.payment,
+                              interestAmount: firstPendingInstallment.interest || 0,
+                              number: firstPendingInstallment.number,
+                              date: firstPendingInstallment.date,
+                              clientName: selectedClient?.name || 'Sin cliente',
+                            });
+                          }}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
+                        >
+                          Registrar pago de cuota
+                        </button>
+                      </div>
+                    )}
+
+                    {isSelectedLoanOpen && openLoanSummary?.nextDue && (
+                      <div className={`p-4 rounded-xl border ${
+                        openLoanSummary.overdueCount > 0
+                          ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800'
+                          : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                      }`}>
+                        <p className="font-bold text-sm mb-1 flex items-center gap-1">
+                          {openLoanSummary.overdueCount > 0
+                            ? <><AlertTriangle size={14} className="text-rose-600" /> Rédito en mora</>
+                            : 'Próximo rédito'}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          Período #{openLoanSummary.nextDue.number} · {formatDate(openLoanSummary.nextDue.date)}
+                        </p>
+                        <p className="text-xl font-bold tabular-nums my-1">{formatCurrency(openLoanSummary.nextDue.interest)}</p>
+                        {openLoanSummary.totalMora > 0 && (
+                          <p className="text-xs text-rose-600 font-semibold">+ Mora: {formatCurrency(openLoanSummary.totalMora)}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedLoan.status !== 'COMPLETED' && (
+                    <Card className="!p-4 space-y-3">
+                      <p className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                        {isSelectedLoanOpen ? 'Registrar pago a réditos' : 'Abono a rédito/capital'}
+                      </p>
+                      {isSelectedLoanOpen && (
+                        <p className="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
+                          El capital ({formatCurrency(selectedLoan.currentBalance || selectedLoan.amount)}) permanece intacto si solo paga réditos. Puede abonar cualquier monto en cualquier momento.
+                        </p>
+                      )}
+                      {selectedLoanRetrospective?.isRetrospective && (
+                        <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-2 py-1">
+                          Retroactivo: {selectedLoanRetrospective.daysSinceStart} días
+                          {isSelectedLoanOpen && openLoanSummary?.overdueCount > 0 && (
+                            <> · {openLoanSummary.overdueCount} período(s) vencido(s)</>
+                          )}
+                        </p>
+                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Rédito pendiente</span>
+                        <span className="font-bold text-rose-600 tabular-nums">
+                          {formatCurrency(isSelectedLoanOpen ? openLoanPendingInterest : fixedRemainingInterest)}
+                        </span>
+                      </div>
+                      {isSelectedLoanOpen && openLoanPendingInterest > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFreePaymentAmount(String(openLoanPendingInterest));
+                            setFreePaymentInterestOnly(true);
+                          }}
+                          className="w-full border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 py-2 rounded-lg font-semibold text-xs hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        >
+                          Pagar rédito pendiente ({formatCurrency(openLoanPendingInterest)})
+                        </button>
+                      )}
+                      <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={freePaymentInterestOnly}
+                          onChange={(e) => setFreePaymentInterestOnly(e.target.checked)}
+                          className="rounded border-slate-300 text-blue-600"
+                        />
+                        Solo réditos (capital intacto)
+                      </label>
+                      <MoneyInput
+                        value={freePaymentAmount}
+                        onChange={(val) => setFreePaymentAmount(val)}
+                        className="w-full p-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                        placeholder="Monto del pago"
+                      />
+                      <input
+                        type="date"
+                        max={toDateInputValue(new Date())}
+                        value={freePaymentDate}
+                        onChange={(e) => setFreePaymentDate(e.target.value)}
+                        className="w-full p-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+                      />
+                      <textarea
+                        value={freePaymentNotes}
+                        onChange={(e) => setFreePaymentNotes(e.target.value)}
+                        className="w-full p-2.5 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-sm"
+                        rows={2}
+                        placeholder="Notas (opcional)"
+                      />
+                      <button
+                        onClick={async () => {
+                          const receipt = await registerPayment(selectedLoan.id, null, {
+                            customAmount: parseFloat(freePaymentAmount || 0),
+                            useFreePayment: true,
+                            interestOnly: freePaymentInterestOnly,
+                            paymentDate: freePaymentDate || null,
+                            notes: freePaymentNotes || null
+                          });
+                          if (receipt) {
+                            setReceiptToShow(receipt);
+                            setFreePaymentAmount('');
+                            setFreePaymentNotes('');
+                            setFreePaymentInterestOnly(isSelectedLoanOpen);
+                            setFreePaymentDate(toDateInputValue(new Date()));
+                          }
+                        }}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.98] shadow-sm shadow-blue-600/20"
+                      >
+                        {freePaymentInterestOnly ? 'Registrar pago a réditos' : 'Registrar abono'}
+                      </button>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Tab: Cronograma / Réditos */}
+              {detailTab === 'schedule' && (
+                <Card className="flex-1 min-h-0 flex flex-col !p-0 overflow-hidden">
+                  <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-700 flex-shrink-0">
+                    <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                      {isSelectedLoanOpen ? 'Calendario de réditos' : 'Hoja de amortización'}
+                    </h4>
+                    {!isSelectedLoanOpen && (
+                      <button onClick={handlePrintAmortization} className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">
+                        <Printer size={14} /> Imprimir
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 overflow-y-auto overflow-x-auto">
+                    {isSelectedLoanOpen ? (
+                      <>
+                        {/* Mobile cards */}
+                        <div className="sm:hidden p-3 space-y-2">
+                          {(openLoanSummary?.periods || []).map(p => (
+                            <div key={p.number} className={`p-3 rounded-xl border text-sm ${
+                              p.status === 'OVERDUE' ? 'border-rose-200 bg-rose-50/50 dark:bg-rose-900/10 dark:border-rose-800'
+                              : p.status === 'PAID' ? 'border-emerald-200 bg-emerald-50/30 dark:bg-emerald-900/10'
+                              : 'border-slate-200 dark:border-slate-700'
+                            }`}>
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-semibold">#{p.number} · {formatDate(p.date)}</span>
+                                <Badge status={p.status === 'PAID' ? 'PAID' : p.status === 'OVERDUE' ? 'LATE' : 'PENDING'} />
+                              </div>
+                              <div className="flex justify-between text-xs text-slate-500">
+                                <span>Rédito: {formatCurrency(p.interest)}</span>
+                                {p.mora > 0 && <span className="text-rose-600">Mora: {formatCurrency(p.mora)}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Desktop table */}
+                        <table className="hidden sm:table w-full text-xs md:text-sm">
+                          <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 sticky top-0">
+                            <tr>
+                              <th className="p-2.5 text-left">#</th>
+                              <th className="p-2.5 text-left">Vence</th>
+                              <th className="p-2.5 text-right">Rédito</th>
+                              <th className="p-2.5 text-right">Pagado</th>
+                              <th className="p-2.5 text-right">Mora</th>
+                              <th className="p-2.5 text-right">Capital</th>
+                              <th className="p-2.5 text-center">Estado</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            {(openLoanSummary?.periods || []).map(p => (
+                              <tr key={p.number} className={p.status === 'OVERDUE' ? 'bg-rose-50/40 dark:bg-rose-900/10' : ''}>
+                                <td className="p-2.5">{p.number}</td>
+                                <td className="p-2.5 text-slate-600 dark:text-slate-400">{formatDate(p.date)}</td>
+                                <td className="p-2.5 text-right font-medium tabular-nums">{formatCurrency(p.interest)}</td>
+                                <td className="p-2.5 text-right text-emerald-600 tabular-nums">{formatCurrency(p.paidAmount || 0)}</td>
+                                <td className="p-2.5 text-right text-rose-600 tabular-nums">{p.mora > 0 ? formatCurrency(p.mora) : '—'}</td>
+                                <td className="p-2.5 text-right text-slate-500 tabular-nums">{formatCurrency(p.balance)}</td>
+                                <td className="p-2.5 text-center">
+                                  <Badge status={p.status === 'PAID' ? 'PAID' : p.status === 'OVERDUE' ? 'LATE' : 'PENDING'} />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </>
+                    ) : (
+                      <table className="w-full text-xs md:text-sm">
+                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 sticky top-0">
+                          <tr>
+                            <th className="p-2.5 text-left">#</th>
+                            <th className="p-2.5 text-left">Fecha</th>
+                            <th className="p-2.5 text-right">Cuota</th>
+                            <th className="p-2.5 text-right hidden md:table-cell">Interés</th>
+                            <th className="p-2.5 text-right hidden md:table-cell">Capital</th>
+                            <th className="p-2.5 text-right">Saldo</th>
+                            <th className="p-2.5 text-center">Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                          {(selectedLoan.schedule || []).map(inst => {
+                            const isOverdue = inst.status !== 'PAID' && parseDateOnly(inst.date) && parseDateOnly(inst.date) < parseDateOnly(new Date());
+                            return (
+                              <tr key={inst.id} className={isOverdue ? 'bg-rose-50/40 dark:bg-rose-900/10' : ''}>
+                                <td className="p-2.5">{inst.number}</td>
+                                <td className="p-2.5 text-slate-600 dark:text-slate-400">{formatDate(inst.date)}</td>
+                                <td className="p-2.5 text-right font-medium tabular-nums">{formatCurrency(inst.payment)}</td>
+                                <td className="p-2.5 text-right text-rose-500 hidden md:table-cell tabular-nums">{formatCurrency(inst.interest ?? 0)}</td>
+                                <td className="p-2.5 text-right text-emerald-600 hidden md:table-cell tabular-nums">{formatCurrency(inst.principal ?? 0)}</td>
+                                <td className="p-2.5 text-right text-slate-500 tabular-nums">{formatCurrency(inst.balance ?? 0)}</td>
+                                <td className="p-2.5 text-center">
+                                  <Badge status={inst.status === 'PAID' ? 'PAID' : isOverdue ? 'LATE' : 'PENDING'} />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Tab: Historial */}
+              {detailTab === 'history' && (
+                <Card className="flex-1 min-h-0 overflow-hidden !p-0">
+                  <div className="overflow-y-auto overflow-x-auto max-h-[60vh] lg:max-h-none">
+                    <table className="w-full text-xs md:text-sm">
+                      <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 sticky top-0">
+                        <tr>
+                          <th className="p-2.5 text-left">Fecha</th>
+                          <th className="p-2.5 text-right">Monto</th>
+                          <th className="p-2.5 text-right">A rédito</th>
+                          <th className="p-2.5 text-right">A capital</th>
+                          <th className="p-2.5 text-right">Saldo</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {(selectedLoan.freePayments || []).map(p => (
+                          <tr key={p.id}>
+                            <td className="p-2.5 text-slate-600 dark:text-slate-400">{formatDate(p.date)}</td>
+                            <td className="p-2.5 text-right font-medium tabular-nums">{formatCurrency(p.amount || 0)}</td>
+                            <td className="p-2.5 text-right text-rose-500 tabular-nums">{formatCurrency(p.toInterest || 0)}</td>
+                            <td className="p-2.5 text-right text-emerald-600 tabular-nums">{formatCurrency(p.toPrincipal || 0)}</td>
+                            <td className="p-2.5 text-right text-slate-500 tabular-nums">{formatCurrency(p.balanceAfter || 0)}</td>
+                          </tr>
+                        ))}
+                        {(!selectedLoan.freePayments || selectedLoan.freePayments.length === 0) && (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-slate-400">
+                              <Receipt size={28} className="mx-auto mb-2 opacity-30" />
+                              Sin pagos registrados
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              )}
+
+              {/* Acciones rápidas */}
+              <div className="flex flex-wrap gap-2 flex-shrink-0 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <button onClick={handleGenerateContract} disabled={generatingContract} className="text-xs px-3 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-semibold hover:bg-indigo-100 transition-colors disabled:opacity-50">
+                  {generatingContract ? 'Generando...' : 'Contrato IA'}
+                </button>
+                {selectedLoan.status === 'ACTIVE' && (
+                  <button onClick={() => setCancelModal(true)} className="text-xs px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 font-semibold hover:bg-amber-100">Cancelar</button>
+                )}
+                <button onClick={() => setArchiveModal(true)} className="text-xs px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200">Archivar</button>
+                <button onClick={() => setNotesModal({ show: true, loanId: selectedLoan.id, notes: selectedLoan.notes || '' })} className="text-xs px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 font-semibold hover:bg-violet-100">Notas</button>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Desktop/Tablet View: Traditional Table */}
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              <tr>
-                <th className="p-2 text-left">Cliente</th>
-                <th className="p-2 text-left">Monto</th>
-                <th className="p-2 text-left hidden md:table-cell">Tasa</th>
-                <th className="p-2 text-left hidden sm:table-cell">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-              {filteredLoans.map(l => {
-                const client = clients.find(c => c.id === l.clientId);
-                const isSelected = selectedLoanId === l.id;
-                // Check if client has documents (simulated or real property check)
-                const hasDocuments = client?.documents && client.documents.length > 0;
-
-                return (
-                  <tr
-                    key={l.id}
-                    onClick={() => onSelectLoan && onSelectLoan(l.id)}
-                    className={`cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
-                  >
-                    <td className="p-2 text-slate-800 dark:text-slate-200 flex items-center gap-2 min-w-0">
-                      <span className="truncate">{client?.name || 'Sin cliente'}</span>
-                      {hasDocuments && (
-                        <span className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded px-1.5 py-0.5 text-[10px] font-bold flex items-center gap-1" title={`${client.documents.length} documentos`}>
-                          <FileText size={10} /> {client.documents.length}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-2 text-slate-800 dark:text-slate-200 font-medium">{formatCurrency(l.amount)}</td>
-                    <td className="p-2 text-slate-600 dark:text-slate-400 hidden md:table-cell">{l.rate}%</td>
-                    <td className="p-2 hidden sm:table-cell"><Badge status={l.status} /></td>
-                  </tr>
-                );
-              })}
-              {loans.length === 0 && (
-                <tr>
-                  <td className="p-4 text-center text-slate-400" colSpan={4}>
-                    No hay préstamos registrados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
       </div>
 
-      {selectedLoan && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Payment section - moved to top on mobile, left column on desktop */}
-          <Card className="lg:col-span-1 order-1 lg:order-1">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">Detalle del Préstamo</h3>
-              <button
-                onClick={() => onSelectLoan && onSelectLoan(null)}
-                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden flex items-center gap-1 border border-slate-200 dark:border-slate-700"
-                title="Volver a la lista"
-              >
-                <X size={16} />
-                <span className="text-xs font-semibold">Volver</span>
-              </button>
-            </div>
-            {selectedClient && (
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-slate-700 dark:text-slate-300">
-                  <span className="font-semibold">Cliente: </span>{selectedClient.name}
-                </p>
-                {onNavigateToDocuments && (
-                  <button
-                    onClick={() => onNavigateToDocuments(selectedClient.id)}
-                    className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
-                    title="Ver documentos del cliente"
-                  >
-                    <FileText size={14} />
-                    Documentos
-                  </button>
-                )}
-              </div>
-            )}
-            <p className="text-sm text-slate-700 dark:text-slate-300 mb-1">
-              <span className="font-semibold">Monto: </span>{formatCurrency(selectedLoan.amount)}
-            </p>
-            <p className="text-sm text-slate-700 dark:text-slate-300 mb-1">
-              <span className="font-semibold">Tasa: </span>{selectedLoan.rate}%
-            </p>
-            <p className="text-sm text-slate-700 dark:text-slate-300 mb-1">
-              <span className="font-semibold">Estado: </span>
-              <Badge status={selectedLoan.status} />
-            </p>
-            <p className="text-sm text-slate-700 dark:text-slate-300 mb-1">
-              <span className="font-semibold">Total Pagado: </span>{formatCurrency(selectedLoan.totalPaid || 0)}
-            </p>
-
-            {firstPendingInstallment && (
-              <div className="mt-4 p-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-200 dark:border-green-800/50 rounded-xl text-sm shadow-sm">
-                <p className="font-bold text-green-800 dark:text-green-300 mb-2 text-base">💳 Próxima cuota pendiente</p>
-                <p className="text-slate-700 dark:text-slate-300 mb-1">
-                  <span className="font-semibold">Cuota #{firstPendingInstallment.number}</span> • {formatDate(firstPendingInstallment.date)}
-                </p>
-                <p className="text-slate-700 dark:text-slate-300 mb-3">
-                  <span className="font-semibold">Monto: </span>{formatCurrency(firstPendingInstallment.payment)}
-                </p>
-                <button
-                  onClick={() => {
-                    setPenaltyAmountInput('');
-                    setPaymentToConfirm({
-                      loanId: selectedLoan.id,
-                      installmentId: firstPendingInstallment.id,
-                      amount: firstPendingInstallment.payment,
-                      interestAmount: firstPendingInstallment.interest || 0,
-                      number: firstPendingInstallment.number,
-                      date: firstPendingInstallment.date,
-                      clientName: selectedClient?.name || 'Sin cliente',
-                    });
-                  }}
-                  className="w-full bg-green-600 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-green-700 shadow-md hover:shadow-lg transition-all"
-                >
-                  ✓ Registrar Pago de esta Cuota
-                </button>
-              </div>
-            )}
-
-            {selectedLoan.status !== 'COMPLETED' && (
-              <div className="mt-4 p-3 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-800/50 rounded-xl text-sm shadow-sm space-y-2">
-                <p className="font-bold text-blue-800 dark:text-blue-300 text-base">
-                  {isSelectedLoanOpen ? 'Abono libre (préstamo abierto)' : 'Abono a rédito/capital'}
-                </p>
-                {selectedLoanRetrospective?.isRetrospective && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-2 py-1">
-                    Retroactivo: {selectedLoanRetrospective.daysSinceStart} días desde {formatDate(selectedLoan.startDate)}
-                    {isSelectedLoanOpen && selectedLoanRetrospective.overdueInstallments === 0 && (
-                      <> • Interés devengado calculado hasta hoy</>
-                    )}
-                    {!isSelectedLoanOpen && selectedLoanRetrospective.overdueInstallments > 0 && (
-                      <> • {selectedLoanRetrospective.overdueInstallments} cuota(s) vencida(s)</>
-                    )}
-                  </p>
-                )}
-                <p className="text-slate-700 dark:text-slate-300">
-                  Saldo actual: <span className="font-semibold">{formatCurrency(selectedLoan.currentBalance || 0)}</span>
-                </p>
-                <p className="text-slate-700 dark:text-slate-300">
-                  {isSelectedLoanOpen
-                    ? (
-                      <>
-                        Interés pendiente (incl. devengado): <span className="font-semibold">{formatCurrency(openLoanPendingInterest)}</span>
-                        <span className="block text-xs text-slate-500 mt-1">
-                          Registrado: {formatCurrency(selectedLoan.interestAccrued || 0)} • Por {selectedLoan.frequency || 'Mensual'}: {formatCurrency(openLoanPeriodInterest)}
-                        </span>
-                      </>
-                    )
-                    : (
-                      <>Rédito pendiente (cuotas): <span className="font-semibold">{formatCurrency(fixedRemainingInterest || 0)}</span></>
-                    )}
-                </p>
-                {isSelectedLoanOpen && openLoanPendingInterest > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFreePaymentAmount(String(openLoanPendingInterest));
-                      setFreePaymentInterestOnly(true);
-                    }}
-                    className="w-full border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 py-2 rounded-lg font-semibold text-xs hover:bg-blue-100/60 dark:hover:bg-blue-900/20"
-                  >
-                    Pagar solo interés pendiente ({formatCurrency(openLoanPendingInterest)}) — capital intacto
-                  </button>
-                )}
-                {!isSelectedLoanOpen && firstPendingInstallment && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFreePaymentAmount(String(firstPendingInstallment.interest || 0));
-                      setFreePaymentInterestOnly(true);
-                    }}
-                    className="w-full border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 py-2 rounded-lg font-semibold text-xs hover:bg-blue-100/60 dark:hover:bg-blue-900/20"
-                  >
-                    Usar solo rédito de próxima cuota ({formatCurrency(firstPendingInstallment.interest || 0)})
-                  </button>
-                )}
-                <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={freePaymentInterestOnly}
-                    onChange={(e) => setFreePaymentInterestOnly(e.target.checked)}
-                    className="rounded border-slate-300 text-blue-600"
-                  />
-                  Solo abonar a interés (no rebaja capital)
-                </label>
-                <MoneyInput
-                  value={freePaymentAmount}
-                  onChange={(val) => setFreePaymentAmount(val)}
-                  className="w-full p-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                  placeholder="Monto del abono"
-                />
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                    Fecha del abono <span className="text-slate-400 font-normal">(para pagos retroactivos)</span>
-                  </label>
-                  <input
-                    type="date"
-                    max={toDateInputValue(new Date())}
-                    value={freePaymentDate}
-                    onChange={(e) => setFreePaymentDate(e.target.value)}
-                    className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                  />
-                </div>
-                <textarea
-                  value={freePaymentNotes}
-                  onChange={(e) => setFreePaymentNotes(e.target.value)}
-                  className="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
-                  rows={2}
-                  placeholder="Notas (opcional)"
-                />
-                <button
-                  onClick={async () => {
-                    const receipt = await registerPayment(selectedLoan.id, null, {
-                      customAmount: parseFloat(freePaymentAmount || 0),
-                      useFreePayment: true,
-                      interestOnly: freePaymentInterestOnly,
-                      paymentDate: freePaymentDate || null,
-                      notes: freePaymentNotes || null
-                    });
-                    if (receipt) {
-                      setReceiptToShow(receipt);
-                      setFreePaymentAmount('');
-                      setFreePaymentNotes('');
-                      setFreePaymentInterestOnly(false);
-                      setFreePaymentDate(toDateInputValue(new Date()));
-                    }
-                  }}
-                  className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-blue-700 shadow-md hover:shadow-lg transition-all"
-                >
-                  {freePaymentInterestOnly
-                    ? 'Registrar Abono Solo a Interés'
-                    : isSelectedLoanOpen ? 'Registrar Abono Libre' : 'Registrar Abono a Rédito/Capital'}
-                </button>
-              </div>
-            )}
-
-            {isSelectedLoanOpen ? (
-              <p className="mt-4 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 p-2 rounded">
-                Préstamo abierto con interés {selectedLoan.frequency?.toLowerCase() || 'mensual'}. Puedes abonar solo interés para mantener el capital intacto.
-              </p>
-            ) : Array.isArray(selectedLoan.schedule) && selectedLoan.schedule.some(i => i.status === 'PAID') ? (
-              <p className="mt-4 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 p-2 rounded">
-                Este préstamo ya tiene pagos registrados y no se puede editar.
-              </p>
-            ) : (
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={handleOpenEditLoan}
-                  className="w-full bg-slate-900 dark:bg-slate-700 text-white py-2 rounded-lg font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors"
-                >
-                  Editar préstamo
-                </button>
-              </div>
-            )}
-
-            <div className="mt-3">
-              <button
-                onClick={handleGenerateContract}
-                disabled={generatingContract}
-                className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 disabled:opacity-50 flex justify-center items-center gap-2"
-              >
-                {generatingContract ? 'Generando...' : 'Generar Contrato Legal (IA)'}
-              </button>
-            </div>
-
-            {/* Loan Actions: Cancel, Archive, Delete */}
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <p className="text-xs text-slate-500 mb-2 font-medium">Acciones del préstamo</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {selectedLoan.status === 'ACTIVE' && (
-                  <button
-                    onClick={() => setCancelModal(true)}
-                    className="flex flex-col items-center gap-1 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors text-xs"
-                  >
-                    <XCircle size={18} />
-                    Cancelar
-                  </button>
-                )}
-                <button
-                  onClick={() => setArchiveModal(true)}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-xs"
-                >
-                  <Archive size={18} />
-                  {selectedLoan.archived ? 'Desarchivar' : 'Archivar'}
-                </button>
-                {!Array.isArray(selectedLoan.schedule) || !selectedLoan.schedule.some(i => i.status === 'PAID') ? (
-                  <button
-                    onClick={() => setDeleteModal(true)}
-                    className="flex flex-col items-center gap-1 p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-xs"
-                  >
-                    <Trash2 size={18} />
-                    Eliminar
-                  </button>
-                ) : null}
-              </div>
-              {/* MEJORA 11, 12, 14: Renew, Refinance, Notes */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                {selectedLoan.status === 'COMPLETED' && (
-                  <button
-                    onClick={() => setRenewModal(true)}
-                    className="flex flex-col items-center gap-1 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors text-xs"
-                  >
-                    <RefreshCw size={18} />
-                    Renovar
-                  </button>
-                )}
-                {selectedLoan.status === 'ACTIVE' && (
-                  <button
-                    onClick={() => setRefinanceModal(true)}
-                    className="flex flex-col items-center gap-1 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-xs"
-                  >
-                    <Wallet size={18} />
-                    Refinanciar
-                  </button>
-                )}
-                <button
-                  onClick={() => setNotesModal({ show: true, loanId: selectedLoan.id, notes: selectedLoan.notes || '' })}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors text-xs"
-                >
-                  <StickyNote size={18} />
-                  Notas
-                </button>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="lg:col-span-2 order-2 lg:order-2">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">{isSelectedLoanOpen ? 'Historial de abonos' : 'Hoja de amortización'}</h3>
-              {!isSelectedLoanOpen && (
-                <button
-                  onClick={handlePrintAmortization}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                  title="Imprimir hoja de amortización"
-                >
-                  <Printer size={16} />
-                  Imprimir
-                </button>
-              )}
-            </div>
-            <div className="overflow-x-auto max-h-[360px]">
-              {isSelectedLoanOpen ? (
-                <table className="w-full text-xs md:text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 sticky top-0">
-                    <tr>
-                      <th className="p-2 text-left">Fecha</th>
-                      <th className="p-2 text-right">Abono</th>
-                      <th className="p-2 text-right">A interés</th>
-                      <th className="p-2 text-right">A capital</th>
-                      <th className="p-2 text-right">Saldo</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                    {(selectedLoan.freePayments || []).map(p => (
-                      <tr key={p.id}>
-                        <td className="p-2 text-slate-600 dark:text-slate-400">{formatDate(p.date)}</td>
-                        <td className="p-2 text-right text-slate-800 dark:text-slate-200">{formatCurrency(p.amount || 0)}</td>
-                        <td className="p-2 text-right text-red-500 dark:text-red-400">{formatCurrency(p.toInterest || 0)}</td>
-                        <td className="p-2 text-right text-green-600 dark:text-green-400">{formatCurrency(p.toPrincipal || 0)}</td>
-                        <td className="p-2 text-right text-slate-500 dark:text-slate-400">{formatCurrency(p.balanceAfter || 0)}</td>
-                      </tr>
-                    ))}
-                    {(!selectedLoan.freePayments || selectedLoan.freePayments.length === 0) && (
-                      <tr>
-                        <td colSpan={5} className="p-4 text-center text-slate-500 dark:text-slate-400">
-                          Aún no hay abonos registrados.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              ) : (
-              <table className="w-full text-xs md:text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 sticky top-0">
-                  <tr>
-                    <th className="p-2 text-left">#</th>
-                    <th className="p-2 text-left">Fecha</th>
-                    <th className="p-2 text-right">Cuota</th>
-                    <th className="p-2 text-right hidden sm:table-cell">Interés</th>
-                    <th className="p-2 text-right hidden sm:table-cell">Capital</th>
-                    <th className="p-2 text-right">Saldo</th>
-                    <th className="p-2 text-right">Estado</th>
-                    <th className="p-2 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {selectedLoan.schedule.map(inst => {
-                    const isOverdue = inst.status !== 'PAID'
-                      && parseDateOnly(inst.date)
-                      && parseDateOnly(inst.date) < parseDateOnly(new Date());
-                    return (
-                    <tr key={inst.id} className={isOverdue ? 'bg-rose-50/50 dark:bg-rose-900/10' : ''}>
-                      <td className="p-2 text-slate-800 dark:text-slate-300">{inst.number}</td>
-                      <td className="p-2 text-slate-600 dark:text-slate-400">{formatDate(inst.date)}</td>
-                      <td className="p-2 text-right text-slate-800 dark:text-slate-200">{formatCurrency(inst.payment)}</td>
-                      <td className="p-2 text-right text-red-500 dark:text-red-400 hidden sm:table-cell">{formatCurrency(inst.interest ?? 0)}</td>
-                      <td className="p-2 text-right text-green-600 dark:text-green-400 hidden sm:table-cell">{formatCurrency(inst.principal ?? 0)}</td>
-                      <td className="p-2 text-right text-slate-500 dark:text-slate-400">{formatCurrency(inst.balance ?? 0)}</td>
-                      <td className="p-2 text-right">
-                        <Badge status={inst.status === 'PAID' ? 'PAID' : isOverdue ? 'LATE' : 'PENDING'} />
-                      </td>
-                      <td className="p-2 text-center">
-                        {inst.status === 'PAID' && (
-                          <button
-                            onClick={() => setReprintReceipt({
-                              id: inst.id || `inst-${inst.number}`,
-                              date: inst.paidAt || inst.date,
-                              clientName: selectedClient?.name || 'Cliente',
-                              amount: inst.payment,
-                              installmentNumber: inst.number,
-                              remainingBalance: inst.balance,
-                              loanId: selectedLoan.id,
-                              penalty: 0,
-                              total: inst.payment
-                            })}
-                            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1 mx-auto"
-                            title="Reimprimir recibo"
-                          >
-                            <Printer size={14} /> Copia
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );})}
-                </tbody>
-              </table>
-              )}
-            </div>
-          </Card>
-        </div>
-      )
-      }
 
       {/* Reprint Receipt Modal */}
       {reprintReceipt && (

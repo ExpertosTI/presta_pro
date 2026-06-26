@@ -9,7 +9,11 @@ const {
     calculatePeriodInterest,
     getPeriodRatePercent,
     calculateTotalPendingInterest,
-    getRetrospectiveLoanSummary
+    getRetrospectiveLoanSummary,
+    getOpenLoanPrincipal,
+    getOpenLoanSummary,
+    buildOpenLoanPeriods,
+    calculateOpenLoanSchedule
 } = require('../lib/openLoanInterest');
 const { daysBetween, isFutureDate, toStoredDate } = require('../lib/dateUtils');
 
@@ -154,21 +158,21 @@ function calculateSchedule(amount, rate, term, frequency, startDate, amortizatio
 }
 
 // --- Helper: Map loan to response format ---
-function mapLoanToResponse(loanWithRelations) {
+function mapLoanToResponse(loanWithRelations, penaltyRatePercent = 5) {
     const { installments, client, freePayments, ...loan } = loanWithRelations;
 
-    // Calcular saldo actual considerando abonos a capital
-    let currentBalance = loan.amount + (loan.closingCosts || 0);
-    if (freePayments) {
-        const totalPaidToPrincipal = freePayments.reduce((sum, p) => sum + (p.toPrincipal || 0), 0);
-        currentBalance = currentBalance - totalPaidToPrincipal;
-    }
+    const currentBalance = getOpenLoanPrincipal({ ...loan, freePayments: freePayments || [] });
 
     const retrospective = getRetrospectiveLoanSummary(
         { ...loan, freePayments },
         installments || [],
-        new Date()
+        new Date(),
+        penaltyRatePercent
     );
+
+    const openSummary = loan.loanType === 'OPEN'
+        ? getOpenLoanSummary({ ...loan, freePayments }, new Date(), penaltyRatePercent)
+        : null;
 
     return {
         id: loan.id,
@@ -200,8 +204,13 @@ function mapLoanToResponse(loanWithRelations) {
             )
             : null,
         pendingInterest: loan.loanType === 'OPEN'
-            ? calculateTotalPendingInterest({ ...loan, currentBalance }, new Date())
+            ? (openSummary?.totalPending ?? 0)
             : 0,
+        openLoanMora: openSummary?.totalMora ?? 0,
+        openLoanPeriods: openSummary?.periods?.map(p => ({
+            ...p,
+            date: p.date instanceof Date ? p.date.toISOString().split('T')[0] : p.date
+        })) ?? [],
         isRetrospective: retrospective?.isRetrospective || false,
         daysSinceStart: retrospective?.daysSinceStart || 0,
         overdueInstallments: retrospective?.overdueInstallments || 0,
@@ -339,13 +348,33 @@ router.post('/', async (req, res) => {
         let loanData;
 
         if (isOpenLoan) {
-            // Préstamo abierto - interés por período (diario, semanal o mensual)
             const openFrequency = normalizeOpenFrequency(frequency || 'Mensual');
-            const parsedPeriodRate = dailyRate ? parseFloat(dailyRate) : null;
+            const parsedPeriodRate = dailyRate ? parseFloat(dailyRate) : parseFloat(rate);
+            const openTerm = parseInt(term, 10) || 60;
+            const totalPrincipal = parsedAmount + parsedClosingCosts;
+
+            const interestSchedule = calculateOpenLoanSchedule(
+                totalPrincipal,
+                parsedPeriodRate,
+                openFrequency,
+                openTerm,
+                storedStartDate
+            );
+
+            const daysSinceStart = daysBetween(storedStartDate, new Date());
+            const daysPerPeriod = openFrequency === 'Diario' ? 1
+                : openFrequency === 'Semanal' ? 7
+                : openFrequency === 'Quincenal' ? 15 : 30;
+            const elapsedPeriods = Math.floor(daysSinceStart / daysPerPeriod);
+            const periodInterest = calculatePeriodInterest(totalPrincipal, parsedPeriodRate);
+            const initialAccrued = elapsedPeriods > 0
+                ? parseFloat((elapsedPeriods * periodInterest).toFixed(2))
+                : 0;
+
             loanData = {
                 amount: parsedAmount,
                 rate: parseFloat(rate),
-                term: 0,
+                term: openTerm,
                 frequency: openFrequency,
                 startDate: storedStartDate,
                 status: 'ACTIVE',
@@ -353,11 +382,22 @@ router.post('/', async (req, res) => {
                 totalPaid: 0,
                 loanType: 'OPEN',
                 dailyRate: parsedPeriodRate,
-                interestAccrued: 0,
+                interestAccrued: initialAccrued,
                 lastInterestCalc: storedStartDate,
                 tenantId: req.user.tenantId,
                 clientId,
-                closingCosts: parsedClosingCosts
+                closingCosts: parsedClosingCosts,
+                installments: {
+                    create: interestSchedule.map(inst => ({
+                        number: inst.number,
+                        date: inst.date,
+                        payment: parseFloat(inst.payment),
+                        interest: parseFloat(inst.interest),
+                        principal: 0,
+                        balance: parseFloat(inst.balance),
+                        status: inst.status || 'PENDING'
+                    }))
+                }
             };
         } else {
             // Préstamo tradicional con cuotas fijas
@@ -663,38 +703,25 @@ router.post('/:id/free-payment', async (req, res) => {
         let newStatus = loan.status;
 
         if (loan.loanType === 'OPEN') {
-            const lastCalc = loan.lastInterestCalc || loan.startDate;
-            const daysSinceLastCalc = daysBetween(lastCalc, paymentAt);
-            const openFrequency = normalizeOpenFrequency(loan.frequency);
-
-            const totalPaidToPrincipal = loan.freePayments.reduce((sum, p) => sum + (p.toPrincipal || 0), 0);
-            const currentPrincipal = loan.amount + (loan.closingCosts || 0) - totalPaidToPrincipal;
-
-            const newInterest = calculateAccruedInterest(
-                currentPrincipal,
-                loan.rate,
-                openFrequency,
-                daysSinceLastCalc,
-                loan.dailyRate
-            );
-            const totalInterestAccrued = (loan.interestAccrued || 0) + newInterest;
+            const openSummary = getOpenLoanSummary(loan, paymentAt, 5);
+            const currentPrincipal = openSummary.principal;
+            const totalPending = openSummary.totalPending;
 
             if (interestOnly) {
-                toInterest = Math.min(paymentAmount, totalInterestAccrued);
+                // El monto completo se registra como pago a réditos (capital intacto)
+                toInterest = paymentAmount;
                 toPrincipal = 0;
-                appliedAmount = toInterest;
+                appliedAmount = paymentAmount;
             } else {
-                toInterest = Math.min(paymentAmount, totalInterestAccrued);
-                toPrincipal = paymentAmount - toInterest;
-                if (toPrincipal > currentPrincipal) {
-                    toPrincipal = currentPrincipal;
-                }
+                const payToInterestAndMora = Math.min(paymentAmount, totalPending);
+                toInterest = payToInterestAndMora;
+                toPrincipal = Math.min(paymentAmount - payToInterestAndMora, currentPrincipal);
                 appliedAmount = toInterest + toPrincipal;
             }
 
             balanceAfter = currentPrincipal - toPrincipal;
-            remainingInterest = totalInterestAccrued - toInterest;
-            newStatus = balanceAfter <= 0 ? 'COMPLETED' : 'ACTIVE';
+            remainingInterest = Math.max(0, totalPending - toInterest);
+            newStatus = balanceAfter <= 0 && remainingInterest <= 0 ? 'COMPLETED' : 'ACTIVE';
         } else {
             // FIXED: aplicar primero a interés pendiente y luego a capital por cuotas pendientes
             const installments = await prisma.loanInstallment.findMany({
@@ -766,15 +793,14 @@ router.post('/:id/free-payment', async (req, res) => {
             newStatus = updatedInstallments.every(inst => inst.status === 'PAID') ? 'COMPLETED' : 'ACTIVE';
         }
 
-        if (appliedAmount <= 0) {
+        if (appliedAmount <= 0 && !interestOnly) {
             return res.status(400).json({ error: 'No hay saldo pendiente para aplicar este abono' });
         }
 
-        // Crear pago libre (histórico de desglose interés/capital)
         const freePayment = await prisma.freePayment.create({
             data: {
                 loanId: id,
-                amount: appliedAmount,
+                amount: interestOnly ? paymentAmount : appliedAmount,
                 toPrincipal,
                 toInterest,
                 balanceAfter,
@@ -785,13 +811,14 @@ router.post('/:id/free-payment', async (req, res) => {
             }
         });
 
-        // Actualizar préstamo
         await prisma.loan.update({
             where: { id },
             data: {
-                totalPaid: loan.totalPaid + appliedAmount,
+                totalPaid: loan.totalPaid + (interestOnly ? paymentAmount : appliedAmount),
                 totalInterest: loan.loanType === 'OPEN' ? loan.totalInterest + toInterest : loan.totalInterest,
-                interestAccrued: remainingInterest,
+                interestAccrued: loan.loanType === 'OPEN'
+                    ? Math.max(0, (loan.interestAccrued || 0) - toInterest)
+                    : loan.interestAccrued,
                 lastInterestCalc: loan.loanType === 'OPEN' ? now : loan.lastInterestCalc,
                 status: newStatus
             }
@@ -837,7 +864,7 @@ router.post('/:id/free-payment', async (req, res) => {
                 remainingBalance: balanceAfter,
                 remainingInterest: remainingInterest,
                 loanStatus: newStatus,
-                unusedAmount: interestOnly ? Math.max(0, paymentAmount - toInterest) : 0
+                unusedAmount: interestOnly ? 0 : Math.max(0, paymentAmount - appliedAmount)
             }
         });
 
