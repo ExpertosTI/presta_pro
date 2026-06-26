@@ -1,0 +1,1 @@
+npx cap run android --target=emulator-5554

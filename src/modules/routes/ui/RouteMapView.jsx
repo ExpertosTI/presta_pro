@@ -3,6 +3,12 @@ import { CheckCircle, X, Navigation, Phone, ChevronDown, ChevronUp, MapPin, Loca
 import { formatCurrency } from '../../../shared/utils/formatters';
 import api from '../../../services/axiosInstance';
 
+/* ─── Tile providers ─── */
+const TILES = {
+  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+};
+
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 
@@ -29,40 +35,117 @@ function loadLeaflet() {
   });
 }
 
-function makeIcon(L, color, label, photoUrl) {
+function isDark() {
+  return document.documentElement.classList.contains('dark') ||
+    window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+}
+
+/* ─── Inject CSS ─── */
+const STYLE_ID = 'rmv-map-styles';
+function injectStyles() {
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
+    @keyframes rmv-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+    @keyframes rmv-ring { 0%{transform:scale(1);opacity:0.6} 70%{transform:scale(2.5);opacity:0} 100%{transform:scale(2.5);opacity:0} }
+    @keyframes rmv-dash { to { stroke-dashoffset: -20; } }
+    .rmv-route-line { stroke-dasharray: 10 10; animation: rmv-dash 1s linear infinite; }
+    .rmv-popup .leaflet-popup-content-wrapper {
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      border: 1px solid rgba(255,255,255,0.4); padding: 0;
+    }
+    .dark .rmv-popup .leaflet-popup-content-wrapper {
+      background: rgba(30,41,59,0.92); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .rmv-popup .leaflet-popup-content { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    .rmv-popup .leaflet-popup-tip {
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    }
+    .dark .rmv-popup .leaflet-popup-tip { background: rgba(30,41,59,0.92); }
+  `;
+  document.head.appendChild(style);
+}
+
+function makeIcon(L, color, label, photoUrl, isPaid) {
   const safePhoto = photoUrl ? photoUrl.replace(/"/g, '&quot;') : '';
+  const gradient = isPaid
+    ? 'linear-gradient(135deg, #10b981, #059669)'
+    : color === '#f59e0b'
+      ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+      : 'linear-gradient(135deg, #6366f1, #4f46e5)';
+
   const photoHTML = safePhoto
-    ? `<img src="${safePhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextSibling.style.display='flex'" /><div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff">${label}</div>`
-    : `<span style="font-weight:800;font-size:11px;color:#fff">${label}</span>`;
+    ? `<img src="${safePhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextSibling.style.display='flex'" />
+       <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff">${label}</div>`
+    : `<span style="font-weight:800;font-size:12px;color:#fff">${label}</span>`;
 
   return L.divIcon({
     className: '',
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -36],
-    html: `<div style="width:36px;height:36px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);overflow:hidden;">${photoHTML}</div>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 38],
+    popupAnchor: [0, -38],
+    html: `<div style="width:38px;height:38px;border-radius:50%;background:${gradient};display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 4px 15px rgba(0,0,0,0.25);overflow:hidden;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">${photoHTML}</div>`,
   });
 }
 
 function makeCollectorIcon(L, photoUrl) {
   const safePhoto = photoUrl ? photoUrl.replace(/"/g, '&quot;') : '';
   const inner = safePhoto
-    ? `<img src="${safePhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextSibling.style.display='flex'" /><div style="display:none;width:100%;height:100%;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg></div>`
+    ? `<img src="${safePhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.nextSibling.style.display='flex'" />
+       <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center">
+         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+       </div>`
     : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>`;
 
   return L.divIcon({
     className: '',
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
-    html: `<div style="width:44px;height:44px;border-radius:50%;background:#3b82f6;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 12px rgba(59,130,246,0.5);animation:cpulse 2s infinite;overflow:hidden;">${inner}</div><style>@keyframes cpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}</style>`,
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+    html: `
+      <div style="position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center">
+        <div style="position:absolute;width:48px;height:48px;border-radius:50%;border:2px solid #3b82f6;animation:rmv-ring 2s cubic-bezier(0.215,0.61,0.355,1) infinite"></div>
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#2563eb);display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 4px 15px rgba(59,130,246,0.4);animation:rmv-pulse 3s ease-in-out infinite;overflow:hidden;position:relative;z-index:2">${inner}</div>
+      </div>`,
   });
+}
+
+/* ─── Direction arrows ─── */
+function addArrows(L, map, coords, arrowsRef) {
+  if (arrowsRef.current) arrowsRef.current.forEach(m => map.removeLayer(m));
+  arrowsRef.current = [];
+  if (coords.length < 2) return;
+
+  for (let i = 0; i < coords.length - 1; i++) {
+    const from = coords[i];
+    const to = coords[i + 1];
+    const midLat = (from[0] + to[0]) / 2;
+    const midLng = (from[1] + to[1]) / 2;
+    const angle = Math.atan2(to[1] - from[1], to[0] - from[0]) * (180 / Math.PI);
+
+    const arrowIcon = L.divIcon({
+      className: '',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+      html: `<div style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;transform:rotate(${90 - angle}deg)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#6366f1" stroke="none"><path d="M12 2l8 18H4z"/></svg>
+      </div>`,
+    });
+
+    const m = L.marker([midLat, midLng], { icon: arrowIcon, interactive: false }).addTo(map);
+    arrowsRef.current.push(m);
+  }
 }
 
 export default function RouteMapView({ stops, visitStatuses, collectorId, collectorPhoto, onClose, onCobrar, onSaveLocation }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const tileRef = useRef(null);
   const markersRef = useRef([]);
   const routeLineRef = useRef(null);
+  const arrowsRef = useRef([]);
   const collectorMarkerRef = useRef(null);
   const [L, setL] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +156,7 @@ export default function RouteMapView({ stops, visitStatuses, collectorId, collec
   const [locationSaved, setLocationSaved] = useState({});
 
   useEffect(() => {
+    injectStyles();
     loadLeaflet().then(leaflet => { setL(leaflet); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
@@ -110,12 +194,26 @@ export default function RouteMapView({ stops, visitStatuses, collectorId, collec
 
   useEffect(() => {
     if (!L || !mapRef.current || mapInstanceRef.current) return;
+    const dark = isDark();
     const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView([18.48, -69.93], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    tileRef.current = L.tileLayer(dark ? TILES.dark : TILES.light, { maxZoom: 19 }).addTo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
     mapInstanceRef.current = map;
     setTimeout(() => map.invalidateSize(), 200);
     return () => { map.remove(); mapInstanceRef.current = null; };
+  }, [L]);
+
+  // Dark mode observer
+  useEffect(() => {
+    if (!L || !mapInstanceRef.current || !tileRef.current) return;
+    const observer = new MutationObserver(() => {
+      const dark = isDark();
+      const map = mapInstanceRef.current;
+      if (tileRef.current) map.removeLayer(tileRef.current);
+      tileRef.current = L.tileLayer(dark ? TILES.dark : TILES.light, { maxZoom: 19 }).addTo(map);
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
   }, [L]);
 
   useEffect(() => {
@@ -135,14 +233,54 @@ export default function RouteMapView({ stops, visitStatuses, collectorId, collec
         if (!pos) continue;
         coords.push([pos.lat, pos.lng]);
         const color = isPaid ? '#10b981' : status === 'NOT_HOME' || status === 'REFUSED' ? '#f59e0b' : '#6366f1';
-        const icon = makeIcon(L, color, isPaid ? '✓' : String(i + 1), stop.clientPhotoUrl);
+        const icon = makeIcon(L, color, isPaid ? '✓' : String(i + 1), stop.clientPhotoUrl, isPaid);
+
+        const dark = isDark();
+        const textColor = dark ? '#e2e8f0' : '#1e293b';
+        const subColor = dark ? '#94a3b8' : '#64748b';
+        const statusColor = isPaid ? '#10b981' : '#6366f1';
+
+        const navUrl = (stop.clientLat && stop.clientLng)
+          ? `https://www.google.com/maps/dir/?api=1&destination=${stop.clientLat},${stop.clientLng}`
+          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.clientAddress || '')}`;
+
+        const popupHTML = `
+          <div style="padding:14px;min-width:160px;font-family:system-ui,-apple-system,sans-serif">
+            <div style="font-weight:700;font-size:14px;color:${textColor};margin-bottom:3px">${stop.clientName}</div>
+            <div style="font-size:11px;color:${subColor};margin-bottom:6px">${stop.clientAddress || ''}</div>
+            <div style="font-weight:800;color:${statusColor};font-size:13px;margin-bottom:4px">#${stop.number} — ${formatCurrency(stop.payment)}</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:10px">
+              <span style="width:6px;height:6px;border-radius:50%;background:${statusColor}"></span>
+              <span style="font-size:11px;color:${statusColor};font-weight:600">${isPaid ? '✓ Cobrado' : '⏳ Pendiente'}</span>
+            </div>
+            <a href="${navUrl}" target="_blank" rel="noopener noreferrer"
+               style="display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 12px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border-radius:10px;text-decoration:none;font-size:12px;font-weight:600">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+              Navegar al destino
+            </a>
+          </div>
+        `;
+
         const marker = L.marker([pos.lat, pos.lng], { icon }).addTo(map)
-          .bindPopup(`<div style="min-width:130px;font-family:system-ui;font-size:13px"><strong>${stop.clientName}</strong><br/><span style="font-size:11px;color:#666">${stop.clientAddress || ''}</span><br/><span style="font-weight:700;color:${isPaid ? '#10b981' : '#6366f1'}">#${stop.number} — ${formatCurrency(stop.payment)}</span><br/><span style="font-size:11px;color:${isPaid ? '#10b981' : '#f59e0b'}">${isPaid ? '✓ Cobrado' : '⏳ Pendiente'}</span></div>`);
+          .bindPopup(popupHTML, { className: 'rmv-popup', maxWidth: 260 });
         markersRef.current.push(marker);
       }
+
+      // Animated route line
       if (coords.length > 1) {
-        routeLineRef.current = L.polyline(coords, { color: '#6366f1', weight: 3, opacity: 0.6, dashArray: '8,8' }).addTo(map);
+        routeLineRef.current = L.polyline(coords, {
+          color: '#6366f1',
+          weight: 4,
+          opacity: 0.7,
+          dashArray: '10, 10',
+          className: 'rmv-route-line',
+          lineCap: 'round',
+          lineJoin: 'round',
+        }).addTo(map);
+
+        addArrows(L, map, coords, arrowsRef);
       }
+
       if (coords.length > 0) {
         const bounds = L.latLngBounds(coords);
         if (collectorPos) bounds.extend([collectorPos.lat, collectorPos.lng]);
@@ -158,7 +296,13 @@ export default function RouteMapView({ stops, visitStatuses, collectorId, collec
     if (collectorMarkerRef.current) map.removeLayer(collectorMarkerRef.current);
     collectorMarkerRef.current = L.marker([collectorPos.lat, collectorPos.lng], {
       icon: makeCollectorIcon(L, collectorPhoto), zIndexOffset: 1000,
-    }).addTo(map).bindPopup('<strong>📍 Mi ubicación</strong>');
+    }).addTo(map).bindPopup(
+      `<div style="padding:10px;font-family:system-ui;text-align:center">
+        <strong style="font-size:13px">📍 Mi ubicación</strong>
+        <div style="font-size:10px;color:#64748b;margin-top:4px">Actualizando en tiempo real</div>
+      </div>`,
+      { className: 'rmv-popup' }
+    );
   }, [L, collectorPos, collectorPhoto]);
 
   const centerOnCollector = () => {
@@ -185,7 +329,7 @@ export default function RouteMapView({ stops, visitStatuses, collectorId, collec
   return (
     <div className="fixed inset-0 z-50 bg-white dark:bg-slate-900 flex flex-col safe-area-insets" data-fullscreen>
       {/* Top bar */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-indigo-600 text-white shadow-lg z-10 safe-area-top">
+      <div className="flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 text-white shadow-lg z-10 safe-area-top">
         <div className="flex items-center gap-2 min-w-0">
           {collectorPhoto ? (
             <img src={collectorPhoto} alt="" className="w-8 h-8 rounded-full border-2 border-white/50 object-cover flex-shrink-0" />
@@ -220,8 +364,8 @@ export default function RouteMapView({ stops, visitStatuses, collectorId, collec
           <div className="h-3 w-px bg-slate-300 dark:bg-slate-600" />
           <div className="text-center"><span className="font-bold text-emerald-600">{formatCurrency(paidAmount)}</span></div>
         </div>
-        <div className="h-1 bg-slate-200 dark:bg-slate-700">
-          <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500" style={{ width: `${progress}%` }} />
+        <div className="h-1.5 bg-slate-200 dark:bg-slate-700">
+          <div className="h-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 transition-all duration-500 rounded-r-full" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
@@ -256,10 +400,14 @@ export default function RouteMapView({ stops, visitStatuses, collectorId, collec
             const saved = locationSaved[stop.clientId];
             const hasGPS = !!(stop.clientLat && stop.clientLng);
 
+            const navUrl = hasGPS
+              ? `https://www.google.com/maps/dir/?api=1&destination=${stop.clientLat},${stop.clientLng}`
+              : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.clientAddress || '')}`;
+
             return (
               <div key={stop.id} className={`border-b border-slate-100 dark:border-slate-800 ${isPaid ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}`}>
                 <button onClick={() => setExpandedStop(isExpanded ? null : stop.id)} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left active:bg-slate-50 dark:active:bg-slate-800 touch-manipulation">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold overflow-hidden ${isPaid ? 'bg-emerald-500' : 'bg-indigo-500'}`}>
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold overflow-hidden ${isPaid ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-indigo-500 to-violet-600'}`}>
                     {stop.clientPhotoUrl ? (
                       <img src={stop.clientPhotoUrl} alt="" className="w-full h-full object-cover" />
                     ) : isPaid ? <CheckCircle size={16} /> : idx + 1}
@@ -282,28 +430,28 @@ export default function RouteMapView({ stops, visitStatuses, collectorId, collec
                   <div className="px-3 pb-2.5 animate-fade-in">
                     <div className="grid grid-cols-2 gap-1.5">
                       {stop.clientAddress && (
-                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.clientAddress)}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-semibold min-h-[44px] active:bg-blue-100 touch-manipulation">
+                        <a href={navUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-semibold min-h-[44px] active:from-blue-100 active:to-indigo-100 touch-manipulation border border-blue-100 dark:border-blue-800/30">
                           <Navigation size={14} /> Navegar
                         </a>
                       )}
                       {stop.clientPhone && (
-                        <a href={`tel:${stop.clientPhone}`} className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold min-h-[44px] active:bg-slate-200 touch-manipulation">
+                        <a href={`tel:${stop.clientPhone}`} className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold min-h-[44px] active:bg-slate-200 touch-manipulation">
                           <Phone size={14} /> Llamar
                         </a>
                       )}
                       {collectorPos && onSaveLocation && (
-                        <button onClick={() => handleSaveClientLocation(stop)} disabled={isSaving} className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold min-h-[44px] touch-manipulation transition-colors ${saved ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 active:bg-amber-100'}`}>
+                        <button onClick={() => handleSaveClientLocation(stop)} disabled={isSaving} className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold min-h-[44px] touch-manipulation transition-colors ${saved ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 active:bg-amber-100'}`}>
                           {isSaving ? <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /> : saved ? <><CheckCircle size={14} /> Guardada</> : <><Save size={14} /> Ubicación</>}
                         </button>
                       )}
                       {stop.clientPhone && (
-                        <a href={`https://wa.me/${stop.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent('Hola ' + stop.clientName + ', ¿me podrías compartir tu ubicación actual? 📍 Toca el clip 📎 > Ubicación > Enviar ubicación actual.')}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg text-xs font-semibold min-h-[44px] active:bg-green-100 touch-manipulation">
+                        <a href={`https://wa.me/${stop.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent('Hola ' + stop.clientName + ', ¿me podrías compartir tu ubicación actual? 📍 Toca el clip 📎 > Ubicación > Enviar ubicación actual.')}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 py-2.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-xl text-xs font-semibold min-h-[44px] active:bg-green-100 touch-manipulation">
                           <MapPin size={14} /> Pedir GPS
                         </a>
                       )}
                     </div>
                     {!isPaid && onCobrar && (
-                      <button onClick={() => onCobrar(stop)} className="w-full mt-1.5 flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-sm font-bold min-h-[48px] touch-manipulation transition-colors shadow-lg shadow-emerald-600/20">
+                      <button onClick={() => onCobrar(stop)} className="w-full mt-1.5 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white rounded-xl text-sm font-bold min-h-[48px] touch-manipulation transition-all shadow-lg shadow-emerald-600/20">
                         <CheckCircle size={16} /> Cobrar {formatCurrency(stop.payment)}
                       </button>
                     )}
