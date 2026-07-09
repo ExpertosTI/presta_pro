@@ -3,7 +3,7 @@ import Card from '../../../shared/components/ui/Card';
 import { formatCurrency, formatDate } from '../../../shared/utils/formatters';
 import {
   X, FileText, PlusCircle, Clock, CheckCircle, XCircle,
-  Edit3, Send, StickyNote, Calendar, Filter
+  Edit3, StickyNote, Calendar, Filter
 } from 'lucide-react';
 import { calculateInstallmentVal, calculateRateFromInstallment } from '../../../shared/utils/amortization';
 import loanRequestService from '../services/loanRequestService';
@@ -62,8 +62,6 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
   // Modal para gastos de cierre
   const [approvalModal, setApprovalModal] = useState(null);
   const [closingCostsInput, setClosingCostsInput] = useState('0');
-  // MEJORA 6: Notify client
-  const [notifyClient, setNotifyClient] = useState(false);
 
   // MEJORA 4: Reject reason modal
   const [rejectModal, setRejectModal] = useState(null);
@@ -141,7 +139,6 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
   const handleApproveClick = (req) => {
     setApprovalModal(req);
     setClosingCostsInput('0');
-    setNotifyClient(false);
   };
 
   const handleConfirmApproval = async () => {
@@ -176,13 +173,8 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
         r.id === approvalModal.id ? { ...r, status: 'APPROVED', approvedAt: new Date().toISOString() } : r
       ));
 
-      // MEJORA 6: Send notification
-      if (notifyClient && client?.phone) {
-        const whatsappUrl = `https://wa.me/${client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola ${client.name}! Tu solicitud de crédito por ${formatCurrency(approvalModal.amount)} ha sido APROBADA. Pronto te contactaremos para los detalles.`)}`;
-        window.open(whatsappUrl, '_blank');
-      }
-
-      showToast?.('Solicitud aprobada y préstamo creado', 'success');
+      const waHint = client?.phone ? ' WhatsApp enviado al cliente.' : '';
+      showToast?.(`Solicitud aprobada y préstamo creado.${waHint}`, 'success');
       setApprovalModal(null);
       setClosingCostsInput('0');
     } catch (error) {
@@ -560,12 +552,12 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
 
       {/* Modal de Gastos de Cierre con MEJORA 6: Notify client */}
       {approvalModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
-          <div className="my-auto bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
-            <div className="bg-gradient-to-r from-teal-500 to-emerald-600 p-4 text-white text-center relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[min(90vh,640px)] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-fade-in dark:bg-slate-800">
+            <div className="relative shrink-0 bg-gradient-to-r from-teal-500 to-emerald-600 p-4 text-center text-white">
               <button
                 onClick={() => setApprovalModal(null)}
-                className="absolute top-3 right-3 p-1.5 hover:bg-white/20 rounded-full transition-colors"
+                className="absolute top-3 right-3 rounded-full p-1.5 transition-colors hover:bg-white/20"
               >
                 <X size={18} />
               </button>
@@ -573,14 +565,14 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
               <p className="text-sm text-white/80">{clients.find(c => c.id === approvalModal.clientId)?.name || approvalModal.client?.name}</p>
             </div>
 
-            <div className="p-4 space-y-4">
-              <div className="bg-slate-100 dark:bg-slate-700/50 rounded-lg p-3">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+              <div className="rounded-lg bg-slate-100 p-3 dark:bg-slate-700/50">
                 <p className="text-sm text-slate-600 dark:text-slate-400">Monto del préstamo</p>
                 <p className="text-xl font-bold text-slate-800 dark:text-slate-200">{formatCurrency(approvalModal.amount)}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Gastos de Cierre (opcional)
                 </label>
                 <input
@@ -590,47 +582,39 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
                   value={closingCostsInput}
                   onChange={(e) => setClosingCostsInput(e.target.value)}
                   placeholder="0.00"
-                  className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 text-lg font-mono"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-3 font-mono text-lg text-slate-800 dark:border-slate-600 dark:bg-slate-900/50 dark:text-slate-200"
                 />
-                <p className="text-xs text-slate-500 mt-1">Se sumará al capital para el cálculo de cuotas</p>
+                <p className="mt-1 text-xs text-slate-500">Se sumará al capital para el cálculo de cuotas</p>
               </div>
 
               {parseFloat(closingCostsInput) > 0 && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3 text-center">
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center dark:border-emerald-700 dark:bg-emerald-900/20">
                   <p className="text-sm text-emerald-700 dark:text-emerald-400">
                     Total a financiar: <strong>{formatCurrency(parseFloat(approvalModal.amount) + parseFloat(closingCostsInput))}</strong>
                   </p>
                 </div>
               )}
 
-              {/* MEJORA 6: Notify client checkbox */}
-              <label className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg cursor-pointer border border-green-200 dark:border-green-700">
-                <input
-                  type="checkbox"
-                  checked={notifyClient}
-                  onChange={(e) => setNotifyClient(e.target.checked)}
-                  className="w-5 h-5 rounded text-green-600"
-                />
-                <div className="flex items-center gap-2">
-                  <WhatsAppIcon size={18} />
-                  <span className="text-sm text-green-700 dark:text-green-300 font-medium">Notificar al cliente por WhatsApp</span>
-                </div>
-              </label>
+              <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-700 dark:bg-green-900/20">
+                <span className="mt-0.5 shrink-0 text-green-600"><WhatsAppIcon size={18} /></span>
+                <p className="text-sm text-green-800 dark:text-green-300">
+                  El cliente y tu WhatsApp de empresa recibirán la notificación automáticamente (sin abrir WhatsApp Web).
+                </p>
+              </div>
             </div>
 
-            <div className="p-4 pt-0 flex gap-3">
+            <div className="flex shrink-0 gap-3 border-t border-slate-200 p-4 dark:border-slate-700">
               <button
                 onClick={() => setApprovalModal(null)}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+                className="flex-1 rounded-lg bg-slate-200 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmApproval}
                 disabled={saving}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-teal-600 text-white hover:bg-teal-500 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 rounded-lg bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
               >
-                {notifyClient && <Send size={14} />}
                 {saving ? 'Procesando...' : 'Confirmar'}
               </button>
             </div>
@@ -640,9 +624,9 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
 
       {/* MEJORA 4: Reject Modal with reason */}
       {rejectModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
-          <div className="my-auto bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
-            <div className="bg-gradient-to-r from-rose-500 to-red-600 p-4 text-white text-center relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[min(90vh,520px)] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-fade-in dark:bg-slate-800">
+            <div className="relative shrink-0 bg-gradient-to-r from-rose-500 to-red-600 p-4 text-center text-white">
               <button
                 onClick={() => setRejectModal(null)}
                 className="absolute top-3 right-3 p-1.5 hover:bg-white/20 rounded-full transition-colors"
@@ -653,7 +637,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
               <p className="text-sm text-white/80">{clients.find(c => c.id === rejectModal.clientId)?.name || rejectModal.client?.name}</p>
             </div>
 
-            <div className="p-4 space-y-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
               <div className="bg-slate-100 dark:bg-slate-700/50 rounded-lg p-3">
                 <p className="text-sm text-slate-600 dark:text-slate-400">Monto solicitado</p>
                 <p className="text-xl font-bold text-slate-800 dark:text-slate-200">{formatCurrency(rejectModal.amount)}</p>
@@ -672,17 +656,17 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
               </div>
             </div>
 
-            <div className="p-4 pt-0 flex gap-3">
+            <div className="flex shrink-0 gap-3 border-t border-slate-200 p-4 dark:border-slate-700">
               <button
                 onClick={() => setRejectModal(null)}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+                className="flex-1 rounded-lg bg-slate-200 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmReject}
                 disabled={saving}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-rose-600 text-white hover:bg-rose-500 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-rose-600 py-2.5 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50"
               >
                 {saving ? 'Procesando...' : 'Confirmar Rechazo'}
               </button>
@@ -693,9 +677,9 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
 
       {/* MEJORA 15: Edit Request Modal */}
       {editModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start overflow-y-auto p-4">
-          <div className="my-auto bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-white text-center relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[min(90vh,680px)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-fade-in dark:bg-slate-800">
+            <div className="relative shrink-0 bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-center text-white">
               <button
                 onClick={() => setEditModal(null)}
                 className="absolute top-3 right-3 p-1.5 hover:bg-white/20 rounded-full transition-colors"
@@ -706,7 +690,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
               <p className="text-sm text-white/80">{clients.find(c => c.id === editModal.clientId)?.name}</p>
             </div>
 
-            <div className="p-4 space-y-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">Monto</label>
@@ -782,17 +766,17 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
               </div>
             </div>
 
-            <div className="p-4 pt-0 flex gap-3">
+            <div className="flex shrink-0 gap-3 border-t border-slate-200 p-4 dark:border-slate-700">
               <button
                 onClick={() => setEditModal(null)}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+                className="flex-1 rounded-lg bg-slate-200 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={saving}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
               >
                 {saving ? 'Guardando...' : 'Guardar Cambios'}
               </button>
