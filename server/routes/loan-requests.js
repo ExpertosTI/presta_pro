@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
+const loanRequestNotify = require('../services/loanRequestNotify');
 
 // Note: authMiddleware applied at mount level in index.js
 
@@ -75,6 +76,10 @@ router.post('/', async (req, res) => {
         });
 
         res.status(201).json(request);
+
+        loanRequestNotify.onLoanRequestCreated(request).catch((err) => {
+            console.error('[loan-requests] whatsapp notify failed:', err?.message || err);
+        });
     } catch (error) {
         console.error('Error creating loan request:', error);
         res.status(500).json({ error: 'Error al crear solicitud' });
@@ -84,8 +89,17 @@ router.post('/', async (req, res) => {
 // PUT approve loan request
 router.put('/:id/approve', async (req, res) => {
     try {
+        const tenantId = req.user?.tenantId || req.tenantId;
+        const existing = await prisma.loanRequest.findFirst({
+            where: { id: req.params.id, tenantId },
+            include: { client: { select: { id: true, name: true, phone: true } } },
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Solicitud no encontrada' });
+        }
+
         const request = await prisma.loanRequest.update({
-            where: { id: req.params.id },
+            where: { id: existing.id },
             data: { status: 'APPROVED' },
             include: {
                 client: {
@@ -95,6 +109,10 @@ router.put('/:id/approve', async (req, res) => {
         });
 
         res.json(request);
+
+        loanRequestNotify.onLoanRequestApproved(request).catch((err) => {
+            console.error('[loan-requests] approve whatsapp failed:', err?.message || err);
+        });
     } catch (error) {
         console.error('Error approving loan request:', error);
         res.status(500).json({ error: 'Error al aprobar solicitud' });
@@ -104,8 +122,19 @@ router.put('/:id/approve', async (req, res) => {
 // PUT reject loan request
 router.put('/:id/reject', async (req, res) => {
     try {
+        const tenantId = req.user?.tenantId || req.tenantId;
+        const rejectReason = String(req.body?.rejectReason || '').trim().slice(0, 500) || undefined;
+
+        const existing = await prisma.loanRequest.findFirst({
+            where: { id: req.params.id, tenantId },
+            include: { client: { select: { id: true, name: true, phone: true } } },
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Solicitud no encontrada' });
+        }
+
         const request = await prisma.loanRequest.update({
-            where: { id: req.params.id },
+            where: { id: existing.id },
             data: { status: 'REJECTED' },
             include: {
                 client: {
@@ -115,6 +144,10 @@ router.put('/:id/reject', async (req, res) => {
         });
 
         res.json(request);
+
+        loanRequestNotify.onLoanRequestRejected(request, rejectReason).catch((err) => {
+            console.error('[loan-requests] reject whatsapp failed:', err?.message || err);
+        });
     } catch (error) {
         console.error('Error rejecting loan request:', error);
         res.status(500).json({ error: 'Error al rechazar solicitud' });

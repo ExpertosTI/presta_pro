@@ -40,8 +40,10 @@ export const approveLoanRequest = async (id) => {
 /**
  * Reject loan request
  */
-export const rejectLoanRequest = async (id) => {
-    const response = await api.put(`/loan-requests/${id}/reject`);
+export const rejectLoanRequest = async (id, rejectReason) => {
+    const response = await api.put(`/loan-requests/${id}/reject`, {
+        rejectReason: rejectReason || undefined,
+    });
     return response;
 };
 

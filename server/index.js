@@ -318,7 +318,12 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime() });
+  const { getWhatsAppConfigStatus } = require('./services/whatsappService');
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    whatsapp: getWhatsAppConfigStatus(),
+  });
 });
 
 // --- Auth middleware ---

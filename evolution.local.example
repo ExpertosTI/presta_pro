@@ -1,0 +1,6 @@
+# Evolution API — copiar a .evolution.local en el VPS (no va a git)
+# cp evolution.local.example .evolution.local
+
+EVOLUTION_API_URL=https://evoapi.renace.tech
+EVOLUTION_API_KEY=
+EVOLUTION_INSTANCE=RENACE.TECH

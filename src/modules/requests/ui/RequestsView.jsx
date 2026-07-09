@@ -203,7 +203,7 @@ export function RequestsView({ clients, showToast, onNewClient, onCreateLoan }) 
     if (!rejectModal) return;
     try {
       setSaving(true);
-      await loanRequestService.rejectLoanRequest(rejectModal.id);
+      await loanRequestService.rejectLoanRequest(rejectModal.id, rejectReason);
       setRequests(prev => prev.map(r =>
         r.id === rejectModal.id ? { ...r, status: 'REJECTED', rejectedAt: new Date().toISOString(), rejectReason } : r
       ));
