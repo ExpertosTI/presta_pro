@@ -7,8 +7,9 @@ ENV VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
 ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
 
-# Install deps
+# Install deps (legacy-peer-deps: Capacitor Google Auth still peers Cap 6 while app is Cap 7)
 COPY package*.json ./
+COPY .npmrc ./
 RUN npm ci
 
 # Copy source and build
