@@ -3,7 +3,7 @@ import logoSmall from '../../../../logo-small.svg';
 import { NotificationBell } from '../../../modules/notifications';
 import SyncStatus from '../../../sync/SyncStatus';
 
-export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, companyName, userName, onLogout, companyLogo, onNavigate }) {
+export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, companyName, userName, onLogout, companyLogo, onNavigate, onStartTour }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
@@ -63,6 +63,15 @@ export function Header({ activeTitle, setMobileMenuOpen, theme, toggleTheme, com
                   <p className="font-bold text-slate-800 dark:text-slate-100">{userName || 'Admin'}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Sesion activa</p>
                 </div>
+                {onStartTour && (
+                  <button
+                    type="button"
+                    onClick={() => { onStartTour(); setUserMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium transition-colors min-h-[44px]"
+                  >
+                    Ver guía de la app
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => { onLogout(); setUserMenuOpen(false); }}

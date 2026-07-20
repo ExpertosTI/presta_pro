@@ -15,6 +15,7 @@ import FloatingAIBot from './ai/FloatingAIBot';
 import ConnectionStatus from './shared/components/ui/ConnectionStatus';
 import ModalManager from './shared/components/modals/ModalManager';
 import { printReceipt } from './services/printing/PrintService';
+import { OnboardingTour, hasCompletedOnboarding } from './modules/onboarding';
 
 // Auth
 import { LoginView } from './modules/auth';
@@ -66,6 +67,8 @@ function AppShell({ onLogout }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [onboardingOpen, setOnboardingOpen] = useState(() => !hasCompletedOnboarding(user?.tenantId || user?.email));
+  const [onboardingStep, setOnboardingStep] = useState(0);
 
   // Modal state
   const [clientModalOpen, setClientModalOpen] = useState(false);
@@ -205,6 +208,10 @@ function AppShell({ onLogout }) {
           notifications={notifications}
           onClearNotifications={() => setNotifications([])}
           onNavigate={setActiveTab}
+          onStartTour={() => {
+            setOnboardingStep(0);
+            setOnboardingOpen(true);
+          }}
         />
 
         <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 pb-24 sm:pb-20 md:pb-6 main-content-area scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
@@ -233,6 +240,15 @@ function AppShell({ onLogout }) {
         setDeleteConfirmModal={setDeleteConfirmModal}
         selectedClientId={selectedClientId}
         setSelectedClientId={setSelectedClientId}
+      />
+
+      <OnboardingTour
+        open={onboardingOpen}
+        stepIndex={onboardingStep}
+        setStepIndex={setOnboardingStep}
+        onClose={() => setOnboardingOpen(false)}
+        onNavigate={handleTabChange}
+        userId={user?.tenantId || user?.email}
       />
 
       {/* AI Bot */}

@@ -1,5 +1,12 @@
 {
   "appId": "tech.renace.prestapro",
   "appName": "Presta Pro",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "609647959676-ujoqo6p8qe10ehu3cro2i26ci8nnks8j.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
 }
