@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Compass, Sparkles } from 'lucide-react';
-import { ONBOARDING_STEPS, markOnboardingDone } from './onboardingSteps';
+import { ONBOARDING_STEPS, markOnboardingDone } from '../onboardingSteps';
 
 export function OnboardingTour({ open, stepIndex, setStepIndex, onClose, onNavigate, userId }) {
   const total = ONBOARDING_STEPS.length;
