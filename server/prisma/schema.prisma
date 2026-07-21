@@ -42,6 +42,7 @@ model Tenant {
   notifications     Notification[]
   emailPreference   EmailPreference?
   scheduledReports  ScheduledReport[]
+  clientCreditLedger ClientCreditLedger[]
   
   // Campos de administración
   suspendedAt    DateTime?
@@ -107,6 +108,7 @@ model Client {
   score       Int        @default(70)
   lat         Float?     // GPS latitude
   lng         Float?     // GPS longitude
+  creditBalance Float    @default(0) // Crédito a favor (ej. pagos de préstamos cancelados)
   collector   Collector? @relation(fields: [collectorId], references: [id])
   collectorId String?
   tenant      Tenant     @relation(fields: [tenantId], references: [id])
@@ -117,6 +119,24 @@ model Client {
   receipts    Receipt[]
   loanRequests LoanRequest[]
   documents   ClientDocument[]
+  creditLedger ClientCreditLedger[]
+}
+
+/// Movimientos de crédito del cliente (altas por cancelación, usos en nuevos préstamos)
+model ClientCreditLedger {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  amount    Float    // positivo = crédito a favor, negativo = uso
+  balanceAfter Float
+  reason    String
+  loanId    String?  // préstamo origen o destino
+  createdAt DateTime @default(now())
+
+  @@index([clientId])
+  @@index([tenantId])
 }
 
 model Loan {

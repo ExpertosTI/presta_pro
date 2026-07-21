@@ -4,6 +4,7 @@ const prisma = require('../lib/prisma');
 const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
 const notify = require('../services/notificationHelper');
 const paymentReceiptNotify = require('../services/paymentReceiptNotify');
+const { addClientCredit, useClientCredit } = require('../services/clientCreditService');
 const {
     normalizeOpenFrequency,
     calculateAccruedInterest,
@@ -315,7 +316,7 @@ router.post('/receipts/:receiptId/whatsapp', async (req, res) => {
 // POST /api/loans - Crear préstamo
 router.post('/', async (req, res) => {
     try {
-        const { clientId, amount, rate, term, frequency, startDate, schedule: providedSchedule, closingCosts, amortizationType, loanType, dailyRate } = req.body;
+        const { clientId, amount, rate, term, frequency, startDate, schedule: providedSchedule, closingCosts, amortizationType, loanType, dailyRate, creditApplied: creditAppliedRaw } = req.body;
 
         // Para préstamos abiertos, term no es obligatorio
         const isOpenLoan = loanType === 'OPEN';
@@ -352,6 +353,21 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ error: 'Cliente no encontrado o no pertenece a este tenant' });
         }
 
+        // Crédito del cliente aplicado al nuevo préstamo (reduce el capital financiado)
+        const requestedCredit = Math.max(0, parseFloat(creditAppliedRaw) || 0);
+        let creditApplied = Math.min(
+            requestedCredit,
+            parseFloat(client.creditBalance) || 0,
+            Math.max(0, amountNum - 0.01)
+        );
+        creditApplied = Math.round(creditApplied * 100) / 100;
+        const financedAmount = Math.round((amountNum - creditApplied) * 100) / 100;
+        if (financedAmount <= 0) {
+            return res.status(400).json({
+                error: 'El crédito no puede cubrir todo el monto. Deja al menos un saldo mínimo de préstamo.',
+            });
+        }
+
         // === SUBSCRIPTION LOAN LIMIT CHECK ===
         // SUPER_ADMIN users (owners) bypass all limits
         const isSuperAdmin = req.user?.role?.toUpperCase() === 'SUPER_ADMIN';
@@ -384,8 +400,8 @@ router.post('/', async (req, res) => {
         }
         // === END LOAN LIMIT CHECK ===
 
-        // Calculate total (amount + closingCosts) for schedule calculation
-        const parsedAmount = parseFloat(amount);
+        // Calculate total (financed amount + closingCosts) for schedule calculation
+        const parsedAmount = financedAmount;
         const parsedClosingCosts = parseFloat(closingCosts) || 0;
         const totalForSchedule = parsedAmount + parsedClosingCosts;
 
@@ -481,23 +497,44 @@ router.post('/', async (req, res) => {
             };
         }
 
-        const newLoan = await prisma.loan.create({
-            data: loanData,
-            include: {
-                installments: true,
-                client: true,
-                freePayments: true
+        const created = await prisma.$transaction(async (tx) => {
+            const newLoan = await tx.loan.create({
+                data: loanData,
+                include: {
+                    installments: true,
+                    client: true,
+                    freePayments: true
+                }
+            });
+
+            let updatedClient = newLoan.client;
+            if (creditApplied > 0) {
+                const creditResult = await useClientCredit({
+                    tx,
+                    tenantId: req.user.tenantId,
+                    clientId,
+                    amount: creditApplied,
+                    reason: `Aplicado a nuevo préstamo (solicitado ${amountNum}, financiado ${financedAmount})`,
+                    loanId: newLoan.id,
+                });
+                updatedClient = creditResult.client;
             }
+
+            return { newLoan, updatedClient, creditApplied };
         });
 
-        res.status(201).json(mapLoanToResponse(newLoan));
+        const response = mapLoanToResponse(created.newLoan);
+        response.creditApplied = created.creditApplied;
+        response.client = created.updatedClient;
+
+        res.status(201).json(response);
 
         // Send push notification for new loan
-        if (newLoan.client) {
+        if (created.newLoan.client) {
             notify.notifyLoanCreated({
                 tenantId: req.user.tenantId,
-                clientName: newLoan.client.name,
-                amount: parsedAmount
+                clientName: created.newLoan.client.name,
+                amount: amountNum
             }).catch(err => console.error('[LOAN] Notify error:', err.message));
         }
     } catch (error) {
@@ -1042,7 +1079,7 @@ router.get('/:id/free-payments', async (req, res) => {
 // LOAN STATUS MANAGEMENT
 // ============================================
 
-// POST /api/loans/:id/cancel - Cancelar préstamo
+// POST /api/loans/:id/cancel - Cancelar préstamo (con o sin pagos → crédito al cliente)
 router.post('/:id/cancel', async (req, res) => {
     try {
         const { id } = req.params;
@@ -1050,40 +1087,78 @@ router.post('/:id/cancel', async (req, res) => {
 
         const loan = await prisma.loan.findFirst({
             where: { id, tenantId: req.user.tenantId },
-            include: { installments: true }
+            include: { installments: true, freePayments: true, client: true }
         });
 
         if (!loan) {
             return res.status(404).json({ error: 'Préstamo no encontrado' });
         }
 
-        // Check if loan has any paid installments
-        const hasPaidInstallments = loan.installments.some(i => i.status === 'PAID');
-        if (hasPaidInstallments) {
-            return res.status(400).json({
-                error: 'No se puede cancelar un préstamo con pagos registrados. Use "Archivar" en su lugar.'
-            });
+        if (loan.status === 'CANCELLED') {
+            return res.status(400).json({ error: 'Este préstamo ya está cancelado' });
         }
 
-        const updated = await prisma.loan.update({
-            where: { id },
-            data: {
-                status: 'CANCELLED',
-                cancelledAt: new Date(),
-                cancelReason: reason || 'Cancelado por usuario'
-            },
-            include: { installments: true, client: true }
+        // Monto pagado a favor del cliente (crédito)
+        const paidFromInstallments = (loan.installments || [])
+            .filter(i => i.status === 'PAID')
+            .reduce((sum, i) => sum + (parseFloat(i.paidAmount) || parseFloat(i.payment) || 0), 0);
+        const paidFromFree = (loan.freePayments || [])
+            .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        // Prefer totalPaid when consistent; otherwise sum of recorded payments
+        const creditFromPayments = Math.max(
+            parseFloat(loan.totalPaid) || 0,
+            paidFromInstallments + paidFromFree
+        );
+        const creditAmount = Math.round(creditFromPayments * 100) / 100;
+
+        const result = await prisma.$transaction(async (tx) => {
+            const updated = await tx.loan.update({
+                where: { id },
+                data: {
+                    status: 'CANCELLED',
+                    cancelledAt: new Date(),
+                    cancelReason: reason || (creditAmount > 0
+                        ? `Cancelado — ${creditAmount} acreditado al cliente`
+                        : 'Cancelado por usuario'),
+                },
+                include: { installments: true, client: true, freePayments: true },
+            });
+
+            let creditResult = { credited: 0, client: updated.client };
+            if (creditAmount > 0) {
+                creditResult = await addClientCredit({
+                    tx,
+                    tenantId: req.user.tenantId,
+                    clientId: loan.clientId,
+                    amount: creditAmount,
+                    reason: `Cancelación préstamo — pagos convertidos en crédito`,
+                    loanId: id,
+                });
+            }
+
+            return { updated, creditResult };
         });
 
         await logAudit({
-            userId: req.user.id,
-            action: AUDIT_ACTIONS.LOAN_DELETED || 'LOAN_CANCELLED',
+            userId: req.user.userId || req.user.id,
+            action: AUDIT_ACTIONS.LOAN_CANCELLED || 'LOAN_CANCELLED',
             tenantId: req.user.tenantId,
-            details: { loanId: id, reason },
+            details: {
+                loanId: id,
+                reason,
+                creditAdded: result.creditResult.credited,
+                clientId: loan.clientId,
+            },
             ipAddress: req.ip
         });
 
-        res.json({ success: true, loan: mapLoanToResponse(updated) });
+        res.json({
+            success: true,
+            loan: mapLoanToResponse(result.updated),
+            creditAdded: result.creditResult.credited,
+            clientCreditBalance: result.creditResult.client?.creditBalance ?? 0,
+            client: result.creditResult.client,
+        });
     } catch (error) {
         console.error('Error cancelling loan:', error);
         res.status(500).json({ error: 'Error al cancelar préstamo' });

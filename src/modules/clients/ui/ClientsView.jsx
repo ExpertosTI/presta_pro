@@ -488,6 +488,11 @@ export function ClientsView({
               </div>
               <div>
                 <h3 className="font-bold text-xl text-slate-800 dark:text-slate-100 truncate">{selectedClient.name}</h3>
+                {(parseFloat(selectedClient.creditBalance) || 0) > 0 && (
+                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    Crédito a favor: {formatCurrency(selectedClient.creditBalance)}
+                  </p>
+                )}
                 <p className="text-sm text-slate-500 dark:text-slate-400">ID: {selectedClient.idNumber || 'N/A'}</p>
                 <ClientRating score={selectedClient.score} />
               </div>

@@ -62,6 +62,20 @@ export function AppDataProvider({ children, token, user }) {
     setNotifications(prev => [{ id: generateId(), text, type, date: new Date().toISOString(), read: false }, ...prev]);
   }, []);
 
+  // Sync client credit after cancel loan
+  useEffect(() => {
+    const onCredit = (e) => {
+      const client = e.detail;
+      if (!client?.id) return;
+      setDbData(p => ({
+        ...p,
+        clients: p.clients.map(c => (c.id === client.id ? { ...c, ...client } : c)),
+      }));
+    };
+    window.addEventListener('prestapro:client-credit-updated', onCredit);
+    return () => window.removeEventListener('prestapro:client-credit-updated', onCredit);
+  }, []);
+
   // --- Derived State ---
   const pendingRequestsCount = useMemo(() =>
     dbData.requests.filter(r => r.status === 'REVIEW').length,
@@ -481,9 +495,18 @@ export function AppDataProvider({ children, token, user }) {
       const newLoan = await loanService.create(loanData);
       setDbData(p => ({
         ...p,
-        loans: [...p.loans, { ...newLoan, schedule: newLoan.installments || [] }]
+        loans: [...p.loans, { ...newLoan, schedule: newLoan.installments || [] }],
+        clients: newLoan.client
+          ? p.clients.map(c => (c.id === newLoan.client.id ? { ...c, ...newLoan.client } : c))
+          : p.clients,
       }));
-      showToast('Préstamo creado exitosamente', 'success');
+      const credited = newLoan.creditApplied || 0;
+      showToast(
+        credited > 0
+          ? `Préstamo creado · se aplicó crédito`
+          : 'Préstamo creado exitosamente',
+        'success'
+      );
     } catch (e) {
       console.error('Create loan error:', e);
       showToast(e.message || 'Error al crear préstamo', 'error');
@@ -495,7 +518,7 @@ export function AppDataProvider({ children, token, user }) {
       if (loan?._localOnly) {
         const { _localOnly, ...rest } = loan;
         setDbData(p => ({ ...p, loans: p.loans.map(l => l.id === rest.id ? { ...l, ...rest } : l) }));
-        showToast('Guardado', 'success');
+        if (rest.status !== 'CANCELLED') showToast('Guardado', 'success');
         return rest;
       }
 

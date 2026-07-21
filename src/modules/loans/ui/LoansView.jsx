@@ -40,7 +40,11 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
   // Create Loan Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', openTerm: '60', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
+  const [createForm, setCreateForm] = useState({
+    clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', openTerm: '60',
+    frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '',
+    amortizationType: 'FLAT', installment: '', creditApplied: '',
+  });
   const [createError, setCreateError] = useState('');
   const [freePaymentAmount, setFreePaymentAmount] = useState('');
   const [freePaymentNotes, setFreePaymentNotes] = useState('');
@@ -621,6 +625,14 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 }
                 const closingCosts = parseFloat(createForm.closingCosts || '0');
                 const openTerm = parseInt(createForm.openTerm || '60', 10);
+                const selectedClient = clients.find(c => c.id === createForm.clientId);
+                const availableCredit = parseFloat(selectedClient?.creditBalance) || 0;
+                let creditApplied = parseFloat(createForm.creditApplied || '0') || 0;
+                if (creditApplied > availableCredit) creditApplied = availableCredit;
+                if (creditApplied >= amount) {
+                  setCreateError('El crédito no puede cubrir todo el monto. Deja un saldo mínimo.');
+                  return;
+                }
                 onCreateLoan({
                   clientId: createForm.clientId,
                   loanType: createForm.loanType,
@@ -631,10 +643,15 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   startDate: createForm.startDate,
                   closingCosts,
                   amortizationType: isOpenLoan ? undefined : createForm.amortizationType,
-                  dailyRate: isOpenLoan && createForm.dailyRate ? parseFloat(createForm.dailyRate) : undefined
+                  dailyRate: isOpenLoan && createForm.dailyRate ? parseFloat(createForm.dailyRate) : undefined,
+                  creditApplied: creditApplied > 0 ? creditApplied : undefined,
                 });
                 setCreateModalOpen(false);
-                setCreateForm({ clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', openTerm: '60', frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '', amortizationType: 'FLAT', installment: '' });
+                setCreateForm({
+                  clientId: '', loanType: 'FIXED', amount: '', rate: '20', dailyRate: '', term: '12', openTerm: '60',
+                  frequency: 'Mensual', startDate: new Date().toISOString().split('T')[0], closingCosts: '',
+                  amortizationType: 'FLAT', installment: '', creditApplied: '',
+                });
                 setCreateError('');
               }} className="space-y-3 text-sm">
                 <div>
@@ -655,7 +672,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     <select
                       className="flex-1 p-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
                       value={createForm.clientId}
-                      onChange={(e) => handleCreateFormChange({ clientId: e.target.value })}
+                      onChange={(e) => handleCreateFormChange({ clientId: e.target.value, creditApplied: '' })}
                     >
                       <option value="">Selecciona un cliente</option>
                       {clients.map(c => (
@@ -862,6 +879,41 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 {createForm.closingCosts > 0 && (
                   <p className="text-[10px] text-slate-400 mt-1">Se suma al capital para calcular las cuotas</p>
                 )}
+
+                {(() => {
+                  const sc = clients.find(c => c.id === createForm.clientId);
+                  const available = parseFloat(sc?.creditBalance) || 0;
+                  if (!sc || available <= 0) return null;
+                  const applied = Math.min(parseFloat(createForm.creditApplied) || 0, available);
+                  const amountVal = parseFloat(createForm.amount) || 0;
+                  const financed = Math.max(0, amountVal - applied);
+                  return (
+                    <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-3 space-y-2">
+                      <p className="text-xs font-bold text-emerald-800 dark:text-emerald-200">
+                        Crédito a favor: {formatCurrency(available)}
+                      </p>
+                      <label className="block text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                        Aplicar al nuevo préstamo
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        max={available}
+                        className="w-full p-2.5 border border-emerald-300 dark:border-emerald-700 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 min-h-[44px]"
+                        value={createForm.creditApplied}
+                        onChange={(e) => handleCreateFormChange({ creditApplied: e.target.value })}
+                        placeholder="0"
+                      />
+                      {applied > 0 && (
+                        <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                          Capital a financiar: <span className="font-bold">{formatCurrency(financed)}</span>
+                          {' '}(monto {formatCurrency(amountVal)} − crédito {formatCurrency(applied)})
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </form>
             </div>
 
@@ -1437,15 +1489,29 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
             <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
               <XCircle size={20} /> Cancelar Préstamo
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-              ¿Estás seguro de cancelar este préstamo? Solo se puede cancelar si no tiene pagos registrados.
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+              ¿Cancelar este préstamo?
             </p>
+            {(parseFloat(selectedLoan.totalPaid) || 0) > 0 ? (
+              <div className="mb-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-3 text-sm text-emerald-900 dark:text-emerald-100">
+                <p className="font-bold mb-1">Se convertirá en crédito</p>
+                <p>
+                  Lo pagado (<span className="font-semibold">{formatCurrency(selectedLoan.totalPaid || 0)}</span>) quedará
+                  como crédito a favor de{' '}
+                  <span className="font-semibold">{selectedClient?.name || 'el cliente'}</span> para aplicarlo a un préstamo nuevo.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 mb-4">
+                No hay pagos registrados; se cancelará sin generar crédito.
+              </p>
+            )}
             <input
               type="text"
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               placeholder="Razón de cancelación (opcional)"
-              className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 mb-4"
+              className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 mb-4 min-h-[44px]"
             />
             <div className="flex flex-col-reverse sm:flex-row gap-3">
               <button
@@ -1458,20 +1524,41 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 onClick={async () => {
                   setActionLoading(true);
                   try {
-                    await loanApi.cancel(selectedLoan.id, cancelReason || 'Cancelado por usuario');
+                    const result = await loanApi.cancel(selectedLoan.id, cancelReason || 'Cancelado por usuario');
                     setCancelModal(false);
                     setCancelReason('');
-                    window.location.reload();
+                    if (onUpdateLoan && result?.loan) {
+                      onUpdateLoan({
+                        ...result.loan,
+                        schedule: result.loan.installments || result.loan.schedule || [],
+                        _localOnly: true,
+                      });
+                    }
+                    if (result?.client) {
+                      window.dispatchEvent(new CustomEvent('prestapro:client-credit-updated', { detail: result.client }));
+                    }
+                    const credited = result?.creditAdded || 0;
+                    setErrorModal({
+                      show: true,
+                      message: credited > 0
+                        ? `Préstamo cancelado. Se acreditaron ${formatCurrency(credited)} a ${selectedClient?.name || 'el cliente'}.`
+                        : 'Préstamo cancelado correctamente.',
+                    });
+                    if (onSelectLoan) onSelectLoan(null);
                   } catch (e) {
-                    setCancelModal(false);
                     setErrorModal({ show: true, message: e.message || 'Error al cancelar préstamo' });
+                  } finally {
                     setActionLoading(false);
                   }
                 }}
                 disabled={actionLoading}
                 className="flex-1 py-3 sm:py-2.5 rounded-xl font-semibold bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50 min-h-[44px] active:scale-95 touch-manipulation"
               >
-                {actionLoading ? 'Cancelando...' : 'Sí, cancelar'}
+                {actionLoading
+                  ? 'Cancelando...'
+                  : (parseFloat(selectedLoan.totalPaid) || 0) > 0
+                    ? 'Cancelar y acreditar'
+                    : 'Sí, cancelar'}
               </button>
             </div>
           </div>
