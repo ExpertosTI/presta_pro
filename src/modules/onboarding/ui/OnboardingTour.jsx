@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { ONBOARDING_STEPS, markOnboardingDone } from '../onboardingSteps';
+import { WhatsAppQrPanel } from '../../settings/ui/WhatsAppQrPanel';
 
 function useSpotlightRect(targetId, open, stepIndex) {
   const [rect, setRect] = useState(null);
@@ -225,6 +226,12 @@ export function OnboardingTour({
               <span className="font-semibold text-slate-600 dark:text-slate-300">Tip · </span>
               {step.tip}
             </p>
+          )}
+
+          {step.showWhatsAppQr && (
+            <div className="mt-4 max-h-[50vh] overflow-y-auto overscroll-contain rounded-2xl">
+              <WhatsAppQrPanel compact autoFetch />
+            </div>
           )}
 
           {/* Segment progress */}

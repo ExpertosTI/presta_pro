@@ -4,6 +4,7 @@ import { registerUser } from '../../../logic/authLogic';
 import { settingsService } from '../../../services/api';
 import { applyThemeColor } from '../../../shared/styles/tokens';
 import subscriptionService from '../../subscriptions/services/subscriptionService';
+import { WhatsAppQrPanel } from './WhatsAppQrPanel';
 
 // Use relative URLs - nginx will proxy to backend
 const API_BASE_URL = '';
@@ -310,6 +311,14 @@ export function SettingsView({
             Mejorar Plan
           </button>
         </div>
+      </Card>
+
+      <Card>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">WhatsApp (Evolution)</h3>
+        <p className="text-xs text-slate-400 mb-4">
+          Vincula la instancia para enviar recibos y alertas a clientes.
+        </p>
+        <WhatsAppQrPanel />
       </Card>
 
       <Card>

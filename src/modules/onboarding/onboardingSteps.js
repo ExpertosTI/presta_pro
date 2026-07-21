@@ -1,5 +1,5 @@
 /**
- * Interactive product tour v2 — spotlight + actionable coaching.
+ * Interactive product tour v3 — includes WhatsApp QR linking.
  */
 import {
   LayoutDashboard,
@@ -13,9 +13,10 @@ import {
   FileDigit,
   Sparkles,
   Rocket,
+  MessageCircle,
 } from 'lucide-react';
 
-export const ONBOARDING_STORAGE_KEY = 'prestapro_onboarding_v2';
+export const ONBOARDING_STORAGE_KEY = 'prestapro_onboarding_v3';
 
 export const ONBOARDING_STEPS = [
   {
@@ -27,9 +28,9 @@ export const ONBOARDING_STEPS = [
     accent: 'from-blue-600 to-indigo-600',
     title: 'Tu negocio de préstamos, en orden',
     subtitle: 'Guía rápida · 2 minutos',
-    body: 'Esta guía te muestra el flujo real del día a día. Al terminar sabrás dónde configurar, prestar, cobrar y controlar la caja.',
+    body: 'Esta guía te muestra el flujo real del día a día. Al terminar sabrás dónde configurar, vincular WhatsApp, prestar, cobrar y controlar la caja.',
     bullets: [
-      'Primero configuras tu empresa',
+      'Primero configuras tu empresa y WhatsApp',
       'Luego clientes → préstamos → cobros',
       'Al final del día: cuadre y reportes',
     ],
@@ -51,6 +52,23 @@ export const ONBOARDING_STEPS = [
       'WhatsApp de la empresa (recibos)',
     ],
     tip: 'Si cambias el logo, se actualiza en los próximos comprobantes.',
+  },
+  {
+    id: 'whatsapp',
+    tab: 'settings',
+    target: 'whatsapp-qr',
+    icon: MessageCircle,
+    accent: 'from-emerald-500 to-green-600',
+    title: 'Vincula WhatsApp con el QR',
+    subtitle: 'Instancia Evolution',
+    body: 'Escanea el código QR con tu teléfono para conectar la instancia. Así envías recibos y alertas a clientes automáticamente.',
+    bullets: [
+      'Abre WhatsApp → Dispositivos vinculados',
+      'Escanea el QR de abajo',
+      'Cuando diga Conectado, ya puedes enviar',
+    ],
+    tip: 'El QR caduca en ~1 minuto. Usa “Actualizar QR” si se vence.',
+    showWhatsAppQr: true,
   },
   {
     id: 'clients',
@@ -189,10 +207,10 @@ export const ONBOARDING_STEPS = [
     accent: 'from-emerald-500 to-teal-600',
     title: 'Listo para operar',
     subtitle: 'Ya conoces el mapa',
-    body: 'Recuerda el camino: Configura → Cliente → Préstamo → Ruta → Cuadre. El resto está ahí cuando lo necesites.',
+    body: 'Recuerda el camino: Configura + WhatsApp → Cliente → Préstamo → Ruta → Cuadre. El resto está ahí cuando lo necesites.',
     bullets: [
       'Reabre la guía: avatar → Ver guía de la app',
-      'El Asistente IA te orienta en cualquier momento',
+      'El QR de WhatsApp también está en Ajustes',
       'Empieza creando tu primer cliente',
     ],
     tip: null,

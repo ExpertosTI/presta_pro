@@ -48,10 +48,142 @@ function getWhatsAppConfigStatus() {
   };
 }
 
+function evolutionHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    apikey: env('EVOLUTION_API_KEY'),
+  };
+}
+
+function evolutionBase() {
+  return env('EVOLUTION_API_URL').replace(/\/$/, '');
+}
+
+function evolutionInstance() {
+  return env('EVOLUTION_INSTANCE');
+}
+
+function normalizeState(payload) {
+  const raw =
+    payload?.instance?.state ||
+    payload?.state ||
+    payload?.status ||
+    payload?.connectionStatus ||
+    '';
+  const s = String(raw).toLowerCase();
+  if (s.includes('open') || s === 'connected') return 'open';
+  if (s.includes('connect') || s === 'qr' || s === 'pairing') return 'connecting';
+  if (s.includes('close') || s === 'disconnected') return 'close';
+  return s || 'unknown';
+}
+
+function extractQrBase64(payload) {
+  const candidates = [
+    payload?.base64,
+    payload?.qrcode?.base64,
+    payload?.qr?.base64,
+    payload?.qrcode?.code,
+    typeof payload?.qrcode === 'string' ? payload.qrcode : null,
+  ].filter(Boolean);
+
+  const raw = candidates[0];
+  if (!raw || typeof raw !== 'string') return null;
+  if (raw.startsWith('data:image')) return raw;
+  if (raw.length > 100 && !raw.includes(' ')) {
+    return `data:image/png;base64,${raw.replace(/^base64,/, '')}`;
+  }
+  return null;
+}
+
+async function getConnectionState() {
+  if (!whatsappConfigured()) {
+    return { ok: false, error: 'not_configured', state: 'unconfigured' };
+  }
+  const instance = evolutionInstance();
+  try {
+    const res = await fetch(
+      `${evolutionBase()}/instance/connectionState/${encodeURIComponent(instance)}`,
+      { method: 'GET', headers: evolutionHeaders() },
+    );
+    const text = await res.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: `http_${res.status}`,
+        state: 'unknown',
+        instance,
+        detail: String(text).slice(0, 200),
+      };
+    }
+
+    return {
+      ok: true,
+      state: normalizeState(data),
+      instance,
+      clientNotify: clientNotifyEnabled(),
+      data,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err.message || 'network_error',
+      state: 'unknown',
+      instance,
+    };
+  }
+}
+
+async function getConnectQr() {
+  if (!whatsappConfigured()) {
+    return { ok: false, error: 'not_configured' };
+  }
+  const instance = evolutionInstance();
+  try {
+    const res = await fetch(
+      `${evolutionBase()}/instance/connect/${encodeURIComponent(instance)}`,
+      { method: 'GET', headers: evolutionHeaders() },
+    );
+    const text = await res.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: `http_${res.status}`,
+        instance,
+        detail: String(text).slice(0, 300),
+      };
+    }
+
+    const state = normalizeState(data);
+    const qrBase64 = extractQrBase64(data);
+    const pairingCode =
+      data?.pairingCode ||
+      data?.qrcode?.pairingCode ||
+      data?.code ||
+      null;
+
+    return {
+      ok: true,
+      instance,
+      state,
+      qrBase64,
+      pairingCode,
+      data,
+    };
+  } catch (err) {
+    return { ok: false, error: err.message || 'network_error', instance };
+  }
+}
+
 async function sendText(to, text) {
-  const baseUrl = env('EVOLUTION_API_URL').replace(/\/$/, '');
+  const baseUrl = evolutionBase();
   const apiKey = env('EVOLUTION_API_KEY');
-  const instance = env('EVOLUTION_INSTANCE');
+  const instance = evolutionInstance();
   const phone = normalizePhoneDigits(to);
   if (!phone) return { ok: false, error: 'invalid_phone' };
 
@@ -84,5 +216,7 @@ module.exports = {
   whatsappConfigured,
   clientNotifyEnabled,
   getWhatsAppConfigStatus,
+  getConnectionState,
+  getConnectQr,
   sendWhatsAppMessage,
 };

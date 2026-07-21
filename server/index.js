@@ -260,6 +260,7 @@ app.use('/api/payments', authMiddleware, paymentsRouter);
 app.use('/api/sync', authMiddleware, syncRouter);
 app.use('/api/subscriptions', authMiddleware, subscriptionsRouter);
 app.use('/api/settings', authMiddleware, settingsRouter);
+app.use('/api/whatsapp', authMiddleware, require('./routes/whatsapp'));
 app.use('/api/expenses', authMiddleware, expensesRouter);
 app.use('/api/collectors', collectorsRouter); // Auth managed internally
 app.use('/api/employees', authMiddleware, employeesRouter);
