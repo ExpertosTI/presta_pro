@@ -156,6 +156,7 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
 
       <button
         type="button"
+        data-tour="ai-bot"
         onMouseDown={handlePointerDown}
         onTouchStart={handlePointerDown}
         onClick={handleToggle}

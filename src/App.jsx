@@ -25,6 +25,7 @@ const MenuItem = ({ icon: Icon, label, id, activeTab, onClick, badge }) => {
   const isActive = activeTab === id;
   return (
     <button
+      data-tour={id}
       onClick={() => onClick(id)}
       style={isActive ? { backgroundColor: 'var(--color-primary)' } : undefined}
       className={`w-full flex items-center justify-between px-4 py-3 rounded-xl mb-1 transition-all duration-200 active:scale-98 ${isActive
@@ -248,6 +249,7 @@ function AppShell({ onLogout }) {
         setStepIndex={setOnboardingStep}
         onClose={() => setOnboardingOpen(false)}
         onNavigate={handleTabChange}
+        onOpenSidebar={setSidebarOpen}
         userId={user?.tenantId || user?.email}
       />
 

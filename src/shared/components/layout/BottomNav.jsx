@@ -9,6 +9,7 @@ export function BottomNav({ activeTab, setActiveTab, setMobileMenuOpen, items })
         return (
           <button
             key={item.id}
+            data-tour={item.id === 'more' ? undefined : item.id}
             onClick={() => {
               if (item.id === 'more') {
                 setMobileMenuOpen(true);
