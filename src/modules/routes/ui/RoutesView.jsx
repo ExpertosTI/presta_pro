@@ -602,6 +602,7 @@ export function RoutesView({
                     status === 'REFUSED' || status === 'NOT_HOME' ? 'opacity-75 border-l-4 border-l-amber-400' : ''
                   }`}
               >
+                <div className="flex flex-col gap-2">
                 <div className="flex items-start gap-2.5">
                   {/* Number + photo */}
                   <div className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -631,9 +632,10 @@ export function RoutesView({
                       </p>
                     )}
                   </div>
+                </div>
 
                   {/* Quick actions */}
-                  <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
                     {stop.clientAddress && (
                       <a
                         href={hasGPS ? `https://www.google.com/maps/dir/?api=1&destination=${stop.clientLat},${stop.clientLng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.clientAddress)}`}

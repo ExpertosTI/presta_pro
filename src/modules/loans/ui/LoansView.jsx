@@ -32,7 +32,10 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
   const [paymentToConfirm, setPaymentToConfirm] = useState(null);
   const [penaltyAmountInput, setPenaltyAmountInput] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ amount: '', rate: '', term: '', frequency: 'Mensual', startDate: '' });
+  const [editForm, setEditForm] = useState({
+    amount: '', rate: '', term: '', frequency: 'Mensual', startDate: '',
+    amortizationType: 'FLAT', loanType: 'FIXED', dailyRate: '', closingCosts: '',
+  });
   const [editError, setEditError] = useState('');
 
   // Create Loan Modal
@@ -254,62 +257,70 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
     const hasPayments = Array.isArray(selectedLoan.schedule)
       ? selectedLoan.schedule.some(i => i.status === 'PAID')
       : false;
-    if (hasPayments) return; // no permitir edición si ya tiene pagos
+    const hasFreePayments = Array.isArray(selectedLoan.freePayments) && selectedLoan.freePayments.length > 0;
+    if (hasPayments || hasFreePayments) {
+      setEditError('Este préstamo ya tiene pagos. No se puede editar la tasa/monto.');
+      setEditModalOpen(true);
+      return;
+    }
 
     setEditForm({
-      amount: String(selectedLoan.amount || ''),
-      rate: String(selectedLoan.rate || ''),
+      amount: String(selectedLoan.amount ?? ''),
+      rate: String(selectedLoan.rate ?? '0'),
       term: String(selectedLoan.term || ''),
       frequency: selectedLoan.frequency || 'Mensual',
-      startDate: selectedLoan.startDate || new Date().toISOString().split('T')[0],
-      amortizationType: selectedLoan.amortizationType || 'FLAT'
+      startDate: selectedLoan.startDate
+        ? toDateInputValue(selectedLoan.startDate)
+        : new Date().toISOString().split('T')[0],
+      amortizationType: selectedLoan.amortizationType || 'FLAT',
+      loanType: selectedLoan.loanType || 'FIXED',
+      dailyRate: selectedLoan.dailyRate != null ? String(selectedLoan.dailyRate) : '',
+      closingCosts: selectedLoan.closingCosts != null ? String(selectedLoan.closingCosts) : '',
     });
     setEditError('');
     setEditModalOpen(true);
   };
 
-  const handleSubmitEditLoan = (e) => {
+  const handleSubmitEditLoan = async (e) => {
     e.preventDefault();
     if (!selectedLoan || !onUpdateLoan) return;
 
     const amount = parseFloat(editForm.amount || '0');
-    const rate = parseFloat(editForm.rate || '0');
+    const rate = parseFloat(editForm.rate === '' || editForm.rate == null ? 'NaN' : editForm.rate);
     const term = parseInt(editForm.term || '0', 10);
+    const isOpen = (editForm.loanType || selectedLoan.loanType) === 'OPEN';
 
-    if (!amount || !rate || !term) {
-      setEditError('Completa monto, tasa y plazo con valores válidos.');
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setEditError('El monto debe ser mayor a 0.');
+      return;
+    }
+    if (!Number.isFinite(rate) || rate < 0) {
+      setEditError('La tasa debe ser 0 o mayor (0 = sin interés).');
+      return;
+    }
+    if (!isOpen && (!term || term < 1)) {
+      setEditError('Completa el plazo con un valor válido.');
       return;
     }
 
     try {
-      const schedule = calculateSchedule(
-        amount,
-        rate,
-        term,
-        editForm.frequency,
-        editForm.startDate || selectedLoan.startDate,
-        editForm.amortizationType || 'FLAT'
-      );
-
-      const updatedLoan = {
+      setEditError('');
+      await onUpdateLoan({
         ...selectedLoan,
         amount,
         rate,
-        term,
+        term: isOpen ? (term || selectedLoan.term || 60) : term,
         frequency: editForm.frequency,
         amortizationType: editForm.amortizationType,
         startDate: editForm.startDate || selectedLoan.startDate,
-        schedule,
-        totalInterest: schedule.reduce((acc, item) => acc + item.interest, 0),
-        totalPaid: 0,
-        status: 'ACTIVE',
-      };
-
-      onUpdateLoan(updatedLoan);
+        loanType: editForm.loanType || selectedLoan.loanType || 'FIXED',
+        dailyRate: editForm.dailyRate !== '' ? parseFloat(editForm.dailyRate) : selectedLoan.dailyRate,
+        closingCosts: editForm.closingCosts !== '' ? parseFloat(editForm.closingCosts || 0) : (selectedLoan.closingCosts || 0),
+      });
       setEditModalOpen(false);
     } catch (err) {
       console.error(err);
-      setEditError('No se pudo recalcular la hoja de amortización. Revisa los datos.');
+      setEditError(err?.response?.data?.error || 'No se pudo actualizar el préstamo. Revisa los datos.');
     }
   };
 
@@ -466,17 +477,21 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
       {/* Edit Loan Modal (solo préstamos sin pagos) */}
       {editModalOpen && selectedLoan && (
         <div className="fixed inset-0 bg-slate-900/70 flex justify-center items-start overflow-y-auto z-50 p-4 backdrop-blur-sm safe-area-insets">
-          <div className="my-auto w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Editar préstamo</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-              Solo puedes editar préstamos que aún no tengan pagos registrados.
-            </p>
+          <div className="my-auto w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[92vh] flex flex-col overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-700 flex-shrink-0">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Editar préstamo</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Puedes poner tasa 0% (sin interés). Solo si aún no hay pagos.
+              </p>
+            </div>
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1">
             {editError && (
               <p className="mb-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                 {editError}
               </p>
             )}
-            <form onSubmit={handleSubmitEditLoan} className="space-y-3 text-sm">
+            {!editError?.includes('ya tiene pagos') && (
+            <form id="edit-loan-form" onSubmit={handleSubmitEditLoan} className="space-y-3 text-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Monto</label>
@@ -489,7 +504,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa %</label>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tasa % (0 = sin interés)</label>
                   <input
                     type="number"
                     min="0"
@@ -506,7 +521,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   <input
                     type="number"
                     min="1"
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 min-h-[44px]"
                     value={editForm.term}
                     onChange={(e) => setEditForm({ ...editForm, term: e.target.value })}
                   />
@@ -514,7 +529,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Frecuencia</label>
                   <select
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                    className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 min-h-[44px]"
                     value={editForm.frequency}
                     onChange={(e) => setEditForm({ ...editForm, frequency: e.target.value })}
                   >
@@ -529,69 +544,75 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Fecha de inicio</label>
                 <input
                   type="date"
-                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200"
+                  className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900/50 text-slate-800 dark:text-slate-200 min-h-[44px]"
                   value={editForm.startDate}
                   onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditModalOpen(false);
-                    setEditError('');
-                  }}
-                  className="px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors min-h-[44px] active:scale-95 touch-manipulation"
-                >
-                  Cancelar
-                </button>
+            </form>
+            )}
+            </div>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 p-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0 safe-area-bottom">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditModalOpen(false);
+                  setEditError('');
+                }}
+                className="px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors min-h-[44px] active:scale-95 touch-manipulation"
+              >
+                {editError?.includes('ya tiene pagos') ? 'Cerrar' : 'Cancelar'}
+              </button>
+              {!editError?.includes('ya tiene pagos') && (
                 <button
                   type="submit"
-                  className="px-4 py-2.5 rounded-lg bg-blue-600 text-white font-semibold min-h-[44px] active:scale-95 touch-manipulation"
+                  form="edit-loan-form"
+                  className="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold min-h-[44px] active:scale-95 touch-manipulation"
                 >
                   Guardar cambios
                 </button>
-              </div>
-            </form>
+              )}
+            </div>
           </div>
         </div>
       )}
-              {/* Create Loan Modal */}
+
+      {/* Create Loan Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm safe-area-insets">
-          <div className="w-full max-w-md max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
+        <div className="fixed inset-0 bg-slate-900/70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 backdrop-blur-sm safe-area-insets">
+          <div className="w-full max-w-md max-h-[92vh] sm:max-h-[90vh] bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
               <div>
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-0.5">Nuevo Préstamo</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Crea un préstamo directo para un cliente existente.
+                  Crea un préstamo directo. Tasa 0 = sin interés.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => { setCreateModalOpen(false); setCreateError(''); }}
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 overscroll-contain">
               {createError && (
                 <p className="mb-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                   {createError}
                 </p>
               )}
-              <form onSubmit={(e) => {
+              <form id="create-loan-form" onSubmit={(e) => {
                 e.preventDefault();
                 if (!onCreateLoan) return;
                 const amount = parseFloat(createForm.amount || '0');
-                const rate = parseFloat(createForm.rate || '0');
+                const rate = parseFloat(createForm.rate === '' || createForm.rate == null ? 'NaN' : createForm.rate);
                 const term = parseInt(createForm.term || '0', 10);
                 const isOpenLoan = createForm.loanType === 'OPEN';
 
-                if (!createForm.clientId || !amount || !rate || (!isOpenLoan && !term)) {
-                  setCreateError('Completa todos los campos correctamente.');
+                if (!createForm.clientId || !Number.isFinite(amount) || amount <= 0 || !Number.isFinite(rate) || rate < 0 || (!isOpenLoan && !term)) {
+                  setCreateError('Completa todos los campos correctamente. La tasa puede ser 0 (sin interés).');
                   return;
                 }
                 if (isFutureDate(createForm.startDate)) {
@@ -841,23 +862,24 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 {createForm.closingCosts > 0 && (
                   <p className="text-[10px] text-slate-400 mt-1">Se suma al capital para calcular las cuotas</p>
                 )}
-
-                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-3">
-                  <button
-                    type="button"
-                    className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 sm:py-2.5 rounded-xl font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors min-h-[44px] active:scale-95 touch-manipulation"
-                    onClick={() => { setCreateModalOpen(false); setCreateError(''); }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 sm:py-2.5 rounded-xl font-semibold transition-colors min-h-[44px] active:scale-95 touch-manipulation"
-                  >
-                    Crear Préstamo
-                  </button>
-                </div>
               </form>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row gap-2 p-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0 safe-area-bottom bg-white dark:bg-slate-800">
+              <button
+                type="button"
+                className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 sm:py-2.5 rounded-xl font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors min-h-[44px] active:scale-95 touch-manipulation"
+                onClick={() => { setCreateModalOpen(false); setCreateError(''); }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="create-loan-form"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 sm:py-2.5 rounded-xl font-semibold transition-colors min-h-[44px] active:scale-95 touch-manipulation"
+              >
+                Crear Préstamo
+              </button>
             </div>
           </div>
         </div>
@@ -1369,14 +1391,28 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
               {/* Acciones rápidas */}
               <div className="flex flex-wrap gap-2 flex-shrink-0 pt-2 border-t border-slate-100 dark:border-slate-700">
-                <button onClick={handleGenerateContract} disabled={generatingContract} className="text-xs px-3 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-semibold hover:bg-indigo-100 transition-colors disabled:opacity-50">
+                {(() => {
+                  const hasPaid = (selectedLoan.schedule || []).some(i => i.status === 'PAID');
+                  const hasFree = (selectedLoan.freePayments || []).length > 0;
+                  const canEdit = !hasPaid && !hasFree && selectedLoan.status === 'ACTIVE';
+                  return canEdit ? (
+                    <button
+                      type="button"
+                      onClick={handleOpenEditLoan}
+                      className="text-xs px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold hover:bg-blue-100 transition-colors min-h-[40px]"
+                    >
+                      Editar préstamo
+                    </button>
+                  ) : null;
+                })()}
+                <button onClick={handleGenerateContract} disabled={generatingContract} className="text-xs px-3 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-semibold hover:bg-indigo-100 transition-colors disabled:opacity-50 min-h-[40px]">
                   {generatingContract ? 'Generando...' : 'Contrato IA'}
                 </button>
                 {selectedLoan.status === 'ACTIVE' && (
-                  <button onClick={() => setCancelModal(true)} className="text-xs px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 font-semibold hover:bg-amber-100">Cancelar</button>
+                  <button onClick={() => setCancelModal(true)} className="text-xs px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 font-semibold hover:bg-amber-100 min-h-[40px]">Cancelar</button>
                 )}
-                <button onClick={() => setArchiveModal(true)} className="text-xs px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200">Archivar</button>
-                <button onClick={() => setNotesModal({ show: true, loanId: selectedLoan.id, notes: selectedLoan.notes || '' })} className="text-xs px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 font-semibold hover:bg-violet-100">Notas</button>
+                <button onClick={() => setArchiveModal(true)} className="text-xs px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200 min-h-[40px]">Archivar</button>
+                <button onClick={() => setNotesModal({ show: true, loanId: selectedLoan.id, notes: selectedLoan.notes || '' })} className="text-xs px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 font-semibold hover:bg-violet-100 min-h-[40px]">Notas</button>
               </div>
             </div>
           )}
@@ -1648,7 +1684,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
               <button
                 onClick={() => {
                   if (onUpdateLoan && selectedLoan) {
-                    onUpdateLoan({ ...selectedLoan, notes: notesModal.notes });
+                    onUpdateLoan({ ...selectedLoan, notes: notesModal.notes, _localOnly: true });
                   }
                   setNotesModal({ show: false, loanId: null, notes: '' });
                 }}
@@ -1663,7 +1699,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
 
       {/* MEJORA 13: Loan History (shown in notes modal if history exists) */}
       {selectedLoan?.history && selectedLoan.history.length > 0 && notesModal.show && (
-        <div className="fixed bottom-4 right-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 max-w-xs z-40 border border-slate-200 dark:border-slate-700">
+        <div className="fixed bottom-20 md:bottom-4 right-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 max-w-xs z-50 border border-slate-200 dark:border-slate-700 safe-area-bottom">
           <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1">
             <History size={14} /> Historial de cambios
           </h4>

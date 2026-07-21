@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
-import { X, CheckCircle, Share2, Printer, Bluetooth, ChevronDown, Wifi, Globe } from 'lucide-react';
+import { X, CheckCircle, Share2, Printer, Bluetooth, ChevronDown, Wifi, Globe, MessageCircle } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '../shared/utils/formatters';
+import api from '../services/axiosInstance';
 import {
     printReceipt,
     getPrinterConfig,
@@ -17,6 +18,8 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
     const receiptRef = useRef(null);
     const [isSharing, setIsSharing] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
+    const [isSendingWa, setIsSendingWa] = useState(false);
+    const [waStatus, setWaStatus] = useState('');
     const [showPrinterMenu, setShowPrinterMenu] = useState(false);
     const [printerStatus, setPrinterStatus] = useState('');
     const [printerConfig] = useState(() => getPrinterConfig());
@@ -62,6 +65,27 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
         } catch (error) {
             console.error('Error generating receipt image', error);
             setIsSharing(false);
+        }
+    };
+
+    const handleSendWhatsApp = async () => {
+        if (!receipt?.id) {
+            setWaStatus('Sin ID de comprobante');
+            setTimeout(() => setWaStatus(''), 3000);
+            return;
+        }
+        setIsSendingWa(true);
+        setWaStatus('Enviando por WhatsApp...');
+        try {
+            await api.post(`/loans/receipts/${receipt.id}/whatsapp`);
+            setWaStatus('Comprobante enviado por WhatsApp');
+            setTimeout(() => setWaStatus(''), 3000);
+        } catch (error) {
+            const msg = error?.response?.data?.error || error.message || 'Error al enviar';
+            setWaStatus(msg);
+            setTimeout(() => setWaStatus(''), 4000);
+        } finally {
+            setIsSendingWa(false);
         }
     };
 
@@ -216,20 +240,27 @@ const DigitalReceipt = ({ receipt, onClose, onPrint, companyName, baseAmount, pe
                     </div>
                 </div>
 
-                {/* Printer Status */}
-                {printerStatus && (
+                {/* Status */}
+                {(printerStatus || waStatus) && (
                     <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs text-center font-medium flex-shrink-0">
-                        {printerStatus}
+                        {waStatus || printerStatus}
                     </div>
                 )}
 
                 {/* Footer Actions */}
                 <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 safe-area-bottom">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={handleSendWhatsApp}
+                            disabled={isSendingWa || !receipt?.id}
+                            className="flex-1 min-w-[120px] bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:opacity-70 text-white py-2.5 sm:py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-green-900/20 min-h-[44px]"
+                        >
+                            {isSendingWa ? '...Enviando' : <><MessageCircle size={16} /> WhatsApp</>}
+                        </button>
                         <button
                             onClick={handleShareImage}
                             disabled={isSharing}
-                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-70 text-white py-2.5 sm:py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-900/20 min-h-[44px]"
+                            className="flex-1 min-w-[100px] bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-70 text-white py-2.5 sm:py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-900/20 min-h-[44px]"
                         >
                             {isSharing ? '...Generando' : <><Share2 size={16} /> Compartir</>}
                         </button>

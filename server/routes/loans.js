@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const { logAudit, AUDIT_ACTIONS } = require('../services/auditLogger');
 const notify = require('../services/notificationHelper');
+const paymentReceiptNotify = require('../services/paymentReceiptNotify');
 const {
     normalizeOpenFrequency,
     calculateAccruedInterest,
@@ -269,6 +270,48 @@ router.get('/', async (req, res) => {
     }
 });
 
+// POST /api/loans/receipts/:receiptId/whatsapp — reenviar comprobante por WhatsApp
+router.post('/receipts/:receiptId/whatsapp', async (req, res) => {
+    try {
+        const { receiptId } = req.params;
+        const receipt = await prisma.receipt.findFirst({
+            where: { id: receiptId, tenantId: req.user.tenantId },
+            include: { client: true, loan: true },
+        });
+
+        if (!receipt) {
+            return res.status(404).json({ error: 'Comprobante no encontrado' });
+        }
+
+        const result = await paymentReceiptNotify.sendPaymentReceiptWhatsApp({
+            tenantId: req.user.tenantId,
+            clientPhone: receipt.client?.phone || req.body?.phone,
+            clientName: receipt.client?.name,
+            amount: receipt.amount,
+            penaltyAmount: receipt.penaltyAmount || 0,
+            installmentNumber: receipt.installmentNumber,
+            remainingBalance: receipt.remainingBalance,
+            receiptId: receipt.id,
+            date: receipt.date || receipt.createdAt || new Date(),
+        });
+
+        if (!result.ok) {
+            const messages = {
+                whatsapp_disabled: 'WhatsApp no está configurado o está desactivado',
+                no_phone: 'El cliente no tiene teléfono registrado',
+                invalid_phone: 'Teléfono inválido',
+                not_configured: 'Evolution API no configurada',
+            };
+            return res.status(400).json({ error: messages[result.error] || `No se pudo enviar (${result.error})` });
+        }
+
+        res.json({ ok: true, message: 'Comprobante enviado por WhatsApp' });
+    } catch (error) {
+        console.error('Error sending receipt WhatsApp:', error);
+        res.status(500).json({ error: 'Error al enviar comprobante por WhatsApp' });
+    }
+});
+
 // POST /api/loans - Crear préstamo
 router.post('/', async (req, res) => {
     try {
@@ -277,8 +320,17 @@ router.post('/', async (req, res) => {
         // Para préstamos abiertos, term no es obligatorio
         const isOpenLoan = loanType === 'OPEN';
 
-        if (!clientId || !amount || !rate || !startDate) {
+        if (!clientId || amount == null || amount === '' || rate == null || rate === '' || !startDate) {
             return res.status(400).json({ error: 'Faltan datos obligatorios (clientId, amount, rate, startDate)' });
+        }
+
+        const amountNum = parseFloat(amount);
+        const rateNum = parseFloat(rate);
+        if (!Number.isFinite(amountNum) || amountNum <= 0) {
+            return res.status(400).json({ error: 'El monto debe ser mayor a 0' });
+        }
+        if (!Number.isFinite(rateNum) || rateNum < 0) {
+            return res.status(400).json({ error: 'La tasa debe ser 0 o mayor (0 = sin interés)' });
         }
 
         if (!isOpenLoan && (!term || !frequency)) {
@@ -462,7 +514,10 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { amount, rate, term, frequency, startDate, status, totalPaid, schedule } = req.body;
+        const {
+            amount, rate, term, frequency, startDate, status, totalPaid, schedule,
+            amortizationType, loanType, dailyRate, closingCosts,
+        } = req.body;
 
         // Verificar ownership
         const existingLoan = await prisma.loan.findFirst({
@@ -478,28 +533,86 @@ router.put('/:id', async (req, res) => {
         // Solo permitir si no tiene pagos registrados
         const hasPayments = existingLoan.installments.some(inst => inst.status === 'PAID');
 
-        if ((amount || rate || term || frequency || startDate) && hasPayments) {
+        const wantsParamEdit = amount !== undefined || rate !== undefined || term !== undefined
+            || frequency !== undefined || startDate !== undefined || amortizationType !== undefined
+            || dailyRate !== undefined || closingCosts !== undefined || loanType !== undefined;
+
+        if (wantsParamEdit && hasPayments) {
             return res.status(400).json({ error: 'No se puede editar un préstamo con pagos registrados' });
         }
 
-        // Si se proporciona schedule o parámetros nuevos, recalcular
-        if (amount && rate && term && frequency && startDate && !hasPayments) {
-            // Recalcular schedule desde cero
-            const newSchedule = calculateSchedule(amount, rate, term, frequency, startDate);
+        const nextAmount = amount !== undefined ? parseFloat(amount) : existingLoan.amount;
+        const nextRate = rate !== undefined ? parseFloat(rate) : existingLoan.rate;
+        const nextTerm = term !== undefined ? parseInt(term, 10) : existingLoan.term;
+        const nextFrequency = frequency || existingLoan.frequency;
+        const nextStartDate = startDate || existingLoan.startDate;
+        const nextAmort = amortizationType || existingLoan.amortizationType || 'FLAT';
+        const nextLoanType = loanType || existingLoan.loanType || 'FIXED';
+        const nextDailyRate = dailyRate !== undefined
+            ? (dailyRate === '' || dailyRate == null ? null : parseFloat(dailyRate))
+            : existingLoan.dailyRate;
+        const nextClosing = closingCosts !== undefined
+            ? parseFloat(closingCosts || 0)
+            : (existingLoan.closingCosts || 0);
+
+        if (wantsParamEdit && !hasPayments) {
+            if (!Number.isFinite(nextAmount) || nextAmount <= 0) {
+                return res.status(400).json({ error: 'Monto inválido' });
+            }
+            if (!Number.isFinite(nextRate) || nextRate < 0) {
+                return res.status(400).json({ error: 'La tasa debe ser 0 o mayor (0 = sin interés)' });
+            }
+
+            // OPEN: actualizar parámetros sin recrear cuotas fijas
+            if (nextLoanType === 'OPEN') {
+                const updated = await prisma.loan.update({
+                    where: { id },
+                    data: {
+                        amount: nextAmount,
+                        rate: nextRate,
+                        term: nextTerm || existingLoan.term,
+                        frequency: nextFrequency,
+                        startDate: new Date(nextStartDate),
+                        dailyRate: nextDailyRate,
+                        closingCosts: nextClosing,
+                        loanType: 'OPEN',
+                        status: status || existingLoan.status || 'ACTIVE',
+                    },
+                    include: { installments: true, client: true, freePayments: true },
+                });
+                return res.json(mapLoanToResponse(updated));
+            }
+
+            // FIXED: recalcular schedule completo (permite rate = 0)
+            if (!nextTerm || !nextFrequency || !nextStartDate) {
+                return res.status(400).json({ error: 'Faltan plazo, frecuencia o fecha de inicio' });
+            }
+
+            const principalForSchedule = nextAmount + (nextClosing || 0);
+            const newSchedule = calculateSchedule(
+                principalForSchedule,
+                nextRate,
+                nextTerm,
+                nextFrequency,
+                nextStartDate,
+                nextAmort
+            );
             const totalInterest = newSchedule.reduce((acc, item) => acc + item.interest, 0);
 
-            // Eliminar cuotas anteriores y recrear
             const updated = await prisma.$transaction(async (tx) => {
                 await tx.loanInstallment.deleteMany({ where: { loanId: id } });
 
                 return await tx.loan.update({
                     where: { id },
                     data: {
-                        amount: parseFloat(amount),
-                        rate: parseFloat(rate),
-                        term: parseInt(term, 10),
-                        frequency,
-                        startDate: new Date(startDate),
+                        amount: nextAmount,
+                        rate: nextRate,
+                        term: nextTerm,
+                        frequency: nextFrequency,
+                        startDate: new Date(nextStartDate),
+                        amortizationType: nextAmort,
+                        closingCosts: nextClosing,
+                        loanType: 'FIXED',
                         totalInterest,
                         totalPaid: 0,
                         status: 'ACTIVE',
@@ -527,7 +640,8 @@ router.put('/:id', async (req, res) => {
             data: {
                 status: status || undefined,
                 totalPaid: totalPaid !== undefined ? parseFloat(totalPaid) : undefined,
-            }
+            },
+            include: { installments: true, client: true, freePayments: true },
         });
 
         // Actualizar cuotas si se envían
@@ -547,13 +661,12 @@ router.put('/:id', async (req, res) => {
             }
         }
 
-        // Retornar préstamo completo actualizado
         const finalLoan = await prisma.loan.findUnique({
             where: { id },
-            include: { installments: true, client: true }
+            include: { installments: true, client: true, freePayments: true }
         });
 
-        res.json(mapLoanToResponse(finalLoan));
+        return res.json(mapLoanToResponse(finalLoan || updatedLoan));
     } catch (error) {
         console.error('Error updating loan:', error);
         res.status(500).json({ error: 'Error al actualizar préstamo' });
@@ -657,6 +770,19 @@ router.post('/:id/payments', async (req, res) => {
             amount: paymentAmount,
             loanId: id
         }).catch(err => console.error('[PAYMENT] Notify error:', err.message));
+
+        // WhatsApp receipt to client (Evolution)
+        paymentReceiptNotify.sendPaymentReceiptWhatsApp({
+            tenantId: req.user.tenantId,
+            clientPhone: loan.client?.phone,
+            clientName: loan.client?.name,
+            amount: baseAmount,
+            penaltyAmount: penalty,
+            installmentNumber: installment.number,
+            remainingBalance,
+            receiptId: result.receipt.id,
+            date: new Date(),
+        }).catch(err => console.error('[PAYMENT] WhatsApp receipt error:', err.message));
 
         res.json({
             loan: mapLoanToResponse(result.updatedLoan),
@@ -853,6 +979,19 @@ router.post('/:id/free-payment', async (req, res) => {
             amount: paymentAmount,
             loanId: id
         }).catch(err => console.error('[FREE_PAYMENT] Notify error:', err.message));
+
+        // WhatsApp receipt for free payment / open loan
+        paymentReceiptNotify.sendPaymentReceiptWhatsApp({
+            tenantId: req.user.tenantId,
+            clientPhone: loan.client?.phone,
+            clientName: loan.client?.name,
+            amount: interestOnly ? paymentAmount : appliedAmount,
+            penaltyAmount: 0,
+            remainingBalance: balanceAfter,
+            receiptId: freePayment.id,
+            date: now,
+            notes: interestOnly ? 'Abono a interés' : (notes || 'Abono libre'),
+        }).catch(err => console.error('[FREE_PAYMENT] WhatsApp receipt error:', err.message));
 
         res.json({
             success: true,

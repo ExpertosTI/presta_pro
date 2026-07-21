@@ -490,9 +490,44 @@ export function AppDataProvider({ children, token, user }) {
     }
   }, [showToast]);
 
-  const updateLoan = useCallback((loan) => {
-    setDbData(p => ({ ...p, loans: p.loans.map(l => l.id === loan.id ? loan : l) }));
-    showToast('Préstamo actualizado', 'success');
+  const updateLoan = useCallback(async (loan) => {
+    try {
+      if (loan?._localOnly) {
+        const { _localOnly, ...rest } = loan;
+        setDbData(p => ({ ...p, loans: p.loans.map(l => l.id === rest.id ? { ...l, ...rest } : l) }));
+        showToast('Guardado', 'success');
+        return rest;
+      }
+
+      const payload = {
+        amount: loan.amount,
+        rate: loan.rate,
+        term: loan.term,
+        frequency: loan.frequency,
+        startDate: loan.startDate,
+        amortizationType: loan.amortizationType,
+        loanType: loan.loanType,
+        dailyRate: loan.dailyRate,
+        closingCosts: loan.closingCosts,
+      };
+
+      const updated = await loanService.update(loan.id, payload);
+      const mapped = {
+        ...updated,
+        schedule: updated.installments || updated.schedule || [],
+      };
+      setDbData(p => ({
+        ...p,
+        loans: p.loans.map(l => l.id === loan.id ? { ...l, ...mapped } : l),
+      }));
+      showToast('Préstamo actualizado', 'success');
+      return mapped;
+    } catch (e) {
+      console.error('Update loan error:', e);
+      const msg = e?.response?.data?.error || e.message || 'Error al actualizar préstamo';
+      showToast(msg, 'error');
+      throw e;
+    }
   }, [showToast]);
 
   const updateClient = useCallback(async (client) => {
