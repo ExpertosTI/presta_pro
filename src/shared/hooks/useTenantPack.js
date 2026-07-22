@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { resolveTenantPack } from '../tenants/_registry';
+import { resolveTenantPack } from '../../tenants/_registry';
 
 /**
  * @param {{ slug?: string, settings?: object }} opts
