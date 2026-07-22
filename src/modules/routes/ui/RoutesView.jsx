@@ -641,7 +641,7 @@ export function RoutesView({
                         href={hasGPS ? `https://www.google.com/maps/dir/?api=1&destination=${stop.clientLat},${stop.clientLng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.clientAddress)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation"
+                        className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
                       >
                         <Navigation size={14} />
                       </a>
@@ -649,7 +649,7 @@ export function RoutesView({
                     {stop.clientPhone && (
                       <a
                         href={`tel:${stop.clientPhone}`}
-                        className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation"
+                        className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
                       >
                         <Phone size={14} />
                       </a>
@@ -659,14 +659,14 @@ export function RoutesView({
                         href={`https://wa.me/${stop.clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${stop.clientName}, le recordamos que tiene una cuota pendiente de ${formatCurrency(stop.payment)}. ¿Estará disponible hoy?`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation"
+                        className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
                       >
                         <WhatsAppIcon size={14} />
                       </a>
                     )}
                     <button
                       onClick={() => setNotesModal(stop)}
-                      className={`p-2 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center touch-manipulation ${note ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}
+                      className={`p-2 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation ${note ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'}`}
                     >
                       <StickyNote size={14} />
                     </button>

@@ -19,7 +19,12 @@ services:
       - EVOLUTION_API_URL=${EVOLUTION_API_URL:-}
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-}
       - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE:-}
+      - EVOLUTION_WEBHOOK_SECRET=${EVOLUTION_WEBHOOK_SECRET:-}
+      - PLATFORM_WHATSAPP_NOTIFY=${PLATFORM_WHATSAPP_NOTIFY:-}
       - WHATSAPP_NOTIFY_CLIENT=${WHATSAPP_NOTIFY_CLIENT:-true}
+    # Reach Evolution on the host (if published on 0.0.0.0) via host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - prestapro_internal
     depends_on:

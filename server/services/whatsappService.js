@@ -63,6 +63,37 @@ function evolutionInstance() {
   return env('EVOLUTION_INSTANCE');
 }
 
+/** Avoid dumping Cloudflare/HTML bodies into the UI. */
+function sanitizeEvolutionDetail(text, status) {
+  const raw = String(text || '').trim();
+  const lower = raw.toLowerCase();
+  if (
+    lower.includes('cloudflare') ||
+    lower.includes('<!doctype') ||
+    lower.includes('<html') ||
+    lower.includes('bad gateway') ||
+    lower.includes('invalid or incomplete response')
+  ) {
+    return status === 502 || status === 503 || status === 520
+      ? 'Evolution no respondió (gateway). Si está en el mismo VPS, usa la URL interna en EVOLUTION_API_URL (ej. http://127.0.0.1:8080), no el dominio público.'
+      : 'Evolution devolvió una respuesta inválida del proxy. Revisa EVOLUTION_API_URL y que el servicio esté arriba.';
+  }
+  if (!raw) return status ? `HTTP ${status}` : 'Sin detalle';
+  // Prefer short JSON message if present
+  try {
+    const j = JSON.parse(raw);
+    const msg =
+      j?.response?.message ||
+      j?.message ||
+      j?.error ||
+      (Array.isArray(j?.response?.message) ? j.response.message.join(', ') : null);
+    if (msg) return String(Array.isArray(msg) ? msg.join(', ') : msg).slice(0, 200);
+  } catch {
+    /* not JSON */
+  }
+  return raw.replace(/\s+/g, ' ').slice(0, 200);
+}
+
 function normalizeState(payload) {
   const raw =
     payload?.instance?.state ||
@@ -95,19 +126,44 @@ function extractQrBase64(payload) {
   return null;
 }
 
+const EVOLUTION_FETCH_MS = 18000;
+
+async function evolutionFetch(path) {
+  const url = `${evolutionBase()}${path}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), EVOLUTION_FETCH_MS);
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: evolutionHeaders(),
+      signal: controller.signal,
+    });
+    const text = await res.text();
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = {};
+    }
+    return { res, text, data };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function isAbortError(err) {
+  return err?.name === 'AbortError' || /aborted|abort/i.test(String(err?.message || ''));
+}
+
 async function getConnectionState() {
   if (!whatsappConfigured()) {
     return { ok: false, error: 'not_configured', state: 'unconfigured' };
   }
   const instance = evolutionInstance();
   try {
-    const res = await fetch(
-      `${evolutionBase()}/instance/connectionState/${encodeURIComponent(instance)}`,
-      { method: 'GET', headers: evolutionHeaders() },
+    const { res, text, data } = await evolutionFetch(
+      `/instance/connectionState/${encodeURIComponent(instance)}`,
     );
-    const text = await res.text();
-    let data = {};
-    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
 
     if (!res.ok) {
       return {
@@ -115,7 +171,7 @@ async function getConnectionState() {
         error: `http_${res.status}`,
         state: 'unknown',
         instance,
-        detail: String(text).slice(0, 200),
+        detail: sanitizeEvolutionDetail(text, res.status),
       };
     }
 
@@ -127,11 +183,15 @@ async function getConnectionState() {
       data,
     };
   } catch (err) {
+    const detail = isAbortError(err)
+      ? 'Tiempo de espera agotado al consultar Evolution. Revisa EVOLUTION_API_URL (preferible URL interna en el VPS).'
+      : sanitizeEvolutionDetail(err.message || 'network_error');
     return {
       ok: false,
-      error: err.message || 'network_error',
+      error: isAbortError(err) ? 'timeout' : 'network_error',
       state: 'unknown',
       instance,
+      detail,
     };
   }
 }
@@ -142,20 +202,16 @@ async function getConnectQr() {
   }
   const instance = evolutionInstance();
   try {
-    const res = await fetch(
-      `${evolutionBase()}/instance/connect/${encodeURIComponent(instance)}`,
-      { method: 'GET', headers: evolutionHeaders() },
+    const { res, text, data } = await evolutionFetch(
+      `/instance/connect/${encodeURIComponent(instance)}`,
     );
-    const text = await res.text();
-    let data = {};
-    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
 
     if (!res.ok) {
       return {
         ok: false,
         error: `http_${res.status}`,
         instance,
-        detail: String(text).slice(0, 300),
+        detail: sanitizeEvolutionDetail(text, res.status),
       };
     }
 
@@ -176,7 +232,15 @@ async function getConnectQr() {
       data,
     };
   } catch (err) {
-    return { ok: false, error: err.message || 'network_error', instance };
+    const detail = isAbortError(err)
+      ? 'Tiempo de espera agotado al pedir el QR. Si Evolution está en el mismo servidor, usa URL interna en EVOLUTION_API_URL.'
+      : sanitizeEvolutionDetail(err.message || 'network_error');
+    return {
+      ok: false,
+      error: isAbortError(err) ? 'timeout' : 'network_error',
+      instance,
+      detail,
+    };
   }
 }
 

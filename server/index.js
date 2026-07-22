@@ -260,6 +260,7 @@ app.use('/api/payments', authMiddleware, paymentsRouter);
 app.use('/api/sync', authMiddleware, syncRouter);
 app.use('/api/subscriptions', authMiddleware, subscriptionsRouter);
 app.use('/api/settings', authMiddleware, settingsRouter);
+app.use('/api/whatsapp', require('./routes/whatsappPublic'));
 app.use('/api/whatsapp', authMiddleware, require('./routes/whatsapp'));
 app.use('/api/expenses', authMiddleware, expensesRouter);
 app.use('/api/collectors', collectorsRouter); // Auth managed internally
@@ -466,6 +467,128 @@ app.post('/api/tenants/register', async (req, res) => {
       code: err.code || null,
       message: !IS_PRODUCTION ? err.message : null,
     });
+  }
+});
+
+// Complete tenant registration from WhatsApp lead (slug + password only)
+app.post('/api/tenants/register-from-whatsapp', registerLimiter, async (req, res) => {
+  const { token: leadToken, tenantSlug, adminPassword, contactName } = req.body || {};
+  if (!leadToken || !tenantSlug || !adminPassword) {
+    return res.status(400).json({ error: 'Faltan token, slug o contraseña' });
+  }
+
+  const { getLeadByToken } = require('./services/whatsappSignupService');
+  const lead = await getLeadByToken(leadToken);
+  if (!lead || !lead.companyName || !lead.adminEmail) {
+    return res.status(400).json({ error: 'Enlace inválido o expirado' });
+  }
+
+  const passwordValidation = validatePassword(adminPassword);
+  if (!passwordValidation.valid) {
+    return res.status(400).json({
+      error: 'Contraseña no cumple los requisitos de seguridad',
+      details: passwordValidation.errors,
+    });
+  }
+
+  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  if (!slugRegex.test(tenantSlug) || tenantSlug.length < 3 || tenantSlug.length > 50) {
+    return res.status(400).json({ error: 'El slug debe ser alfanumérico, en minúsculas, entre 3-50 caracteres' });
+  }
+
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { email: lead.adminEmail } });
+    if (existingUser) {
+      return res.status(409).json({ error: 'El correo ya está registrado' });
+    }
+    const existingSlug = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+    if (existingSlug) {
+      return res.status(409).json({ error: 'Ese slug ya está en uso' });
+    }
+
+    const bcryptRounds = IS_PRODUCTION ? 12 : 10;
+    const passwordHash = await bcrypt.hash(adminPassword, bcryptRounds);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const adminName = contactName || lead.contactName || 'Administrador';
+
+    const tenant = await prisma.tenant.create({
+      data: {
+        name: lead.companyName,
+        slug: tenantSlug,
+        isVerified: false,
+        verificationToken,
+        verificationExpiresAt,
+        settings: { signupSource: 'whatsapp', contactPhone: lead.contactPhone },
+        users: {
+          create: {
+            email: lead.adminEmail,
+            passwordHash,
+            name: adminName,
+            role: 'OWNER',
+          },
+        },
+      },
+      include: { users: true },
+    });
+
+    await prisma.tenantSignupLead.update({
+      where: { id: lead.id },
+      data: { consumedAt: new Date(), step: 'done' },
+    });
+
+    const adminUser = tenant.users[0];
+    const jwtToken = jwt.sign(
+      { userId: adminUser.id, tenantId: tenant.id, role: adminUser.role },
+      JWT_SECRET,
+      { expiresIn: '12h' },
+    );
+
+    if (mailer) {
+      const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+      const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
+      try {
+        await mailer.sendMail({
+          from: getFromAddress(BRAND_NAME),
+          to: lead.adminEmail,
+          subject: `Activa tu cuenta de ${lead.companyName} - ${BRAND_NAME}`,
+          text: `Hola,\n\nHemos creado tu cuenta para ${lead.companyName}. Actívala aquí:\n\n${verifyUrl}\n`,
+          html: getVerificationEmail(lead.companyName, verifyUrl),
+        });
+      } catch (err) {
+        console.error('❌ MAIL_VERIFY_WA_ERROR', err.message);
+      }
+      if (ADMIN_NOTIFY_EMAIL && ADMIN_NOTIFY_EMAIL !== lead.adminEmail) {
+        try {
+          await mailer.sendMail({
+            from: getFromAddress(`${BRAND_NAME} Admin`),
+            to: ADMIN_NOTIFY_EMAIL,
+            subject: `Nuevo registro WhatsApp en ${BRAND_NAME}`,
+            text: `Empresa: ${lead.companyName}\nSlug: ${tenantSlug}\nAdmin: ${lead.adminEmail}\nTel: ${lead.contactPhone}`,
+            html: getAdminNotificationEmail(lead.companyName, tenantSlug, lead.adminEmail, verifyUrl),
+          });
+        } catch (err) {
+          console.error('❌ MAIL_ADMIN_WA_REGISTER_ERROR', err);
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      requiresVerification: true,
+      token: jwtToken,
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        isVerified: tenant.isVerified,
+        verificationExpiresAt: tenant.verificationExpiresAt,
+      },
+      user: { id: adminUser.id, email: adminUser.email, name: adminUser.name, role: adminUser.role },
+    });
+  } catch (err) {
+    console.error('TENANT_REGISTER_WA_ERROR', err);
+    return res.status(500).json({ error: 'Error al completar el registro' });
   }
 });
 

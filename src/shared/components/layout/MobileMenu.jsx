@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-export function MobileMenu({ mobileMenuOpen, setMobileMenuOpen, items, setActiveTab }) {
+export function MobileMenu({ mobileMenuOpen, setMobileMenuOpen, items, setActiveTab, hidePoweredBy }) {
   if (!mobileMenuOpen) return null;
 
   return (
@@ -38,9 +38,11 @@ export function MobileMenu({ mobileMenuOpen, setMobileMenuOpen, items, setActive
         ))}
       </div>
 
-      <div className="p-4 border-t border-slate-700/50 text-center">
-        <p className="text-xs text-slate-500">Powered by RENACE.TECH</p>
-      </div>
+      {!hidePoweredBy && (
+        <div className="p-4 border-t border-slate-700/50 text-center safe-area-bottom">
+          <p className="text-xs text-slate-500">Powered by RENACE.TECH</p>
+        </div>
+      )}
     </div>
   );
 }

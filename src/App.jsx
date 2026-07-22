@@ -57,12 +57,19 @@ const MenuSection = ({ title, children }) => (
   </div>
 );
 
+import { useTenantPack } from './shared/hooks/useTenantPack';
+
 // --- Inner App (has access to context) ---
 function AppShell({ onLogout }) {
   const {
     dbData, showToast, user, notifications, setNotifications,
     pendingRequestsCount, activeLoansCount,
   } = useAppData();
+
+  const tenantPack = useTenantPack({
+    slug: user?.tenantSlug || user?.tenant?.slug || dbData.systemSettings?.tenantSlug,
+    settings: dbData.systemSettings || {},
+  });
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -155,7 +162,7 @@ function AppShell({ onLogout }) {
   };
 
   return (
-    <div className="flex min-h-screen-safe max-h-screen-safe md:h-screen bg-slate-100 dark:bg-slate-900 overflow-hidden font-sans transition-colors duration-300">
+    <div className="flex min-h-screen-safe max-h-screen-safe h-screen-safe bg-slate-100 dark:bg-slate-900 overflow-hidden font-sans transition-colors duration-300">
       <ConnectionStatus />
 
       {/* Mobile Sidebar Overlay */}
@@ -176,6 +183,8 @@ function AppShell({ onLogout }) {
           theme={theme}
           toggleTheme={toggleTheme}
           companyName={dbData.systemSettings?.companyName}
+          productName={tenantPack.branding.productName}
+          hidePoweredBy={tenantPack.branding.hidePoweredBy}
         >
           {sections.map(section => (
             <MenuSection key={section} title={SECTION_LABELS[section] || section}>
@@ -196,7 +205,7 @@ function AppShell({ onLogout }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen md:h-full overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen-safe md:h-full overflow-hidden">
         <Header
           activeTitle={getRouteTitle(activeTab)}
           setMobileMenuOpen={setSidebarOpen}
@@ -215,7 +224,7 @@ function AppShell({ onLogout }) {
           }}
         />
 
-        <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 pb-24 sm:pb-20 md:pb-6 main-content-area scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
+        <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 pb-24 md:pb-6 main-content-area scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
           <AppRouter
             activeTab={activeTab}
             setActiveTab={setActiveTab}

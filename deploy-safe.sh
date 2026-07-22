@@ -52,7 +52,16 @@ if [[ -f .evolution.local ]]; then
 fi
 
 if [[ -n "${EVOLUTION_API_URL:-}" ]] && [[ -n "${EVOLUTION_API_KEY:-}" ]]; then
-  ok "WhatsApp Evolution: ${EVOLUTION_INSTANCE:-?}"
+  ok "WhatsApp Evolution: ${EVOLUTION_INSTANCE:-?} → ${EVOLUTION_API_URL}"
+  if [[ "${EVOLUTION_API_URL}" == https://evoapi.* ]] || [[ "${EVOLUTION_API_URL}" == https://*renace.tech* ]]; then
+    warn "EVOLUTION_API_URL usa dominio público — desde Docker puede fallar con Cloudflare 502. Preferible http://host.docker.internal:PUERTO"
+  fi
+  EVO_CODE=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 "${EVOLUTION_API_URL%/}/" 2>/dev/null || echo "000")
+  if [[ "$EVO_CODE" == "200" ]] || [[ "$EVO_CODE" == "401" ]]; then
+    ok "Evolution alcanzable desde el host (HTTP $EVO_CODE)"
+  else
+    warn "Evolution no responde en ${EVOLUTION_API_URL} (HTTP $EVO_CODE) — el QR de WhatsApp fallará"
+  fi
 else
   warn "WhatsApp Evolution: no configurado (solo email/push)"
 fi

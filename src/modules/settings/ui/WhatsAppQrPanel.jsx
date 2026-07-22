@@ -10,6 +10,31 @@ const STATE_LABEL = {
   unknown: 'Desconocido',
 };
 
+function friendlyApiError(err, fallback = 'Error de WhatsApp') {
+  const data = err?.response?.data;
+  const status = err?.response?.status;
+  const candidates = [data?.error, data?.detail, typeof data === 'string' ? data : null, err?.message];
+  for (const raw of candidates) {
+    if (!raw || typeof raw !== 'string') continue;
+    const lower = raw.toLowerCase();
+    if (
+      lower.includes('cloudflare') ||
+      lower.includes('<!doctype') ||
+      lower.includes('<html') ||
+      lower.includes('bad gateway') ||
+      lower.includes('invalid or incomplete response')
+    ) {
+      return 'No se pudo hablar con Evolution (error de gateway). En el VPS usa URL interna en EVOLUTION_API_URL, no el dominio público detrás de Cloudflare.';
+    }
+    if (raw.startsWith('<') || raw.length > 280) continue;
+    return raw;
+  }
+  if (status === 502 || status === 503) {
+    return 'El servidor no pudo obtener respuesta de Evolution. Revisa EVOLUTION_API_URL en el VPS.';
+  }
+  return fallback;
+}
+
 /**
  * WhatsApp Evolution instance QR panel — used in Settings + Onboarding.
  */
@@ -27,10 +52,12 @@ export function WhatsAppQrPanel({ compact = false, autoFetch = true, className =
     try {
       const data = await api.get('/whatsapp/status');
       setStatus(data);
+      if (data?.ok === false && data?.detail) {
+        setError(data.detail);
+      }
       return data;
     } catch (err) {
-      const msg = err?.response?.data?.error || err.message || 'Error de estado';
-      setError(msg);
+      setError(friendlyApiError(err, 'Error de estado'));
       return null;
     } finally {
       setLoading(false);
@@ -49,8 +76,7 @@ export function WhatsAppQrPanel({ compact = false, autoFetch = true, className =
       }
       return data;
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.response?.data?.detail || err.message || 'Error al obtener QR';
-      setError(msg);
+      setError(friendlyApiError(err, 'Error al obtener QR'));
       setQr(null);
       return null;
     } finally {
@@ -64,7 +90,8 @@ export function WhatsAppQrPanel({ compact = false, autoFetch = true, className =
     (async () => {
       const s = await refreshStatus();
       if (cancelled || !s) return;
-      if (s.configured && s.state !== 'open') {
+      // Only auto-request QR when Evolution answered and is not already open
+      if (s.configured && s.ok !== false && s.state !== 'open') {
         await fetchQr();
       }
     })();

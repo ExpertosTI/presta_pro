@@ -4,7 +4,7 @@ import AIHelper from './AIHelper.jsx';
 
 export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, ownerName, companyName, onNavigate, onOpenNewClient, onOpenNewLoan, onPrintReceipt }) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState({ x: 16, y: 96 });
+  const [position, setPosition] = useState({ x: 16, y: 100 });
   const [dragging, setDragging] = useState(false);
   const dragStateRef = useRef(null);
   const movedRef = useRef(false);
@@ -102,8 +102,8 @@ export function FloatingAIBot({ chatHistory, setChatHistory, dbData, showToast, 
           className="pointer-events-auto rounded-2xl shadow-2xl border border-slate-800/80 bg-slate-950/95 backdrop-blur-2xl flex flex-col overflow-hidden animate-scale-in"
           style={{
             width: 'min(360px, calc(100vw - 24px))',
-            height: 'min(520px, calc(100dvh - 110px))',
-            maxHeight: 'calc(100dvh - 110px)',
+            height: 'min(520px, calc(100dvh - 160px))',
+            maxHeight: 'calc(100dvh - 160px)',
           }}
         >
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/70 bg-slate-950/95">

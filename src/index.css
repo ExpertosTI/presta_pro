@@ -99,31 +99,63 @@ html {
 
   /* ======================================
      GLOBAL MOBILE MODAL FIX
-     Modals: centered, full-width, content-driven height
+     Sheets with [data-modal-sheet]: flex column + sticky footer
+     Other modals: full-height scrollable panels
      Excludes [data-fullscreen] (maps, fullscreen views)
      ====================================== */
 
-  /* Modal overlays: center content, no padding */
   .fixed.inset-0.z-50:not([data-fullscreen]),
   .fixed.inset-0.z-\[120\]:not([data-fullscreen]),
   .fixed.inset-0.z-\[130\]:not([data-fullscreen]),
   .fixed.inset-0.z-\[60\] {
     display: flex !important;
-    align-items: flex-start !important;
+    align-items: flex-end !important;
     justify-content: center !important;
     padding: 0 !important;
-    overflow-y: auto !important;
+    overflow: hidden !important;
   }
 
-  /* Inner modal panels: full width, natural height, scrollable */
-  .fixed.inset-0.z-50:not([data-fullscreen]) > div,
-  .fixed.inset-0.z-\[120\]:not([data-fullscreen]) > div,
-  .fixed.inset-0.z-\[130\]:not([data-fullscreen]) > div,
-  .fixed.inset-0.z-\[60\] > div {
+  @media (min-width: 640px) {
+    .fixed.inset-0.z-50:not([data-fullscreen]),
+    .fixed.inset-0.z-\[120\]:not([data-fullscreen]),
+    .fixed.inset-0.z-\[130\]:not([data-fullscreen]),
+    .fixed.inset-0.z-\[60\] {
+      align-items: center !important;
+      padding: 1rem !important;
+    }
+  }
+
+  /* Sheet modals: max viewport height, no forced 100dvh scroll on whole panel */
+  .fixed.inset-0[data-modal-sheet]:not([data-fullscreen]) > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: min(92dvh, 100%) !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+  }
+
+  @media (min-width: 640px) {
+    .fixed.inset-0[data-modal-sheet]:not([data-fullscreen]) > div {
+      max-width: 28rem !important;
+      border-radius: 1rem !important;
+    }
+  }
+
+  /* Legacy full-screen modals (no data-modal-sheet) */
+  .fixed.inset-0.z-50:not([data-fullscreen]):not([data-modal-sheet]) > div,
+  .fixed.inset-0.z-\[120\]:not([data-fullscreen]):not([data-modal-sheet]) > div,
+  .fixed.inset-0.z-\[130\]:not([data-fullscreen]):not([data-modal-sheet]) > div,
+  .fixed.inset-0.z-\[60\]:not([data-modal-sheet]) > div {
     width: 100% !important;
     max-width: 100% !important;
     min-height: 100dvh !important;
-    max-height: none !important;
+    max-height: 100dvh !important;
     height: auto !important;
     border-radius: 0 !important;
     margin: 0 !important;
@@ -132,7 +164,6 @@ html {
     overflow-y: auto !important;
   }
 
-  /* Body scroll lock when modal is open */
   body:has(.fixed.inset-0.z-50),
   body:has(.fixed.inset-0.z-\[120\]),
   body:has(.fixed.inset-0.z-\[130\]),

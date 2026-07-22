@@ -26,6 +26,7 @@ router.get('/status', async (req, res) => {
       state: live.state || 'unknown',
       ok: live.ok,
       error: live.error || null,
+      detail: live.detail || null,
     });
   } catch (error) {
     console.error('[whatsapp] status error:', error.message);
@@ -45,9 +46,10 @@ router.get('/qr', async (req, res) => {
 
     const result = await getConnectQr();
     if (!result.ok) {
+      const detail = result.detail || result.error || 'Error desconocido';
       return res.status(502).json({
-        error: 'No se pudo obtener el QR de Evolution',
-        detail: result.detail || result.error,
+        error: detail,
+        detail,
         instance: result.instance,
       });
     }

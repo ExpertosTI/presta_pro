@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
-import { Shield, Lock, User, CheckCircle, Mail, Briefcase, RefreshCw } from 'lucide-react';
+import { Shield, Lock, User, CheckCircle, Mail, Briefcase, RefreshCw, MessageCircle } from 'lucide-react';
 import { jwtDecode } from "jwt-decode";
 import logo from '../../../../logo-small.svg';
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'https://prestanace.renace.tech/api').replace(/\/$/, '');
+const PLATFORM_WA = (import.meta.env.VITE_PLATFORM_WHATSAPP || '').replace(/\D/g, '');
 
 export function LoginView({ onLogin }) {
     const [isRegistering, setIsRegistering] = useState(false);
@@ -18,8 +21,10 @@ export function LoginView({ onLogin }) {
         companyName: '',
         name: '',
         email: '',
-        password: ''
+        password: '',
+        slug: '',
     });
+    const [waSignupToken, setWaSignupToken] = useState(null);
 
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
@@ -35,6 +40,35 @@ export function LoginView({ onLogin }) {
         if (Capacitor.isNativePlatform()) {
             GoogleAuth.initialize();
         }
+    }, []);
+
+    // Prefill from WhatsApp signup link ?waSignup=TOKEN
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('waSignup');
+        if (!token) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(`${API_BASE}/whatsapp/signup-lead/${encodeURIComponent(token)}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Enlace inválido');
+                if (cancelled) return;
+                setWaSignupToken(token);
+                setIsRegistering(true);
+                setRegisterForm((prev) => ({
+                    ...prev,
+                    companyName: data.companyName || '',
+                    email: data.adminEmail || '',
+                    name: data.contactName || '',
+                    slug: data.suggestedSlug || '',
+                }));
+                setSuccessMsg('Completa slug y contraseña para activar tu cuenta (datos desde WhatsApp).');
+            } catch (err) {
+                if (!cancelled) setError(err.message || 'Enlace de WhatsApp inválido o expirado');
+            }
+        })();
+        return () => { cancelled = true; };
     }, []);
 
     const handleGoogleNativeLogin = async () => {
@@ -73,6 +107,7 @@ export function LoginView({ onLogin }) {
                     token: data.token,
                     role: data.user.role,
                     tenantId: data.tenant.id,
+                    tenantSlug: data.tenant.slug,
                     photoUrl: data.user.photoUrl
                 });
             } else if (data.accountExpired) {
@@ -115,7 +150,8 @@ export function LoginView({ onLogin }) {
                     email: data.user.email,
                     token: data.token,
                     role: data.user.role,
-                    tenantId: data.tenant.id
+                    tenantId: data.tenant.id,
+                    tenantSlug: data.tenant.slug
                 });
             } else if (data.accountExpired) {
                 // Account expired - offer resend option
@@ -179,26 +215,55 @@ export function LoginView({ onLogin }) {
         setSuccessMsg('');
 
         try {
-            // Generate slug from company name (lowercase, replace spaces with hyphens)
+            if (waSignupToken) {
+                const slug = (registerForm.slug || registerForm.companyName)
+                    .toLowerCase()
+                    .trim()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^a-z0-9-]/g, '');
+                const response = await fetch(`${API_BASE}/tenants/register-from-whatsapp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: waSignupToken,
+                        tenantSlug: slug,
+                        adminPassword: registerForm.password,
+                        contactName: registerForm.name,
+                    }),
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    setSuccessMsg('¡Cuenta creada! Revisa tu correo para verificar la cuenta.');
+                    window.history.replaceState({}, '', window.location.pathname);
+                    setTimeout(() => {
+                        setIsRegistering(false);
+                        setWaSignupToken(null);
+                        setCredentials({ username: registerForm.email, password: registerForm.password });
+                        setSuccessMsg('');
+                    }, 2500);
+                } else {
+                    setError(data.error || 'Error al completar el registro.');
+                }
+                return;
+            }
+
             const tenantSlug = registerForm.companyName
                 .toLowerCase()
                 .trim()
                 .replace(/\s+/g, '-')
                 .replace(/[^a-z0-9-]/g, '');
 
-            // Map frontend fields to backend expected fields
             const registrationData = {
                 tenantName: registerForm.companyName,
-                tenantSlug: tenantSlug,
+                tenantSlug,
                 adminEmail: registerForm.email,
-                adminPassword: registerForm.password
+                adminPassword: registerForm.password,
             };
 
-            // Use relative URL so nginx can proxy to backend
-            const response = await fetch('https://prestanace.renace.tech/api/tenants/register', {
+            const response = await fetch(`${API_BASE}/tenants/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(registrationData)
+                body: JSON.stringify(registrationData),
             });
 
             const data = await response.json();
@@ -208,7 +273,7 @@ export function LoginView({ onLogin }) {
                 setTimeout(() => {
                     setIsRegistering(false);
                     setCredentials({ username: registerForm.email, password: registerForm.password });
-                    setSuccessMsg(''); // Clear msg after switch
+                    setSuccessMsg('');
                 }, 3000);
             } else {
                 setError(data.error || 'Error al crear la cuenta. Intente nuevamente.');
@@ -254,6 +319,7 @@ export function LoginView({ onLogin }) {
                         token: data.token,
                         role: data.user.role,
                         tenantId: data.tenant.id,
+                    tenantSlug: data.tenant.slug,
                         photoUrl: data.user.photoUrl
                     });
                 } else if (data.accountExpired) {
@@ -324,9 +390,24 @@ export function LoginView({ onLogin }) {
                     ) : isRegistering ? (
                         <div className="space-y-4 animate-fade-in">
                             <form onSubmit={handleRegister} className="space-y-4">
-                                <h3 className="text-white text-lg font-semibold text-center mb-2">Crear Nueva Cuenta</h3>
+                                <h3 className="text-white text-lg font-semibold text-center mb-2">
+                                    {waSignupToken ? 'Completar registro WhatsApp' : 'Crear Nueva Cuenta'}
+                                </h3>
+
+                                {!waSignupToken && PLATFORM_WA && (
+                                    <a
+                                        href={`https://wa.me/${PLATFORM_WA}?text=${encodeURIComponent('REGISTRO')}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center justify-center gap-2 w-full py-3 mb-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold text-sm min-h-[48px] touch-manipulation"
+                                    >
+                                        <MessageCircle size={18} />
+                                        Registrarme por WhatsApp
+                                    </a>
+                                )}
 
                                 {/* Google Sign Up Button */}
+                                {!waSignupToken && (
                                 <div className="flex justify-center mb-4">
                                     <GoogleLogin
                                         onSuccess={handleGoogleSuccess}
@@ -338,9 +419,12 @@ export function LoginView({ onLogin }) {
                                         width="300"
                                     />
                                 </div>
+                                )}
+                                {!waSignupToken && (
                                 <div className="relative flex justify-center text-sm mb-4">
                                     <span className="px-2 text-slate-400 bg-slate-900/0 backdrop-blur-sm">O ingresa tus datos manual</span>
                                 </div>
+                                )}
 
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -350,11 +434,29 @@ export function LoginView({ onLogin }) {
                                         type="text"
                                         placeholder="Nombre de la Empresa"
                                         required
-                                        className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        readOnly={Boolean(waSignupToken)}
+                                        className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-70"
                                         value={registerForm.companyName}
                                         onChange={e => setRegisterForm({ ...registerForm, companyName: e.target.value })}
                                     />
                                 </div>
+
+                                {waSignupToken && (
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                        <Shield size={18} />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Slug (ej. mi-financiera)"
+                                        required
+                                        minLength={3}
+                                        className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                        value={registerForm.slug}
+                                        onChange={e => setRegisterForm({ ...registerForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                                    />
+                                </div>
+                                )}
 
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -378,6 +480,7 @@ export function LoginView({ onLogin }) {
                                         type="email"
                                         placeholder="Correo Electrónico"
                                         required
+                                        readOnly={Boolean(waSignupToken)}
                                         className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                                         value={registerForm.email}
                                         onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
@@ -518,12 +621,23 @@ export function LoginView({ onLogin }) {
                                 </div>
                             </div>
 
-                            <div className="text-center pt-4 border-t border-slate-800 mt-4">
+                            <div className="text-center pt-4 border-t border-slate-800 mt-4 space-y-2">
                                 <p className="text-slate-400 text-sm mb-2">¿Nuevo en Presta Pro?</p>
+                                {(PLATFORM_WA || true) && (
+                                    <a
+                                        href={`https://wa.me/${PLATFORM_WA || '184994577463'}?text=${encodeURIComponent('REGISTRO')}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center justify-center gap-2 w-full py-2.5 mb-1 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-medium text-sm min-h-[44px] touch-manipulation"
+                                    >
+                                        <MessageCircle size={16} />
+                                        Registrarme por WhatsApp
+                                    </a>
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => setIsRegistering(true)}
-                                    className="w-full py-2.5 text-white font-medium bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700"
+                                    className="w-full py-2.5 text-white font-medium bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700 min-h-[44px]"
                                 >
                                     Crear Cuenta Gratis
                                 </button>

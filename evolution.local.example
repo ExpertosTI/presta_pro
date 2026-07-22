@@ -1,6 +1,23 @@
 # Evolution API — copiar a .evolution.local en el VPS (no va a git)
 # cp evolution.local.example .evolution.local
+#
+# Evolution publica 127.0.0.1:8088 (solo localhost). Desde el contenedor api:
+#   1) Une redes: docker network connect <red_evolution> presta_pro-api-1
+#   2) Usa hostname interno:
+#        EVOLUTION_API_URL=http://evolution_api:8080
+#
+# Descubrir red:
+#   docker inspect evolution_api -f '{{range $k,$v := .NetworkSettings.Networks}}{{println $k}}{{end}}'
+#
+# Webhook de registro de empresas (plataforma):
+#   En Evolution, webhook URL: https://prestanace.renace.tech/api/whatsapp/webhook
+#   EVOLUTION_WEBHOOK_SECRET=mismo_valor_que_apikey_o_secreto
+#   PLATFORM_WHATSAPP_NOTIFY=1XXXXXXXXXX  (opcional, aviso super-admin)
+# Frontend CTA: VITE_PLATFORM_WHATSAPP=1XXXXXXXXXX
 
-EVOLUTION_API_URL=https://evoapi.renace.tech
+EVOLUTION_API_URL=http://evolution_api:8080
 EVOLUTION_API_KEY=
 EVOLUTION_INSTANCE=RENACE.TECH
+EVOLUTION_WEBHOOK_SECRET=
+PLATFORM_WHATSAPP_NOTIFY=
+WHATSAPP_NOTIFY_CLIENT=true

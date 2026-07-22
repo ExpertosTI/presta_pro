@@ -938,9 +938,9 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
       )}
 
       {/* Master-detail layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-5">
         {/* ── Panel izquierdo: lista ── */}
-        <div className={`lg:col-span-5 xl:col-span-4 flex flex-col gap-3 min-h-0 ${selectedLoan ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`md:col-span-5 xl:col-span-4 flex flex-col gap-3 min-h-0 ${selectedLoan ? 'hidden md:flex' : 'flex'}`}>
           <div className="flex items-center justify-between flex-shrink-0">
             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <Banknote className="w-5 h-5 text-blue-600" />
@@ -949,7 +949,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
             {onCreateLoan && (
               <button
                 onClick={() => setCreateModalOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all min-h-[40px] active:scale-95 shadow-sm shadow-blue-600/20"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all min-h-[44px] active:scale-95 shadow-sm shadow-blue-600/20"
               >
                 <Plus size={16} /> Nuevo
               </button>
@@ -1068,7 +1068,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
         </div>
 
         {/* ── Panel derecho: detalle ── */}
-        <div className={`lg:col-span-7 xl:col-span-8 min-h-0 ${!selectedLoan ? 'hidden lg:block' : ''}`}>
+        <div className={`md:col-span-7 xl:col-span-8 min-h-0 ${!selectedLoan ? 'hidden md:block' : ''}`}>
           {!selectedLoan ? (
             <div className="h-full min-h-[400px] flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 p-8 text-center">
               <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
@@ -1086,7 +1086,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                 <div className="min-w-0">
                   <button
                     onClick={() => onSelectLoan?.(null)}
-                    className="lg:hidden flex items-center gap-1 text-xs text-blue-600 font-semibold mb-2"
+                    className="md:hidden flex items-center gap-1 text-xs text-blue-600 font-semibold mb-2 min-h-[44px] touch-manipulation"
                   >
                     <X size={14} /> Volver a la lista
                   </button>
@@ -1117,7 +1117,7 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                   )}
                   <button
                     onClick={() => onSelectLoan?.(null)}
-                    className="hidden lg:flex p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                    className="hidden md:flex p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                     title="Cerrar"
                   >
                     <X size={16} />
@@ -1451,20 +1451,20 @@ export function LoansView({ loans, clients, collectors = [], registerPayment, se
                     <button
                       type="button"
                       onClick={handleOpenEditLoan}
-                      className="text-xs px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold hover:bg-blue-100 transition-colors min-h-[40px]"
+                      className="text-xs px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold hover:bg-blue-100 transition-colors min-h-[44px]"
                     >
                       Editar préstamo
                     </button>
                   ) : null;
                 })()}
-                <button onClick={handleGenerateContract} disabled={generatingContract} className="text-xs px-3 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-semibold hover:bg-indigo-100 transition-colors disabled:opacity-50 min-h-[40px]">
+                <button onClick={handleGenerateContract} disabled={generatingContract} className="text-xs px-3 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-semibold hover:bg-indigo-100 transition-colors disabled:opacity-50 min-h-[44px]">
                   {generatingContract ? 'Generando...' : 'Contrato IA'}
                 </button>
                 {selectedLoan.status === 'ACTIVE' && (
-                  <button onClick={() => setCancelModal(true)} className="text-xs px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 font-semibold hover:bg-amber-100 min-h-[40px]">Cancelar</button>
+                  <button onClick={() => setCancelModal(true)} className="text-xs px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 font-semibold hover:bg-amber-100 min-h-[44px]">Cancelar</button>
                 )}
-                <button onClick={() => setArchiveModal(true)} className="text-xs px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200 min-h-[40px]">Archivar</button>
-                <button onClick={() => setNotesModal({ show: true, loanId: selectedLoan.id, notes: selectedLoan.notes || '' })} className="text-xs px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 font-semibold hover:bg-violet-100 min-h-[40px]">Notas</button>
+                <button onClick={() => setArchiveModal(true)} className="text-xs px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-200 min-h-[44px]">Archivar</button>
+                <button onClick={() => setNotesModal({ show: true, loanId: selectedLoan.id, notes: selectedLoan.notes || '' })} className="text-xs px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 text-violet-700 font-semibold hover:bg-violet-100 min-h-[44px]">Notas</button>
               </div>
             </div>
           )}

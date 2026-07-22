@@ -629,3 +629,26 @@ model EmailTemplate {
   @@index([slug])
 }
 
+// ============================================
+// WHATSAPP TENANT SIGNUP (platform leads)
+// ============================================
+
+model TenantSignupLead {
+  id             String    @id @default(cuid())
+  companyName    String?
+  adminEmail     String?
+  contactName    String?
+  contactPhone   String
+  step           String    @default("ask_company") // ask_company | ask_email | ask_contact_name | send_link | done | cancelled
+  draft          Json?
+  completionToken String?  @unique
+  expiresAt      DateTime?
+  consumedAt     DateTime?
+  source         String    @default("whatsapp")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([contactPhone])
+  @@index([completionToken])
+}
+
