@@ -27,6 +27,8 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - prestapro_internal
+      # Red Docker de Evolution (default RenaceNet en este VPS)
+      - evolution_shared
     depends_on:
       db:
         condition: service_healthy
@@ -70,3 +72,8 @@ volumes:
 networks:
   prestapro_internal:
     driver: bridge
+  # Red externa donde corre evolution_api (en este VPS: RenaceNet)
+  # Override: EVOLUTION_DOCKER_NETWORK=... en .evolution.local / .env
+  evolution_shared:
+    external: true
+    name: ${EVOLUTION_DOCKER_NETWORK:-RenaceNet}

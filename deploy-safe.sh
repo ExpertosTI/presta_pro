@@ -54,13 +54,18 @@ fi
 if [[ -n "${EVOLUTION_API_URL:-}" ]] && [[ -n "${EVOLUTION_API_KEY:-}" ]]; then
   ok "WhatsApp Evolution: ${EVOLUTION_INSTANCE:-?} → ${EVOLUTION_API_URL}"
   if [[ "${EVOLUTION_API_URL}" == https://evoapi.* ]] || [[ "${EVOLUTION_API_URL}" == https://*renace.tech* ]]; then
-    warn "EVOLUTION_API_URL usa dominio público — desde Docker puede fallar con Cloudflare 502. Preferible http://host.docker.internal:PUERTO"
+    warn "EVOLUTION_API_URL usa dominio público — desde Docker puede fallar con Cloudflare 502. Preferible http://evolution_api:8080"
   fi
-  EVO_CODE=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 "${EVOLUTION_API_URL%/}/" 2>/dev/null || echo "000")
-  if [[ "$EVO_CODE" == "200" ]] || [[ "$EVO_CODE" == "401" ]]; then
-    ok "Evolution alcanzable desde el host (HTTP $EVO_CODE)"
+  # Hostnames Docker (evolution_api) no resuelven en el host — solo avisar
+  if [[ "${EVOLUTION_API_URL}" == *evolution_api* ]] || [[ "${EVOLUTION_API_URL}" == *host.docker.internal* ]]; then
+    ok "URL interna Docker — se verificará tras unir la red ${EVOLUTION_DOCKER_NETWORK:-RenaceNet}"
   else
-    warn "Evolution no responde en ${EVOLUTION_API_URL} (HTTP $EVO_CODE) — el QR de WhatsApp fallará"
+    EVO_CODE=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 "${EVOLUTION_API_URL%/}/" 2>/dev/null || echo "000")
+    if [[ "$EVO_CODE" == "200" ]] || [[ "$EVO_CODE" == "401" ]]; then
+      ok "Evolution alcanzable desde el host (HTTP $EVO_CODE)"
+    else
+      warn "Evolution no responde en ${EVOLUTION_API_URL} (HTTP $EVO_CODE) — el QR de WhatsApp fallará"
+    fi
   fi
 else
   warn "WhatsApp Evolution: no configurado (solo email/push)"
@@ -125,6 +130,16 @@ fi
 
 echo "Levantando/actualizando contenedores (sin down)..."
 docker-compose up -d
+
+# Re-attach Evolution network if compose external net missing / connect leftover
+EVO_NET="${EVOLUTION_DOCKER_NETWORK:-RenaceNet}"
+if docker network inspect "$EVO_NET" >/dev/null 2>&1; then
+  docker network connect "$EVO_NET" presta_pro-api-1 2>/dev/null \
+    && ok "api unido a red Evolution ($EVO_NET)" \
+    || ok "api ya estaba en red Evolution ($EVO_NET)"
+else
+  warn "Red Docker '$EVO_NET' no existe — WhatsApp interno no funcionará"
+fi
 
 echo "Esperando que los servicios arranquen..."
 sleep 8
