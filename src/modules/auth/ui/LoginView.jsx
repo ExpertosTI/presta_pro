@@ -2,16 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
-import { Shield, Lock, User, CheckCircle, Mail, Briefcase, RefreshCw, MessageCircle } from 'lucide-react';
+import { Shield, Lock, User, CheckCircle, Mail, Briefcase, RefreshCw, MessageCircle, Copy, X } from 'lucide-react';
 import { jwtDecode } from "jwt-decode";
 import logo from '../../../../logo-small.svg';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'https://prestanace.renace.tech/api').replace(/\/$/, '');
-const PLATFORM_WA = (import.meta.env.VITE_PLATFORM_WHATSAPP || '').replace(/\D/g, '');
+const PLATFORM_WA = (import.meta.env.VITE_PLATFORM_WHATSAPP || '184994577463').replace(/\D/g, '');
+const WA_MSG = 'REGISTRO';
+
+function formatWaDisplay(digits) {
+    const d = String(digits || '');
+    if (d.length === 11 && d.startsWith('1')) return `+${d.slice(0, 1)} ${d.slice(1, 4)} ${d.slice(4, 7)}-${d.slice(7)}`;
+    if (d.length >= 10) return `+${d}`;
+    return d;
+}
 
 export function LoginView({ onLogin }) {
     const [isRegistering, setIsRegistering] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [showWaGuide, setShowWaGuide] = useState(false);
+    const [copyHint, setCopyHint] = useState('');
 
     // Login State
     const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -35,6 +45,26 @@ export function LoginView({ onLogin }) {
     const [expiredTenantName, setExpiredTenantName] = useState('');
     const [resendLoading, setResendLoading] = useState(false);
     const [resendSuccess, setResendSuccess] = useState(false);
+
+    const copyText = async (text, label) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopyHint(label);
+            setTimeout(() => setCopyHint(''), 2000);
+        } catch {
+            setCopyHint('No se pudo copiar');
+            setTimeout(() => setCopyHint(''), 2000);
+        }
+    };
+
+    /** En app nativa abre WhatsApp directo; en web solo muestra la guía (sin wa.me). */
+    const openWhatsAppRegister = () => {
+        if (Capacitor.isNativePlatform() && PLATFORM_WA) {
+            window.location.href = `whatsapp://send?phone=${PLATFORM_WA}&text=${encodeURIComponent(WA_MSG)}`;
+            return;
+        }
+        setShowWaGuide(true);
+    };
 
     useEffect(() => {
         if (Capacitor.isNativePlatform()) {
@@ -394,16 +424,15 @@ export function LoginView({ onLogin }) {
                                     {waSignupToken ? 'Completar registro WhatsApp' : 'Crear Nueva Cuenta'}
                                 </h3>
 
-                                {!waSignupToken && PLATFORM_WA && (
-                                    <a
-                                        href={`https://wa.me/${PLATFORM_WA}?text=${encodeURIComponent('REGISTRO')}`}
-                                        target="_blank"
-                                        rel="noreferrer"
+                                {!waSignupToken && (
+                                    <button
+                                        type="button"
+                                        onClick={openWhatsAppRegister}
                                         className="flex items-center justify-center gap-2 w-full py-3 mb-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold text-sm min-h-[48px] touch-manipulation"
                                     >
                                         <MessageCircle size={18} />
                                         Registrarme por WhatsApp
-                                    </a>
+                                    </button>
                                 )}
 
                                 {/* Google Sign Up Button */}
@@ -623,17 +652,14 @@ export function LoginView({ onLogin }) {
 
                             <div className="text-center pt-4 border-t border-slate-800 mt-4 space-y-2">
                                 <p className="text-slate-400 text-sm mb-2">¿Nuevo en Presta Pro?</p>
-                                {(PLATFORM_WA || true) && (
-                                    <a
-                                        href={`https://wa.me/${PLATFORM_WA || '184994577463'}?text=${encodeURIComponent('REGISTRO')}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="flex items-center justify-center gap-2 w-full py-2.5 mb-1 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-medium text-sm min-h-[44px] touch-manipulation"
-                                    >
-                                        <MessageCircle size={16} />
-                                        Registrarme por WhatsApp
-                                    </a>
-                                )}
+                                <button
+                                    type="button"
+                                    onClick={openWhatsAppRegister}
+                                    className="flex items-center justify-center gap-2 w-full py-2.5 mb-1 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-medium text-sm min-h-[44px] touch-manipulation"
+                                >
+                                    <MessageCircle size={16} />
+                                    Registrarme por WhatsApp
+                                </button>
                                 <button
                                     type="button"
                                     onClick={() => setIsRegistering(true)}
@@ -641,6 +667,76 @@ export function LoginView({ onLogin }) {
                                 >
                                     Crear Cuenta Gratis
                                 </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {showWaGuide && (
+                        <div
+                            data-modal-sheet
+                            className="fixed inset-0 z-[80] bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+                            onClick={(e) => { if (e.target === e.currentTarget) setShowWaGuide(false); }}
+                        >
+                            <div className="w-full sm:max-w-md bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[min(90dvh,100%)]">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 flex-shrink-0">
+                                    <h3 className="text-white font-bold text-base">Registro por WhatsApp</h3>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowWaGuide(false)}
+                                        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-white touch-manipulation"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                <div className="p-4 space-y-3 overflow-y-auto text-sm text-slate-300">
+                                    <p>
+                                        No hace falta abrir la web de WhatsApp desde aquí. Escribe desde tu teléfono:
+                                    </p>
+                                    <ol className="list-decimal list-inside space-y-2 text-slate-200">
+                                        <li>Abre WhatsApp en tu celular</li>
+                                        <li>Envía el mensaje <strong className="text-white">{WA_MSG}</strong> al número de Presta Pro</li>
+                                        <li>El bot te pedirá datos de tu empresa y te enviará un enlace para terminar (slug y contraseña)</li>
+                                    </ol>
+                                    <div className="rounded-xl bg-slate-800/80 border border-slate-700 p-3 space-y-2">
+                                        <p className="text-xs text-slate-400 uppercase tracking-wide font-bold">Número</p>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="font-mono text-white text-base">{formatWaDisplay(PLATFORM_WA)}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => copyText(PLATFORM_WA, 'Número copiado')}
+                                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-700 text-white text-xs font-semibold min-h-[40px] touch-manipulation"
+                                            >
+                                                <Copy size={14} /> Copiar
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-slate-400 uppercase tracking-wide font-bold pt-1">Mensaje</p>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="font-mono text-emerald-300 text-base">{WA_MSG}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => copyText(WA_MSG, 'Mensaje copiado')}
+                                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-700 text-white text-xs font-semibold min-h-[40px] touch-manipulation"
+                                            >
+                                                <Copy size={14} /> Copiar
+                                            </button>
+                                        </div>
+                                        {copyHint && (
+                                            <p className="text-xs text-emerald-400">{copyHint}</p>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-slate-500">
+                                        También puedes usar <strong className="text-slate-300">Crear Cuenta Gratis</strong> y registrarte sin WhatsApp.
+                                    </p>
+                                </div>
+                                <div className="p-4 border-t border-slate-700 flex-shrink-0 safe-area-bottom">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowWaGuide(false)}
+                                        className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold min-h-[48px] touch-manipulation"
+                                    >
+                                        Entendido
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
