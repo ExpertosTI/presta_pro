@@ -592,6 +592,156 @@ app.post('/api/tenants/register-from-whatsapp', registerLimiter, async (req, res
   }
 });
 
+const otpSendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  message: { error: 'Demasiados códigos. Espera unos minutos.' },
+});
+
+// Enviar código OTP por WhatsApp (registro empresa — no abre WhatsApp Web)
+app.post('/api/tenants/whatsapp-otp/send', otpSendLimiter, async (req, res) => {
+  try {
+    const { sendSignupOtp } = require('./services/whatsappOtpService');
+    const result = await sendSignupOtp(req.body?.phone);
+    if (!result.ok) return res.status(400).json({ error: result.error });
+    return res.json({
+      success: true,
+      maskedPhone: result.maskedPhone,
+      expiresAt: result.expiresAt,
+    });
+  } catch (err) {
+    console.error('[wa-otp] send', err);
+    return res.status(500).json({ error: 'Error al enviar código' });
+  }
+});
+
+app.post('/api/tenants/whatsapp-otp/verify', otpSendLimiter, async (req, res) => {
+  try {
+    const { verifySignupOtp } = require('./services/whatsappOtpService');
+    const result = await verifySignupOtp(req.body?.phone, req.body?.code);
+    if (!result.ok) return res.status(400).json({ error: result.error });
+    return res.json({
+      success: true,
+      verifyToken: result.verifyToken,
+      phone: result.phone,
+    });
+  } catch (err) {
+    console.error('[wa-otp] verify', err);
+    return res.status(500).json({ error: 'Error al verificar código' });
+  }
+});
+
+// Registro completo tras OTP WhatsApp verificado
+app.post('/api/tenants/register-with-whatsapp-otp', registerLimiter, async (req, res) => {
+  const {
+    tenantName,
+    tenantSlug,
+    adminEmail,
+    adminPassword,
+    contactName,
+    phone,
+    whatsappVerifyToken,
+  } = req.body || {};
+
+  if (!tenantName || !tenantSlug || !adminEmail || !adminPassword || !phone || !whatsappVerifyToken) {
+    return res.status(400).json({ error: 'Faltan campos o verificación WhatsApp' });
+  }
+  if (!validateEmail(adminEmail)) {
+    return res.status(400).json({ error: 'Formato de correo electrónico inválido' });
+  }
+  const passwordValidation = validatePassword(adminPassword);
+  if (!passwordValidation.valid) {
+    return res.status(400).json({
+      error: 'Contraseña no cumple los requisitos de seguridad',
+      details: passwordValidation.errors,
+    });
+  }
+  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  if (!slugRegex.test(tenantSlug) || tenantSlug.length < 3 || tenantSlug.length > 50) {
+    return res.status(400).json({ error: 'El slug debe ser alfanumérico, en minúsculas, entre 3-50 caracteres' });
+  }
+
+  try {
+    const { consumeVerifyToken } = require('./services/whatsappOtpService');
+    const wa = await consumeVerifyToken(phone, whatsappVerifyToken);
+    if (!wa.ok) return res.status(400).json({ error: wa.error });
+
+    const existingUser = await prisma.user.findUnique({ where: { email: adminEmail } });
+    if (existingUser) return res.status(409).json({ error: 'El correo ya está registrado' });
+    const existingSlug = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+    if (existingSlug) return res.status(409).json({ error: 'Ese slug ya está en uso' });
+
+    const bcryptRounds = IS_PRODUCTION ? 12 : 10;
+    const passwordHash = await bcrypt.hash(adminPassword, bcryptRounds);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const tenant = await prisma.tenant.create({
+      data: {
+        name: tenantName,
+        slug: tenantSlug,
+        isVerified: false,
+        verificationToken,
+        verificationExpiresAt,
+        settings: {
+          signupSource: 'whatsapp_otp',
+          companyWhatsApp: wa.phone,
+          whatsappVerifiedAt: new Date().toISOString(),
+        },
+        users: {
+          create: {
+            email: adminEmail,
+            passwordHash,
+            name: contactName || 'Administrador',
+            role: 'OWNER',
+          },
+        },
+      },
+      include: { users: true },
+    });
+
+    const adminUser = tenant.users[0];
+    const jwtToken = jwt.sign(
+      { userId: adminUser.id, tenantId: tenant.id, role: adminUser.role },
+      JWT_SECRET,
+      { expiresIn: '12h' },
+    );
+
+    if (mailer) {
+      const verifyUrlBase = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+      const verifyUrl = `${verifyUrlBase.replace(/\/$/, '')}/api/tenants/verify?token=${verificationToken}`;
+      try {
+        await mailer.sendMail({
+          from: getFromAddress(BRAND_NAME),
+          to: adminEmail,
+          subject: `Activa tu cuenta de ${tenantName} - ${BRAND_NAME}`,
+          text: `Hola,\n\nActiva tu cuenta:\n${verifyUrl}\n`,
+          html: getVerificationEmail(tenantName, verifyUrl),
+        });
+      } catch (err) {
+        console.error('❌ MAIL_VERIFY_OTP_ERROR', err.message);
+      }
+    }
+
+    return res.json({
+      success: true,
+      requiresVerification: true,
+      token: jwtToken,
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        isVerified: tenant.isVerified,
+        verificationExpiresAt: tenant.verificationExpiresAt,
+      },
+      user: { id: adminUser.id, email: adminUser.email, name: adminUser.name, role: adminUser.role },
+    });
+  } catch (err) {
+    console.error('TENANT_REGISTER_OTP_ERROR', err);
+    return res.status(500).json({ error: 'Error al registrar la empresa' });
+  }
+});
+
 app.post('/api/tenants/resend-verification', authMiddleware, async (req, res) => {
   try {
     if (!mailer) {

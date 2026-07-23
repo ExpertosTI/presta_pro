@@ -652,3 +652,18 @@ model TenantSignupLead {
   @@index([completionToken])
 }
 
+/// OTP enviado por WhatsApp (registro de empresa) — sin abrir WhatsApp Web
+model WhatsAppOtp {
+  id            String    @id @default(cuid())
+  phone         String
+  purpose       String    @default("tenant_signup")
+  codeHash      String
+  verifyToken   String?   @unique
+  attempts      Int       @default(0)
+  expiresAt     DateTime
+  verifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([phone, purpose])
+}
+

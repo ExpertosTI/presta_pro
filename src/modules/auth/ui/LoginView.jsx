@@ -2,26 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
-import { Shield, Lock, User, CheckCircle, Mail, Briefcase, RefreshCw, MessageCircle, Copy, X } from 'lucide-react';
+import { Shield, Lock, User, CheckCircle, Mail, Briefcase, RefreshCw, MessageCircle, X } from 'lucide-react';
 import { jwtDecode } from "jwt-decode";
 import logo from '../../../../logo-small.svg';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'https://prestanace.renace.tech/api').replace(/\/$/, '');
-const PLATFORM_WA = (import.meta.env.VITE_PLATFORM_WHATSAPP || '184994577463').replace(/\D/g, '');
-const WA_MSG = 'REGISTRO';
-
-function formatWaDisplay(digits) {
-    const d = String(digits || '');
-    if (d.length === 11 && d.startsWith('1')) return `+${d.slice(0, 1)} ${d.slice(1, 4)} ${d.slice(4, 7)}-${d.slice(7)}`;
-    if (d.length >= 10) return `+${d}`;
-    return d;
-}
 
 export function LoginView({ onLogin }) {
     const [isRegistering, setIsRegistering] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [showWaGuide, setShowWaGuide] = useState(false);
-    const [copyHint, setCopyHint] = useState('');
+    const [showWaRegister, setShowWaRegister] = useState(false);
+    const [waStep, setWaStep] = useState('form'); // form | otp | done
+    const [waForm, setWaForm] = useState({
+        companyName: '',
+        name: '',
+        email: '',
+        phone: '',
+        slug: '',
+        password: '',
+        code: '',
+    });
+    const [waVerifyToken, setWaVerifyToken] = useState('');
+    const [otpSending, setOtpSending] = useState(false);
 
     // Login State
     const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -46,24 +48,91 @@ export function LoginView({ onLogin }) {
     const [resendLoading, setResendLoading] = useState(false);
     const [resendSuccess, setResendSuccess] = useState(false);
 
-    const copyText = async (text, label) => {
+    const openWhatsAppRegister = () => {
+        setError('');
+        setSuccessMsg('');
+        setWaStep('form');
+        setWaVerifyToken('');
+        setWaForm({
+            companyName: '',
+            name: '',
+            email: '',
+            phone: '',
+            slug: '',
+            password: '',
+            code: '',
+        });
+        setShowWaRegister(true);
+    };
+
+    const sendWaOtp = async () => {
+        setOtpSending(true);
+        setError('');
         try {
-            await navigator.clipboard.writeText(text);
-            setCopyHint(label);
-            setTimeout(() => setCopyHint(''), 2000);
-        } catch {
-            setCopyHint('No se pudo copiar');
-            setTimeout(() => setCopyHint(''), 2000);
+            const res = await fetch(`${API_BASE}/tenants/whatsapp-otp/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: waForm.phone }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'No se pudo enviar el código');
+            setWaStep('otp');
+            setSuccessMsg(`Código enviado por WhatsApp al número …${String(waForm.phone).replace(/\D/g, '').slice(-4)}`);
+        } catch (err) {
+            setError(err.message || 'Error al enviar código');
+        } finally {
+            setOtpSending(false);
         }
     };
 
-    /** En app nativa abre WhatsApp directo; en web solo muestra la guía (sin wa.me). */
-    const openWhatsAppRegister = () => {
-        if (Capacitor.isNativePlatform() && PLATFORM_WA) {
-            window.location.href = `whatsapp://send?phone=${PLATFORM_WA}&text=${encodeURIComponent(WA_MSG)}`;
-            return;
+    const verifyWaOtp = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await fetch(`${API_BASE}/tenants/whatsapp-otp/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: waForm.phone, code: waForm.code }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Código incorrecto');
+            setWaVerifyToken(data.verifyToken);
+            setSuccessMsg('WhatsApp verificado. Creando tu cuenta…');
+
+            const slug = (waForm.slug || waForm.companyName)
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+
+            const reg = await fetch(`${API_BASE}/tenants/register-with-whatsapp-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tenantName: waForm.companyName,
+                    tenantSlug: slug,
+                    adminEmail: waForm.email,
+                    adminPassword: waForm.password,
+                    contactName: waForm.name,
+                    phone: waForm.phone,
+                    whatsappVerifyToken: data.verifyToken,
+                }),
+            });
+            const regData = await reg.json();
+            if (!reg.ok) throw new Error(regData.error || 'Error al registrar');
+
+            setWaStep('done');
+            setSuccessMsg('¡Cuenta creada! Revisa tu correo para activarla.');
+            setTimeout(() => {
+                setShowWaRegister(false);
+                setCredentials({ username: waForm.email, password: waForm.password });
+                setSuccessMsg('Cuenta lista. Inicia sesión cuando verifiques el correo.');
+            }, 2200);
+        } catch (err) {
+            setError(err.message || 'Error en verificación');
+        } finally {
+            setLoading(false);
         }
-        setShowWaGuide(true);
     };
 
     useEffect(() => {
@@ -671,71 +740,158 @@ export function LoginView({ onLogin }) {
                         </div>
                     )}
 
-                    {showWaGuide && (
+                    {showWaRegister && (
                         <div
                             data-modal-sheet
                             className="fixed inset-0 z-[80] bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
-                            onClick={(e) => { if (e.target === e.currentTarget) setShowWaGuide(false); }}
+                            onClick={(e) => { if (e.target === e.currentTarget) setShowWaRegister(false); }}
                         >
-                            <div className="w-full sm:max-w-md bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[min(90dvh,100%)]">
+                            <div className="w-full sm:max-w-md bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[min(92dvh,100%)]">
                                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 flex-shrink-0">
-                                    <h3 className="text-white font-bold text-base">Registro por WhatsApp</h3>
+                                    <h3 className="text-white font-bold text-base">
+                                        {waStep === 'otp' ? 'Código WhatsApp' : 'Registro con WhatsApp'}
+                                    </h3>
                                     <button
                                         type="button"
-                                        onClick={() => setShowWaGuide(false)}
+                                        onClick={() => setShowWaRegister(false)}
                                         className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-white touch-manipulation"
                                     >
                                         <X size={20} />
                                     </button>
                                 </div>
-                                <div className="p-4 space-y-3 overflow-y-auto text-sm text-slate-300">
-                                    <p>
-                                        No hace falta abrir la web de WhatsApp desde aquí. Escribe desde tu teléfono:
+
+                                <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3">
+                                    <p className="text-xs text-slate-400">
+                                        Completa tus datos aquí. Te enviamos un código por WhatsApp — no hace falta abrir WhatsApp Web.
                                     </p>
-                                    <ol className="list-decimal list-inside space-y-2 text-slate-200">
-                                        <li>Abre WhatsApp en tu celular</li>
-                                        <li>Envía el mensaje <strong className="text-white">{WA_MSG}</strong> al número de Presta Pro</li>
-                                        <li>El bot te pedirá datos de tu empresa y te enviará un enlace para terminar (slug y contraseña)</li>
-                                    </ol>
-                                    <div className="rounded-xl bg-slate-800/80 border border-slate-700 p-3 space-y-2">
-                                        <p className="text-xs text-slate-400 uppercase tracking-wide font-bold">Número</p>
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="font-mono text-white text-base">{formatWaDisplay(PLATFORM_WA)}</span>
+
+                                    {successMsg && (
+                                        <div className="p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-xs">
+                                            {successMsg}
+                                        </div>
+                                    )}
+                                    {error && showWaRegister && (
+                                        <div className="p-2.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-200 text-xs">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    {waStep === 'form' && (
+                                        <div className="space-y-3">
+                                            <input
+                                                type="text"
+                                                placeholder="Nombre de la empresa"
+                                                className="w-full px-3 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm min-h-[48px]"
+                                                value={waForm.companyName}
+                                                onChange={(e) => setWaForm({ ...waForm, companyName: e.target.value })}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Tu nombre"
+                                                className="w-full px-3 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm min-h-[48px]"
+                                                value={waForm.name}
+                                                onChange={(e) => setWaForm({ ...waForm, name: e.target.value })}
+                                            />
+                                            <input
+                                                type="email"
+                                                placeholder="Correo del administrador"
+                                                className="w-full px-3 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm min-h-[48px]"
+                                                value={waForm.email}
+                                                onChange={(e) => setWaForm({ ...waForm, email: e.target.value })}
+                                            />
+                                            <input
+                                                type="tel"
+                                                placeholder="WhatsApp (ej. 1849xxxxxxx)"
+                                                className="w-full px-3 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm min-h-[48px]"
+                                                value={waForm.phone}
+                                                onChange={(e) => setWaForm({ ...waForm, phone: e.target.value })}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Slug (ej. mi-financiera)"
+                                                className="w-full px-3 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm min-h-[48px]"
+                                                value={waForm.slug}
+                                                onChange={(e) => setWaForm({
+                                                    ...waForm,
+                                                    slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+                                                })}
+                                            />
+                                            <input
+                                                type="password"
+                                                placeholder="Contraseña"
+                                                minLength={6}
+                                                className="w-full px-3 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm min-h-[48px]"
+                                                value={waForm.password}
+                                                onChange={(e) => setWaForm({ ...waForm, password: e.target.value })}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {waStep === 'otp' && (
+                                        <div className="space-y-3">
+                                            <p className="text-sm text-slate-300">
+                                                Revisa WhatsApp en tu teléfono e ingresa el código de 6 dígitos.
+                                            </p>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={6}
+                                                placeholder="••••••"
+                                                className="w-full px-3 py-4 rounded-xl bg-slate-800 border border-slate-700 text-white text-2xl font-mono tracking-[0.4em] text-center min-h-[56px]"
+                                                value={waForm.code}
+                                                onChange={(e) => setWaForm({
+                                                    ...waForm,
+                                                    code: e.target.value.replace(/\D/g, '').slice(0, 6),
+                                                })}
+                                            />
                                             <button
                                                 type="button"
-                                                onClick={() => copyText(PLATFORM_WA, 'Número copiado')}
-                                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-700 text-white text-xs font-semibold min-h-[40px] touch-manipulation"
+                                                disabled={otpSending}
+                                                onClick={sendWaOtp}
+                                                className="text-xs text-blue-400 hover:underline disabled:opacity-50"
                                             >
-                                                <Copy size={14} /> Copiar
+                                                Reenviar código
                                             </button>
                                         </div>
-                                        <p className="text-xs text-slate-400 uppercase tracking-wide font-bold pt-1">Mensaje</p>
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="font-mono text-emerald-300 text-base">{WA_MSG}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => copyText(WA_MSG, 'Mensaje copiado')}
-                                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-700 text-white text-xs font-semibold min-h-[40px] touch-manipulation"
-                                            >
-                                                <Copy size={14} /> Copiar
-                                            </button>
-                                        </div>
-                                        {copyHint && (
-                                            <p className="text-xs text-emerald-400">{copyHint}</p>
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-slate-500">
-                                        También puedes usar <strong className="text-slate-300">Crear Cuenta Gratis</strong> y registrarte sin WhatsApp.
-                                    </p>
+                                    )}
+
+                                    {waStep === 'done' && (
+                                        <p className="text-sm text-emerald-300 text-center py-6">
+                                            Cuenta creada. Revisa tu correo para activarla.
+                                        </p>
+                                    )}
                                 </div>
-                                <div className="p-4 border-t border-slate-700 flex-shrink-0 safe-area-bottom">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowWaGuide(false)}
-                                        className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold min-h-[48px] touch-manipulation"
-                                    >
-                                        Entendido
-                                    </button>
+
+                                <div className="p-4 border-t border-slate-700 flex-shrink-0 safe-area-bottom space-y-2">
+                                    {waStep === 'form' && (
+                                        <button
+                                            type="button"
+                                            disabled={otpSending || !waForm.companyName || !waForm.email || !waForm.phone || !waForm.password}
+                                            onClick={sendWaOtp}
+                                            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold min-h-[48px] touch-manipulation"
+                                        >
+                                            {otpSending ? 'Enviando código…' : 'Enviar código por WhatsApp'}
+                                        </button>
+                                    )}
+                                    {waStep === 'otp' && (
+                                        <button
+                                            type="button"
+                                            disabled={loading || waForm.code.length !== 6}
+                                            onClick={verifyWaOtp}
+                                            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold min-h-[48px] touch-manipulation"
+                                        >
+                                            {loading ? 'Verificando…' : 'Verificar y crear cuenta'}
+                                        </button>
+                                    )}
+                                    {waStep === 'otp' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setWaStep('form'); setError(''); }}
+                                            className="w-full py-2.5 text-sm text-slate-400 hover:text-white min-h-[44px]"
+                                        >
+                                            ← Volver a datos
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
